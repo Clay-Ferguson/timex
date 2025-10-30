@@ -117,7 +117,7 @@ export function findHashtagsInContent(content: string): Set<string> {
 /**
  * Interface representing a numbered file or folder
  */
-interface NumberedItem {
+export interface NumberedItem {
 	originalName: string;
 	nameWithoutPrefix: string;
 	isDirectory: boolean;
@@ -304,4 +304,14 @@ export function generateNextOrdinalFilename(selectedFilePath: string): { filenam
 		filename: newFilename,
 		fullPath: newFullPath
 	};
+}
+
+/**
+ * Strips the ordinal prefix (e.g., "00010_") from a filename if present.
+ * @param fileName The filename to process
+ * @returns The filename without ordinal prefix
+ */
+export function stripOrdinalPrefix(fileName: string): string {
+	const match = fileName.match(NUMBERED_ITEM_REGEX);
+	return match ? match[2] : fileName;
 }

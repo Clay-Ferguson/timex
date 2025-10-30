@@ -113,6 +113,7 @@ export class TaskProvider implements vscode.TreeDataProvider<TaskFileItem> {
 	private cachedPrimaryHashtag: string | null = null; // Cache for primary hashtag
 	private currentPrimaryHashtag: string | null = null; // Runtime override for primary hashtag
 	private context: vscode.ExtensionContext;
+	private cutIndicator: string | null = null; // Track ordinal cut indicator message
 
 	constructor(context: vscode.ExtensionContext) {
 		this.context = context;
@@ -207,6 +208,17 @@ export class TaskProvider implements vscode.TreeDataProvider<TaskFileItem> {
 	setTreeView(treeView: vscode.TreeView<TaskFileItem>): void {
 		this.treeView = treeView;
 		this.updateTreeViewTitle(); // Set initial title
+		this.updateTreeViewMessage();
+	}
+
+	setCutIndicator(displayName: string | null): void {
+		this.cutIndicator = displayName;
+		this.updateTreeViewMessage();
+	}
+
+	clearCutIndicator(): void {
+		this.cutIndicator = null;
+		this.updateTreeViewMessage();
 	}
 
 	// Getter methods for current filter states
@@ -497,6 +509,18 @@ export class TaskProvider implements vscode.TreeDataProvider<TaskFileItem> {
 				this.treeView.title = '';
 			}
 			console.log(`Updated tree view title [${this.treeView.title}]`);
+		}
+	}
+
+	private updateTreeViewMessage(): void {
+		if (!this.treeView) {
+			return;
+		}
+
+		if (this.cutIndicator && this.cutIndicator.trim().length > 0) {
+			this.treeView.message = `✂️ Cut: ${this.cutIndicator}`;
+		} else {
+			this.treeView.message = undefined;
 		}
 	}
 

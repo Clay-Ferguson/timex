@@ -205,11 +205,11 @@ Access this feature by **right-clicking in the VS Code file explorer** and selec
 
 ### Insert File Feature
 
-For rapid file creation within your ordinal sequence, use the **"Ordinal: Insert File"** feature.
+For rapid file creation within your ordinal sequence, use the **"Timex: Insert File"** feature.
 
 #### How to Use
 1. **Right-click on any ordinal file** (e.g., `00020_requirements.md`)
-2. Select **"Ordinal: Insert File"** from the context menu
+2. Select **"Timex: Insert File"** from the context menu
 3. A new file is automatically created with the next ordinal number: `00021_new.md`
 4. The new file opens immediately in the editor, ready for editing
 

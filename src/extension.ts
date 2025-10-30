@@ -4,7 +4,17 @@ import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
 import { TaskProvider } from './model';
-import { containsAnyConfiguredHashtag, getIncludeGlobPattern, scanForNumberedItems, renumberItems, verifyNamesAreUnique, generateNextOrdinalFilename } from './utils';
+import {
+	containsAnyConfiguredHashtag,
+	getIncludeGlobPattern,
+	scanForNumberedItems,
+	renumberItems,
+	verifyNamesAreUnique,
+	generateNextOrdinalFilename,
+	extractOrdinalFromFilename,
+	generateNumberPrefix,
+	stripOrdinalPrefix
+} from './utils';
 import { parseTimestamp, formatTimestamp, TIMESTAMP_REGEX } from './pure-utils';
 import { ViewFilter, PriorityTag, CompletionFilter } from './constants';
 
@@ -162,6 +172,23 @@ export function activate(context: vscode.ExtensionContext) {
 
 	// Set the tree view reference in the provider
 	taskProvider.setTreeView(treeView);
+	taskProvider.clearCutIndicator();
+	void vscode.commands.executeCommand('setContext', 'timex.hasOrdinalCutItem', false);
+
+	interface OrdinalClipboardItem {
+		sourcePath: string;
+		originalName: string;
+		nameWithoutPrefix: string;
+		isDirectory: boolean;
+	}
+
+	let ordinalClipboard: OrdinalClipboardItem | null = null;
+
+	const resetOrdinalClipboard = () => {
+		ordinalClipboard = null;
+		taskProvider.clearCutIndicator();
+		void vscode.commands.executeCommand('setContext', 'timex.hasOrdinalCutItem', false);
+	};
 
 	// Set up file watcher for automatic updates
 	setupFileWatcher(context, taskProvider);
@@ -689,6 +716,145 @@ export function activate(context: vscode.ExtensionContext) {
 		}
 	});
 
+	const cutByOrdinalCommand = vscode.commands.registerCommand('timex.cutByOrdinal', async (uri: vscode.Uri) => {
+		if (!uri) {
+			vscode.window.showErrorMessage('No file or folder selected');
+			return;
+		}
+
+		const filePath = uri.fsPath;
+
+		try {
+			const stats = await fs.promises.lstat(filePath);
+			const baseName = path.basename(filePath);
+			const nameWithoutPrefix = stripOrdinalPrefix(baseName);
+
+			ordinalClipboard = {
+				sourcePath: filePath,
+				originalName: baseName,
+				nameWithoutPrefix,
+				isDirectory: stats.isDirectory()
+			};
+
+			taskProvider.setCutIndicator(baseName);
+			void vscode.commands.executeCommand('setContext', 'timex.hasOrdinalCutItem', true);
+			vscode.window.showInformationMessage(`Cut ready: ${baseName}`);
+		} catch (error: any) {
+			const message = error instanceof Error ? error.message : String(error);
+			vscode.window.showErrorMessage(`Failed to cut item: ${message}`);
+			resetOrdinalClipboard();
+		}
+	});
+
+	const pasteByOrdinalCommand = vscode.commands.registerCommand('timex.pasteByOrdinal', async (uri: vscode.Uri) => {
+		if (!ordinalClipboard) {
+			vscode.window.showErrorMessage('Cut an ordinal item before pasting.');
+			return;
+		}
+
+		if (!uri) {
+			vscode.window.showErrorMessage('No destination selected');
+			return;
+		}
+
+		const targetPath = uri.fsPath;
+		const targetBaseName = path.basename(targetPath);
+		const targetOrdinal = extractOrdinalFromFilename(targetBaseName);
+
+		if (targetOrdinal === null) {
+			vscode.window.showErrorMessage('Select a target that includes an ordinal prefix (e.g., "00020_filename").');
+			return;
+		}
+
+		const clipboardItem = ordinalClipboard;
+		const targetDirectory = path.dirname(targetPath);
+
+		try {
+			await fs.promises.lstat(clipboardItem.sourcePath);
+		} catch {
+			vscode.window.showErrorMessage('The original item can no longer be found.');
+			resetOrdinalClipboard();
+			return;
+		}
+
+		try {
+			await vscode.window.withProgress({
+				location: vscode.ProgressLocation.Notification,
+				title: 'Moving ordinal item',
+				cancellable: false
+			}, async (progress) => {
+				progress.report({ message: 'Preparing...' });
+
+				const performedRenames: Array<{ from: string; to: string }> = [];
+				const sourceDirectory = path.dirname(clipboardItem.sourcePath);
+				const uniqueSuffix = Math.random().toString(36).slice(2, 8);
+				const extension = clipboardItem.isDirectory ? '' : path.extname(clipboardItem.nameWithoutPrefix);
+				const tempName = `_timex_cut_${Date.now()}_${uniqueSuffix}${extension}`;
+				const tempPath = path.join(sourceDirectory, tempName);
+
+				let success = false;
+
+				try {
+					// Move the cut item to a temporary name so we can freely shift ordinals
+					await fs.promises.rename(clipboardItem.sourcePath, tempPath);
+					performedRenames.push({ from: tempPath, to: clipboardItem.sourcePath });
+
+					progress.report({ message: 'Shifting existing ordinals...' });
+					const numberedItems = scanForNumberedItems(targetDirectory);
+					const itemsToShift = numberedItems
+						.filter(item => {
+							const ordinal = extractOrdinalFromFilename(item.originalName);
+							return ordinal !== null && ordinal >= targetOrdinal;
+						})
+						.sort((a, b) => {
+							const aOrdinal = extractOrdinalFromFilename(a.originalName) ?? 0;
+							const bOrdinal = extractOrdinalFromFilename(b.originalName) ?? 0;
+							return bOrdinal - aOrdinal; // Rename from the bottom up to avoid collisions
+						});
+
+					for (const item of itemsToShift) {
+						const currentOrdinal = extractOrdinalFromFilename(item.originalName)!;
+						const newOrdinal = currentOrdinal + 10;
+						const newName = generateNumberPrefix(newOrdinal) + item.nameWithoutPrefix;
+						const newPath = path.join(targetDirectory, newName);
+
+						await fs.promises.rename(item.fullPath, newPath);
+						performedRenames.push({ from: newPath, to: item.fullPath });
+					}
+
+					progress.report({ message: 'Placing cut item...' });
+					const finalName = generateNumberPrefix(targetOrdinal) + clipboardItem.nameWithoutPrefix;
+					const finalPath = path.join(targetDirectory, finalName);
+
+					await fs.promises.rename(tempPath, finalPath);
+					success = true;
+				} catch (innerError) {
+					for (const op of performedRenames.reverse()) {
+						try {
+							await fs.promises.rename(op.from, op.to);
+						} catch (revertError) {
+							console.error('Failed to revert ordinal rename:', revertError);
+						}
+					}
+					throw innerError;
+				}
+
+				if (!success) {
+					throw new Error('Unable to finalize ordinal move.');
+				}
+			});
+
+			const destinationOrdinal = generateNumberPrefix(targetOrdinal).slice(0, -1);
+			const destinationName = `${generateNumberPrefix(targetOrdinal)}${clipboardItem.nameWithoutPrefix}`;
+			resetOrdinalClipboard();
+			taskProvider.refresh();
+			vscode.window.showInformationMessage(`Moved to ordinal ${destinationOrdinal}: ${destinationName}`);
+		} catch (error: any) {
+			const message = error instanceof Error ? error.message : String(error);
+			vscode.window.showErrorMessage(`Failed to paste ordinal item: ${message}`);
+		}
+	});
+
 	// Add to subscriptions
 	context.subscriptions.push(treeView);
 	context.subscriptions.push(insertTimestampCommand);
@@ -706,6 +872,8 @@ export function activate(context: vscode.ExtensionContext) {
 	context.subscriptions.push(deleteTaskCommand);
 	context.subscriptions.push(renumberFilesCommand);
 	context.subscriptions.push(insertOrdinalFileCommand);
+	context.subscriptions.push(cutByOrdinalCommand);
+	context.subscriptions.push(pasteByOrdinalCommand);
 }
 
 // This method is called when your extension is deactivated

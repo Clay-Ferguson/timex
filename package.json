@@ -139,11 +139,21 @@
       },
       {
         "command": "timex.renumberFiles",
-        "title": "Ordinal: Re-Number Files"
+        "title": "Timex: Re-Number Files"
       },
       {
         "command": "timex.insertOrdinalFile",
-        "title": "Ordinal: Insert File"
+        "title": "Timex: Insert File"
+      },
+      {
+        "command": "timex.cutByOrdinal",
+        "title": "Timex: Cut by Ordinal",
+        "icon": "$(cut)"
+      },
+      {
+        "command": "timex.pasteByOrdinal",
+        "title": "Timex: Paste by Ordinal",
+        "icon": "$(paste)"
       }
     ],
     "views": {
@@ -272,6 +282,12 @@
           "command": "timex.insertOrdinalFile"
         },
         {
+          "command": "timex.cutByOrdinal"
+        },
+        {
+          "command": "timex.pasteByOrdinal"
+        },
+        {
           "command": "timex.about"
         },
         {
@@ -293,6 +309,18 @@
           "command": "timex.insertOrdinalFile",
           "group": "7_modification",
           "when": "resourceFilename =~ /^\\d+_.+/"
+        },
+        {
+          "command": "timex.cutByOrdinal",
+          "group": "7_modification",
+          "when": "resourceScheme == 'file'",
+          "icon": "$(cut)"
+        },
+        {
+          "command": "timex.pasteByOrdinal",
+          "group": "7_modification",
+          "when": "timex.hasOrdinalCutItem && resourceScheme == 'file' && resourceFilename =~ /^\\d+_.+/",
+          "icon": "$(paste)"
         }
       ]
     }
