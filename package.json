@@ -154,6 +154,23 @@
         "command": "timex.pasteByOrdinal",
         "title": "Timex: Paste by Ordinal",
         "icon": "$(paste)"
+      },
+      {
+        "command": "timex.moveOrdinalUp",
+        "title": "Timex: Move Up",
+        "icon": "$(arrow-up)"
+      },
+      {
+        "command": "timex.moveOrdinalDown",
+        "title": "Timex: Move Down",
+        "icon": "$(arrow-down)"
+      }
+    ],
+    "submenus": [
+      {
+        "id": "timex.explorerOrdinal",
+        "label": "Timex",
+        "icon": "$(list-unordered)"
       }
     ],
     "views": {
@@ -302,25 +319,47 @@
       ],
       "explorer/context": [
         {
+          "submenu": "timex.explorerOrdinal",
+          "group": "7_modification",
+          "when": "resourceScheme == 'file'",
+          "icon": "$(list-unordered)"
+        }
+      ],
+      "timex.explorerOrdinal": [
+        {
           "command": "timex.renumberFiles",
-          "group": "7_modification"
+          "group": "1_main@1",
+          "icon": "$(list-ordered)"
         },
         {
           "command": "timex.insertOrdinalFile",
-          "group": "7_modification",
-          "when": "resourceFilename =~ /^\\d+_.+/"
+          "group": "1_main@2",
+          "when": "resourceFilename =~ /^\\d+_.+/",
+          "icon": "$(add)"
         },
         {
           "command": "timex.cutByOrdinal",
-          "group": "7_modification",
+          "group": "2_clipboard@1",
           "when": "resourceScheme == 'file'",
           "icon": "$(cut)"
         },
         {
           "command": "timex.pasteByOrdinal",
-          "group": "7_modification",
+          "group": "2_clipboard@2",
           "when": "timex.hasOrdinalCutItem && resourceScheme == 'file' && resourceFilename =~ /^\\d+_.+/",
           "icon": "$(paste)"
+        },
+        {
+          "command": "timex.moveOrdinalUp",
+          "group": "3_move@1",
+          "when": "resourceScheme == 'file' && resourceFilename =~ /^\\d+_.+/",
+          "icon": "$(arrow-up)"
+        },
+        {
+          "command": "timex.moveOrdinalDown",
+          "group": "3_move@2",
+          "when": "resourceScheme == 'file' && resourceFilename =~ /^\\d+_.+/",
+          "icon": "$(arrow-down)"
         }
       ]
     }
