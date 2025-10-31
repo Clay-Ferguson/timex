@@ -19,6 +19,19 @@ import {
 import { parseTimestamp, formatTimestamp, TIMESTAMP_REGEX } from './pure-utils';
 import { ViewFilter, PriorityTag, CompletionFilter } from './constants';
 
+const IMAGE_EXTENSIONS = new Set<string>([
+	'.png',
+	'.jpg',
+	'.jpeg',
+	'.gif',
+	'.bmp',
+	'.svg',
+	'.webp',
+	'.tif',
+	'.tiff',
+	'.avif'
+]);
+
 /**
  * Sets up file system watcher for markdown files to automatically update task view
  */
@@ -703,6 +716,101 @@ export function activate(context: vscode.ExtensionContext) {
 		}
 	});
 
+	const generateMarkdownCommand = vscode.commands.registerCommand('timex.generateMarkdown', async (resource?: vscode.Uri | vscode.Uri[]) => {
+		if (!vscode.workspace.workspaceFolders || vscode.workspace.workspaceFolders.length === 0) {
+			vscode.window.showErrorMessage('No workspace folder found');
+			return;
+		}
+
+		const candidateUri = Array.isArray(resource) ? resource[0] : resource;
+		let targetDirectory: string;
+
+		if (candidateUri) {
+			try {
+				const stats = await fs.promises.lstat(candidateUri.fsPath);
+				targetDirectory = stats.isDirectory() ? candidateUri.fsPath : path.dirname(candidateUri.fsPath);
+			} catch (error: any) {
+				const message = error instanceof Error ? error.message : String(error);
+				vscode.window.showErrorMessage(`Unable to access selected path: ${message}`);
+				return;
+			}
+		} else {
+			targetDirectory = vscode.workspace.workspaceFolders[0].uri.fsPath;
+		}
+
+		const owningWorkspace = vscode.workspace.workspaceFolders.reduce<vscode.WorkspaceFolder | undefined>((current, folder) => {
+			if (!targetDirectory.startsWith(folder.uri.fsPath)) {
+				return current;
+			}
+			if (!current || folder.uri.fsPath.length > current.uri.fsPath.length) {
+				return folder;
+			}
+			return current;
+		}, undefined) ?? vscode.workspace.workspaceFolders[0];
+
+		const indexPath = path.join(targetDirectory, '_index.md');
+
+		try {
+			await vscode.window.withProgress({
+				location: vscode.ProgressLocation.Notification,
+				title: 'Generating Markdown Index',
+				cancellable: false
+			}, async (progress) => {
+				progress.report({ message: 'Scanning ordinal items...' });
+
+				let numberedItems: NumberedItem[];
+				try {
+					numberedItems = scanForNumberedItems(targetDirectory);
+				} catch (error: any) {
+					throw new Error(`Failed to scan folder: ${error instanceof Error ? error.message : String(error)}`);
+				}
+
+				const headingSource = path.basename(targetDirectory);
+				const headingLabel = headingSource ? (stripOrdinalPrefix(headingSource) || headingSource) : 'Index';
+				const sections: string[] = [`# ${headingLabel}`];
+
+				if (numberedItems.length === 0) {
+					sections.push('_No ordinal files found._');
+				} else {
+					let processedCount = 0;
+					for (const item of numberedItems) {
+						if (item.isDirectory) {
+							const folderLabel = stripOrdinalPrefix(item.originalName) || item.originalName;
+							const linkTarget = encodeURI(path.posix.join(item.originalName, '_index.md'));
+							sections.push(`[${folderLabel}](${linkTarget})`);
+							// TODO: Revisit once recursive generation is desired so we can call the command for the child folder here.
+						} else {
+							const extension = path.extname(item.originalName).toLowerCase();
+							if (IMAGE_EXTENSIONS.has(extension)) {
+								const strippedName = stripOrdinalPrefix(item.originalName) || item.originalName;
+								const altText = path.basename(strippedName, extension);
+								const encodedSource = encodeURI(item.originalName);
+								sections.push(`![${altText}](${encodedSource})`);
+							} else if (extension === '.md') {
+								const contents = await fs.promises.readFile(item.fullPath, 'utf8');
+								sections.push(contents.trimEnd());
+							}
+						}
+						processedCount++;
+						progress.report({ message: `Processed ${processedCount} of ${numberedItems.length} items...` });
+					}
+				}
+
+				const compiled = sections.join('\n\n').trimEnd() + '\n';
+				await fs.promises.writeFile(indexPath, compiled, 'utf8');
+			});
+
+			const document = await vscode.workspace.openTextDocument(vscode.Uri.file(indexPath));
+			await vscode.window.showTextDocument(document, { preview: false });
+
+			const relativeDir = path.relative(owningWorkspace.uri.fsPath, targetDirectory) || owningWorkspace.name;
+			vscode.window.showInformationMessage(`Generated _index.md in ${relativeDir}`);
+		} catch (error: any) {
+			const message = error instanceof Error ? error.message : String(error);
+			vscode.window.showErrorMessage(`Failed to generate markdown index: ${message}`);
+		}
+	});
+
 	const cutByOrdinalCommand = vscode.commands.registerCommand('timex.cutByOrdinal', async (uri: vscode.Uri) => {
 		if (!uri) {
 			vscode.window.showErrorMessage('No file or folder selected');
@@ -961,6 +1069,7 @@ export function activate(context: vscode.ExtensionContext) {
 	context.subscriptions.push(deleteTaskCommand);
 	context.subscriptions.push(renumberFilesCommand);
 	context.subscriptions.push(insertOrdinalFileCommand);
+	context.subscriptions.push(generateMarkdownCommand);
 	context.subscriptions.push(cutByOrdinalCommand);
 	context.subscriptions.push(pasteByOrdinalCommand);
 	context.subscriptions.push(moveOrdinalUpCommand);

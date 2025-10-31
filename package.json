@@ -146,6 +146,11 @@
         "title": "Timex: Insert File"
       },
       {
+        "command": "timex.generateMarkdown",
+        "title": "Generate Markdown",
+        "icon": "$(book)"
+      },
+      {
         "command": "timex.cutByOrdinal",
         "title": "Timex: Cut by Ordinal",
         "icon": "$(cut)"
@@ -299,6 +304,9 @@
           "command": "timex.insertOrdinalFile"
         },
         {
+          "command": "timex.generateMarkdown"
+        },
+        {
           "command": "timex.cutByOrdinal"
         },
         {
@@ -336,6 +344,11 @@
           "group": "1_main@2",
           "when": "resourceFilename =~ /^\\d+_.+/",
           "icon": "$(add)"
+        },
+        {
+          "command": "timex.generateMarkdown",
+          "group": "1_main@3",
+          "icon": "$(book)"
         },
         {
           "command": "timex.cutByOrdinal",
