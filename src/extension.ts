@@ -717,36 +717,16 @@ export function activate(context: vscode.ExtensionContext) {
 	});
 
 	const generateMarkdownCommand = vscode.commands.registerCommand('timex.generateMarkdown', async (resource?: vscode.Uri | vscode.Uri[]) => {
-		if (!vscode.workspace.workspaceFolders || vscode.workspace.workspaceFolders.length === 0) {
+		const workspaceFolders = vscode.workspace.workspaceFolders;
+		if (!workspaceFolders || workspaceFolders.length === 0) {
 			vscode.window.showErrorMessage('No workspace folder found');
 			return;
 		}
 
 		const candidateUri = Array.isArray(resource) ? resource[0] : resource;
-		let targetDirectory: string;
-
-		if (candidateUri) {
-			try {
-				const stats = await fs.promises.lstat(candidateUri.fsPath);
-				targetDirectory = stats.isDirectory() ? candidateUri.fsPath : path.dirname(candidateUri.fsPath);
-			} catch (error: any) {
-				const message = error instanceof Error ? error.message : String(error);
-				vscode.window.showErrorMessage(`Unable to access selected path: ${message}`);
-				return;
-			}
-		} else {
-			targetDirectory = vscode.workspace.workspaceFolders[0].uri.fsPath;
-		}
-
-		const owningWorkspace = vscode.workspace.workspaceFolders.reduce<vscode.WorkspaceFolder | undefined>((current, folder) => {
-			if (!targetDirectory.startsWith(folder.uri.fsPath)) {
-				return current;
-			}
-			if (!current || folder.uri.fsPath.length > current.uri.fsPath.length) {
-				return folder;
-			}
-			return current;
-		}, undefined) ?? vscode.workspace.workspaceFolders[0];
+		const workspace = candidateUri ? vscode.workspace.getWorkspaceFolder(candidateUri) ?? workspaceFolders[0] : workspaceFolders[0];
+		const targetDirectory = workspace.uri.fsPath;
+		const owningWorkspace = workspace;
 
 		const createdIndexes: string[] = [];
 
