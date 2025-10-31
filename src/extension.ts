@@ -765,9 +765,7 @@ export function activate(context: vscode.ExtensionContext) {
 				return false;
 			}
 
-			const headingSource = path.basename(directory);
-			const headingLabel = headingSource ? (stripOrdinalPrefix(headingSource) || headingSource) : 'Index';
-			const sections: string[] = [`# ${headingLabel}`];
+			const sections: string[] = [];
 			let addedContent = false;
 
 			for (const item of numberedItems) {
