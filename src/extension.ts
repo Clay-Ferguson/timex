@@ -32,6 +32,33 @@ const IMAGE_EXTENSIONS = new Set<string>([
 	'.avif'
 ]);
 
+async function getTitleFromFile(filePath: string): Promise<string | null> {
+	try {
+		const data = await fs.promises.readFile(filePath, 'utf8');
+		const lines = data.split(/\r?\n/);
+		for (const rawLine of lines) {
+			const line = rawLine.trim();
+			if (!line) {
+				continue;
+			}
+			let title = line.replace(/^\uFEFF/, '');
+			if (/^#+\s/.test(title)) {
+				title = title.replace(/^#+\s+/, '').trim();
+			}
+			if (!title) {
+				continue;
+			}
+			if (title.length > 60) {
+				title = title.slice(0, 60).trimEnd() + '...';
+			}
+			return title;
+		}
+	} catch (error) {
+		console.error(`Failed to extract title from ${filePath}:`, error);
+	}
+	return null;
+}
+
 /**
  * Sets up file system watcher for markdown files to automatically update task view
  */
@@ -752,9 +779,11 @@ export function activate(context: vscode.ExtensionContext) {
 				if (item.isDirectory) {
 					const childCreated = await generateMarkdownForDirectory(item.fullPath, progress);
 					if (childCreated) {
-						const folderLabel = stripOrdinalPrefix(item.originalName) || item.originalName;
+						const childIndexPath = path.join(item.fullPath, '_index.md');
+						const derivedTitle = await getTitleFromFile(childIndexPath);
+						const folderLabel = derivedTitle ?? (stripOrdinalPrefix(item.originalName) || item.originalName);
 						const linkTarget = encodeURI(path.posix.join(item.originalName, '_index.md'));
-						sections.push(`[${folderLabel}](${linkTarget})`);
+						sections.push(`# [${folderLabel}](${linkTarget})`);
 						addedContent = true;
 					}
 				} else {
