@@ -821,15 +821,10 @@ export function activate(context: vscode.ExtensionContext) {
 				return;
 			}
 
-			if (rootCreated) {
-				const rootIndexPath = path.join(targetDirectory, '_index.md');
-				const document = await vscode.workspace.openTextDocument(vscode.Uri.file(rootIndexPath));
-				await vscode.window.showTextDocument(document, { preview: false });
-			} else {
-				const firstIndex = createdIndexes[0];
-				const document = await vscode.workspace.openTextDocument(vscode.Uri.file(firstIndex));
-				await vscode.window.showTextDocument(document, { preview: false });
-			}
+			const previewTarget = rootCreated
+				? vscode.Uri.file(path.join(targetDirectory, '_index.md'))
+				: vscode.Uri.file(createdIndexes[0]);
+			await vscode.commands.executeCommand('markdown.showPreview', previewTarget);
 
 			const relativeDir = path.relative(owningWorkspace.uri.fsPath, targetDirectory) || owningWorkspace.name;
 			vscode.window.showInformationMessage(`Generated ${createdIndexes.length} index file(s) starting at ${relativeDir}`);
