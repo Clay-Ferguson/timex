@@ -226,6 +226,14 @@ For rapid file creation within your ordinal sequence, use the **"Timex: Insert F
 
 This feature makes it incredibly fast to expand your ordinal file structure—simply right-click where you want to insert a new item, and it's ready for editing immediately.
 
+### Move Up / Move Down Commands
+
+Need to tweak the order without renumbering everything? Use the **Move Up** and **Move Down** commands in the **Timex** submenu (right-click any ordinal file or folder in the Explorer). Each action swaps the numeric prefixes of the selected item and its immediate neighbor:
+- **Move Up** finds the closest ordinal above the selection and swaps prefixes, shifting the item earlier in the sequence
+- **Move Down** swaps with the next ordinal below, pushing the item later in the list
+
+These commands work for both files and folders that follow the ordinal pattern (`00010_name`). They are safe to use at the edges: if there is no item above or below, a friendly message lets you know nothing changed.
+
 This system gives you the benefits of ordered organization while maintaining the flexibility to reorganize as your project evolves.
 
 #### Minimal Filename-Driven Items
@@ -345,6 +353,13 @@ Fastest capture path—click +, enter a descriptive filename, and start typing.
   - **Date Extension Commands**: +Day, +Week, +Month, +Year (for tasks with timestamps)
   - **Delete Task**: Permanently removes the task file from your workspace
   - **About**: Shows extension information
+
+**In Explorer:**
+- Right-click any ordinal file or folder to open the Timex submenu of ordered-file tools.
+- **Re-Number Files** rescans and normalizes prefixes across the root folder.
+- **Insert File** adds a new ordinal item immediately after the selection.
+- **Move Up** and **Move Down** swap prefixes with the previous or next ordinal neighbor.
+- **Cut by Ordinal** and **Paste by Ordinal** let you relocate an item while shuffling surrounding ordinals automatically.
 
 **Delete Task Feature:**
 - Right-click any item in the panel and select "Delete Task"
