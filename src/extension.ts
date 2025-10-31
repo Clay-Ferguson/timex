@@ -748,63 +748,91 @@ export function activate(context: vscode.ExtensionContext) {
 			return current;
 		}, undefined) ?? vscode.workspace.workspaceFolders[0];
 
-		const indexPath = path.join(targetDirectory, '_index.md');
+		const createdIndexes: string[] = [];
+
+		const generateMarkdownForDirectory = async (directory: string, progress: vscode.Progress<{ message?: string }>): Promise<boolean> => {
+			const relativePath = path.relative(owningWorkspace.uri.fsPath, directory) || path.basename(directory) || '.';
+			progress.report({ message: `Scanning ${relativePath}` });
+
+			let numberedItems: NumberedItem[];
+			try {
+				numberedItems = scanForNumberedItems(directory);
+			} catch (error: any) {
+				throw new Error(`Failed to scan ${relativePath}: ${error instanceof Error ? error.message : String(error)}`);
+			}
+
+			if (numberedItems.length === 0) {
+				return false;
+			}
+
+			const headingSource = path.basename(directory);
+			const headingLabel = headingSource ? (stripOrdinalPrefix(headingSource) || headingSource) : 'Index';
+			const sections: string[] = [`# ${headingLabel}`];
+			let addedContent = false;
+
+			for (const item of numberedItems) {
+				if (item.isDirectory) {
+					const childCreated = await generateMarkdownForDirectory(item.fullPath, progress);
+					if (childCreated) {
+						const folderLabel = stripOrdinalPrefix(item.originalName) || item.originalName;
+						const linkTarget = encodeURI(path.posix.join(item.originalName, '_index.md'));
+						sections.push(`[${folderLabel}](${linkTarget})`);
+						addedContent = true;
+					}
+				} else {
+					const extension = path.extname(item.originalName).toLowerCase();
+					if (IMAGE_EXTENSIONS.has(extension)) {
+						const strippedName = stripOrdinalPrefix(item.originalName) || item.originalName;
+						const altText = path.basename(strippedName, extension);
+						const encodedSource = encodeURI(item.originalName);
+						sections.push(`![${altText}](${encodedSource})`);
+						addedContent = true;
+					} else if (extension === '.md') {
+						const contents = await fs.promises.readFile(item.fullPath, 'utf8');
+						sections.push(contents.trimEnd());
+						addedContent = true;
+					}
+				}
+			}
+
+			if (!addedContent) {
+				return false;
+			}
+
+			const indexPath = path.join(directory, '_index.md');
+			const compiled = sections.join('\n\n').trimEnd() + '\n';
+			await fs.promises.writeFile(indexPath, compiled, 'utf8');
+			createdIndexes.push(indexPath);
+			return true;
+		};
+
+		let rootCreated = false;
 
 		try {
 			await vscode.window.withProgress({
 				location: vscode.ProgressLocation.Notification,
-				title: 'Generating Markdown Index',
+				title: 'Generating Markdown Indexes',
 				cancellable: false
 			}, async (progress) => {
-				progress.report({ message: 'Scanning ordinal items...' });
-
-				let numberedItems: NumberedItem[];
-				try {
-					numberedItems = scanForNumberedItems(targetDirectory);
-				} catch (error: any) {
-					throw new Error(`Failed to scan folder: ${error instanceof Error ? error.message : String(error)}`);
-				}
-
-				const headingSource = path.basename(targetDirectory);
-				const headingLabel = headingSource ? (stripOrdinalPrefix(headingSource) || headingSource) : 'Index';
-				const sections: string[] = [`# ${headingLabel}`];
-
-				if (numberedItems.length === 0) {
-					sections.push('_No ordinal files found._');
-				} else {
-					let processedCount = 0;
-					for (const item of numberedItems) {
-						if (item.isDirectory) {
-							const folderLabel = stripOrdinalPrefix(item.originalName) || item.originalName;
-							const linkTarget = encodeURI(path.posix.join(item.originalName, '_index.md'));
-							sections.push(`[${folderLabel}](${linkTarget})`);
-							// TODO: Revisit once recursive generation is desired so we can call the command for the child folder here.
-						} else {
-							const extension = path.extname(item.originalName).toLowerCase();
-							if (IMAGE_EXTENSIONS.has(extension)) {
-								const strippedName = stripOrdinalPrefix(item.originalName) || item.originalName;
-								const altText = path.basename(strippedName, extension);
-								const encodedSource = encodeURI(item.originalName);
-								sections.push(`![${altText}](${encodedSource})`);
-							} else if (extension === '.md') {
-								const contents = await fs.promises.readFile(item.fullPath, 'utf8');
-								sections.push(contents.trimEnd());
-							}
-						}
-						processedCount++;
-						progress.report({ message: `Processed ${processedCount} of ${numberedItems.length} items...` });
-					}
-				}
-
-				const compiled = sections.join('\n\n').trimEnd() + '\n';
-				await fs.promises.writeFile(indexPath, compiled, 'utf8');
+				rootCreated = await generateMarkdownForDirectory(targetDirectory, progress);
 			});
 
-			const document = await vscode.workspace.openTextDocument(vscode.Uri.file(indexPath));
-			await vscode.window.showTextDocument(document, { preview: false });
+			if (createdIndexes.length === 0) {
+				return;
+			}
+
+			if (rootCreated) {
+				const rootIndexPath = path.join(targetDirectory, '_index.md');
+				const document = await vscode.workspace.openTextDocument(vscode.Uri.file(rootIndexPath));
+				await vscode.window.showTextDocument(document, { preview: false });
+			} else {
+				const firstIndex = createdIndexes[0];
+				const document = await vscode.workspace.openTextDocument(vscode.Uri.file(firstIndex));
+				await vscode.window.showTextDocument(document, { preview: false });
+			}
 
 			const relativeDir = path.relative(owningWorkspace.uri.fsPath, targetDirectory) || owningWorkspace.name;
-			vscode.window.showInformationMessage(`Generated _index.md in ${relativeDir}`);
+			vscode.window.showInformationMessage(`Generated ${createdIndexes.length} index file(s) starting at ${relativeDir}`);
 		} catch (error: any) {
 			const message = error instanceof Error ? error.message : String(error);
 			vscode.window.showErrorMessage(`Failed to generate markdown index: ${message}`);
