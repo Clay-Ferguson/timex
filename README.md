@@ -236,6 +236,20 @@ These commands work for both files and folders that follow the ordinal pattern (
 
 This system gives you the benefits of ordered organization while maintaining the flexibility to reorganize as your project evolves.
 
+### Generate Markdown Indexes
+
+The **Generate Markdown** command (Explorer → Timex submenu) assembles a consolidated `_index.md` that reflects your entire ordinal hierarchy.
+
+- Always runs from the workspace root for the folder that contains the item you clicked (or the first workspace when launched elsewhere)
+- Walks every ordinal folder recursively; any folder that contains at least one ordinal item gets its own `_index.md`
+- Markdown files are concatenated in ordinal order exactly as they exist on disk (trailing blank lines trimmed)
+- Image files (`.png`, `.jpg`, `.jpeg`, `.gif`, `.bmp`, `.svg`, `.webp`, `.tif`, `.tiff`, `.avif`) are embedded automatically using standard Markdown image syntax
+- Folders appear as heading links that point to their freshly generated `_index.md`; the link label comes from the first meaningful line in that file, falling back to the folder name without its ordinal prefix
+- Folders with no ordinal content are skipped entirely, so you will not see empty `_index.md` files
+- When generation completes, the command opens the top-level index in the Markdown preview so you immediately see the rendered roll-up (no editor tab required)
+
+Tip: re-run the command whenever you add, reorder, or update ordinal files to refresh every `_index.md` in one shot.
+
 #### Minimal Filename-Driven Items
 
 If the file has only a single non-empty line (starting with `#` or `[`), the filename (sans extension and numeric/underscore prefix) becomes the display label.
