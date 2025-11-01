@@ -644,6 +644,20 @@ export function activate(context: vscode.ExtensionContext) {
 		}
 	});
 
+	const revealInExplorerCommand = vscode.commands.registerCommand('timex.revealInExplorer', async (item) => {
+		if (!item || !item.resourceUri) {
+			vscode.window.showErrorMessage('No task selected');
+			return;
+		}
+
+		try {
+			await vscode.commands.executeCommand('revealInExplorer', item.resourceUri);
+		} catch (error) {
+			console.error('Failed to reveal task in Explorer:', error);
+			vscode.window.showErrorMessage(`Failed to reveal task in Explorer: ${error}`);
+		}
+	});
+
 	const renumberFilesCommand = vscode.commands.registerCommand('timex.renumberFiles', async () => {
 		// Get the workspace folder
 		if (!vscode.workspace.workspaceFolders || vscode.workspace.workspaceFolders.length === 0) {
@@ -1102,6 +1116,7 @@ export function activate(context: vscode.ExtensionContext) {
 	context.subscriptions.push(addMonthCommand);
 	context.subscriptions.push(addYearCommand);
 	context.subscriptions.push(deleteTaskCommand);
+	context.subscriptions.push(revealInExplorerCommand);
 	context.subscriptions.push(renumberFilesCommand);
 	context.subscriptions.push(insertOrdinalFileCommand);
 	context.subscriptions.push(generateMarkdownCommand);
