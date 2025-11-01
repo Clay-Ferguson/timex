@@ -139,11 +139,11 @@
       },
       {
         "command": "timex.renumberFiles",
-        "title": "Timex: Re-Number Files"
+        "title": "Re-Number Files"
       },
       {
         "command": "timex.insertOrdinalFile",
-        "title": "Timex: Insert File"
+        "title": "Insert File"
       },
       {
         "command": "timex.generateMarkdown",
@@ -152,22 +152,22 @@
       },
       {
         "command": "timex.cutByOrdinal",
-        "title": "Timex: Cut by Ordinal",
+        "title": "Cut by Ordinal",
         "icon": "$(cut)"
       },
       {
         "command": "timex.pasteByOrdinal",
-        "title": "Timex: Paste by Ordinal",
+        "title": "Paste by Ordinal",
         "icon": "$(paste)"
       },
       {
         "command": "timex.moveOrdinalUp",
-        "title": "Timex: Move Up",
+        "title": "Move Up",
         "icon": "$(arrow-up)"
       },
       {
         "command": "timex.moveOrdinalDown",
-        "title": "Timex: Move Down",
+        "title": "Move Down",
         "icon": "$(arrow-down)"
       }
     ],

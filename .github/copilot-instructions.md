@@ -149,8 +149,8 @@ Year 2050+ indicates "no real timestamp":
 Recent addition providing file organization capabilities using numeric prefixes.
 
 ### Commands Added
-- `timex.renumberFiles` - "Timex: Re-Number Files" 
-- `timex.insertOrdinalFile` - "Timex: Insert File"
+- `timex.renumberFiles` - "Re-Number Files" 
+- `timex.insertOrdinalFile` - "Insert File"
 
 ### Core Logic (`src/utils.ts`)
 ```typescript
@@ -168,7 +168,7 @@ extractOrdinalFromFilename(name)    // Parses ordinal number from filename
 - **Operates on**: Both files and folders in workspace root only (non-recursive)
 
 ### Re-Number Files Workflow
-1. Right-click in file explorer → "Timex: Re-Number Files"
+1. Right-click in file explorer → "Re-Number Files"
 2. Scans workspace root for ordinal files/folders
 3. **Preserves existing order** (sorts by current numeric prefix, not alphabetically)
 4. Validates unique names (after removing ordinal prefixes)
@@ -178,7 +178,7 @@ extractOrdinalFromFilename(name)    // Parses ordinal number from filename
 
 ### Insert File Workflow  
 1. Right-click on ordinal file (e.g., `00020_requirements.md`)
-2. "Timex: Insert File" appears in context menu (conditional: `resourceFilename =~ /^\\d+_.+/`)
+2. "Insert File" appears in context menu (conditional: `resourceFilename =~ /^\\d+_.+/`)
 3. Parses current ordinal (20), increments (+1 = 21)
 4. Creates `00021_new.md` in same directory
 5. Opens new empty file in editor
