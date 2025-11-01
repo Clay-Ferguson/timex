@@ -586,7 +586,7 @@ export class TaskProvider implements vscode.TreeDataProvider<TaskFileItem> {
 
 			const icon = getIconForTaskFile(taskFile);
 
-			const displayText = path.basename(taskFile.filePath, '.md');
+			const displayText = taskFile.fileName;
 			// Show days difference in parentheses at the beginning of the task description
 			// For overdue items, show warning icon immediately after priority icon
 			let label = isOverdue && isTodo
@@ -748,7 +748,7 @@ export class TaskProvider implements vscode.TreeDataProvider<TaskFileItem> {
 
 			const icon = getIconForTaskFile(taskFile);
 
-			const displayText = path.basename(taskFile.filePath, '.md');
+			const displayText = taskFile.fileName;
 			// Show days difference in parentheses at the beginning of the task description
 			// For overdue items, show warning icon immediately after priority icon
 			let label = isOverdue && isTodo

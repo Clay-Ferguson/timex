@@ -96,6 +96,7 @@ The extension scans your workspace for markdown files containing the active prim
 - **Integrated Search**: Filename + file content, layered atop current filters.
 - **Relative Time Badges**: `(5)`, `(0)`, `(-2)`, `(?)` sentinel for no date.
 - **Quick Create**: + button prompts for filename, then creates new file with active hashtag + timestamp + `#p3`.
+- **Panel File Actions**: Right-click a task to reveal it in the Explorer or rename it without leaving the panel.
 - **Timestamp Tools**: Insert current timestamp; add +Day/+Week/+Month/+Year.
 
 ## How to Use
@@ -366,6 +367,8 @@ Fastest capture path—click +, enter a descriptive filename, and start typing.
 - **Options Available**:
   - **Folder for New Tasks...**: Quickly set or change the folder path used when creating new tasks via the + button (updates the `timex.newTaskFolder` setting)
   - **Date Extension Commands**: +Day, +Week, +Month, +Year (for tasks with timestamps)
+  - **Reveal in Explorer**: Highlights the underlying file in VS Code's Explorer so you can see its location instantly.
+  - **Rename**: Prompts for a new filename and renames the markdown file without switching to the Explorer.
   - **Delete Task**: Permanently removes the task file from your workspace
   - **About**: Shows extension information
 
