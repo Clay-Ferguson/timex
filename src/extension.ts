@@ -706,6 +706,7 @@ export function activate(context: vscode.ExtensionContext) {
 
 		try {
 			await vscode.workspace.fs.rename(fileUri, targetUri, { overwrite: false });
+			taskProvider.queueReveal(targetPath);
 			taskProvider.refresh();
 			vscode.window.showInformationMessage(`Renamed task to "${finalName}".`);
 		} catch (error: any) {

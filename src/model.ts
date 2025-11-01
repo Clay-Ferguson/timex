@@ -114,6 +114,7 @@ export class TaskProvider implements vscode.TreeDataProvider<TaskFileItem> {
 	private currentPrimaryHashtag: string | null = null; // Runtime override for primary hashtag
 	private context: vscode.ExtensionContext;
 	private cutIndicator: string | null = null; // Track ordinal cut indicator message
+	private pendingRevealPath: string | null = null; // File path queued for reveal after refresh
 
 	constructor(context: vscode.ExtensionContext) {
 		this.context = context;
@@ -209,6 +210,20 @@ export class TaskProvider implements vscode.TreeDataProvider<TaskFileItem> {
 		this.treeView = treeView;
 		this.updateTreeViewTitle(); // Set initial title
 		this.updateTreeViewMessage();
+	}
+
+	queueReveal(filePath: string): void {
+		this.pendingRevealPath = filePath;
+	}
+
+	private scheduleReveal(): void {
+		if (!this.pendingRevealPath || !this.treeView) {
+			return;
+		}
+
+		setTimeout(() => {
+			void this.revealPendingTaskIfNeeded();
+		}, 50);
 	}
 
 	setCutIndicator(displayName: string | null): void {
@@ -332,6 +347,7 @@ export class TaskProvider implements vscode.TreeDataProvider<TaskFileItem> {
 		this.scanForTaskFiles().then(() => {
 			this.hideScanningIndicator();
 			this._onDidChangeTreeData.fire();
+			this.scheduleReveal();
 		});
 	}
 
@@ -344,6 +360,7 @@ export class TaskProvider implements vscode.TreeDataProvider<TaskFileItem> {
 		this.scanForTaskFiles(true).then(() => {
 			this.hideScanningIndicator();
 			this._onDidChangeTreeData.fire();
+			this.scheduleReveal();
 		});
 	}
 
@@ -356,6 +373,7 @@ export class TaskProvider implements vscode.TreeDataProvider<TaskFileItem> {
 		this.scanForTaskFiles(false, false, true).then(() => {
 			this.hideScanningIndicator();
 			this._onDidChangeTreeData.fire();
+			this.scheduleReveal();
 		});
 	}
 
@@ -368,6 +386,7 @@ export class TaskProvider implements vscode.TreeDataProvider<TaskFileItem> {
 		this.scanForTaskFiles(false, false, false, true).then(() => {
 			this.hideScanningIndicator();
 			this._onDidChangeTreeData.fire();
+			this.scheduleReveal();
 		});
 	}
 
@@ -380,6 +399,7 @@ export class TaskProvider implements vscode.TreeDataProvider<TaskFileItem> {
 		this.scanForTaskFiles(false, true).then(() => {
 			this.hideScanningIndicator();
 			this._onDidChangeTreeData.fire();
+			this.scheduleReveal();
 		});
 	}
 
@@ -392,6 +412,7 @@ export class TaskProvider implements vscode.TreeDataProvider<TaskFileItem> {
 		this.scanForTaskFiles().then(() => {
 			this.hideScanningIndicator();
 			this._onDidChangeTreeData.fire();
+			this.scheduleReveal();
 		});
 	}
 
@@ -404,6 +425,7 @@ export class TaskProvider implements vscode.TreeDataProvider<TaskFileItem> {
 		this.scanForTaskFiles().then(() => {
 			this.hideScanningIndicator();
 			this._onDidChangeTreeData.fire();
+			this.scheduleReveal();
 		});
 	}
 
@@ -416,6 +438,7 @@ export class TaskProvider implements vscode.TreeDataProvider<TaskFileItem> {
 		this.applyFiltersToExistingData().then(() => {
 			this.hideScanningIndicator();
 			this._onDidChangeTreeData.fire();
+			this.scheduleReveal();
 		});
 	}
 
@@ -430,6 +453,7 @@ export class TaskProvider implements vscode.TreeDataProvider<TaskFileItem> {
 		this.applyFiltersToExistingData().then(() => {
 			this.hideScanningIndicator();
 			this._onDidChangeTreeData.fire();
+			this.scheduleReveal();
 		});
 	}
 
@@ -447,6 +471,7 @@ export class TaskProvider implements vscode.TreeDataProvider<TaskFileItem> {
 		this.scanForTaskFiles().then(() => {
 			this.hideScanningIndicator();
 			this._onDidChangeTreeData.fire();
+			this.scheduleReveal();
 		});
 	}
 
@@ -786,6 +811,31 @@ export class TaskProvider implements vscode.TreeDataProvider<TaskFileItem> {
 
 		// Update context to show/hide the tree view
 		vscode.commands.executeCommand('setContext', 'workspaceHasTaskFiles', this.taskFiles.length > 0);
+	}
+
+	private async revealPendingTaskIfNeeded(): Promise<void> {
+		if (!this.pendingRevealPath || !this.treeView) {
+			return;
+		}
+
+		const targetPath = this.pendingRevealPath;
+		const item = this.taskFiles.find(task => task.resourceUri.fsPath === targetPath);
+		if (!item) {
+			this.scheduleReveal();
+			return;
+		}
+
+		this.pendingRevealPath = null;
+
+		try {
+			await this.treeView.reveal(item, {
+				select: true,
+				focus: false,
+				expand: false
+			});
+		} catch (error) {
+			console.error('Failed to reveal task after refresh:', error);
+		}
 	}
 
 	/**
