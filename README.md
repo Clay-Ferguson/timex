@@ -243,6 +243,7 @@ The **Generate Markdown** command (Explorer → Timex submenu) assembles a conso
 - Always runs from the workspace root for the folder that contains the item you clicked (or the first workspace when launched elsewhere)
 - Walks every ordinal folder recursively; any folder that contains at least one ordinal item gets its own `_index.md`
 - Markdown files are concatenated in ordinal order exactly as they exist on disk (trailing blank lines trimmed)
+- A horizontal rule (`---`) is inserted after each markdown file so you can see clear boundaries between entries
 - Image files (`.png`, `.jpg`, `.jpeg`, `.gif`, `.bmp`, `.svg`, `.webp`, `.tif`, `.tiff`, `.avif`) are embedded automatically using standard Markdown image syntax
 - Folders appear as heading links that point to their freshly generated `_index.md`; the link label comes from the first meaningful line in that file, falling back to the folder name without its ordinal prefix
 - Folders with no ordinal content are skipped entirely, so you will not see empty `_index.md` files

@@ -797,6 +797,7 @@ export function activate(context: vscode.ExtensionContext) {
 					} else if (extension === '.md') {
 						const contents = await fs.promises.readFile(item.fullPath, 'utf8');
 						sections.push(contents.trimEnd());
+						sections.push('---');
 						addedContent = true;
 					}
 				}
@@ -804,6 +805,10 @@ export function activate(context: vscode.ExtensionContext) {
 
 			if (!addedContent) {
 				return false;
+			}
+
+			if (sections.length > 0 && sections[sections.length - 1] === '---') {
+				sections.pop();
 			}
 
 			const indexPath = path.join(directory, '_index.md');
