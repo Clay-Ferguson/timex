@@ -658,6 +658,67 @@ export function activate(context: vscode.ExtensionContext) {
 		}
 	});
 
+	const renameTaskCommand = vscode.commands.registerCommand('timex.renameTask', async (item) => {
+		if (!item || !item.resourceUri) {
+			vscode.window.showErrorMessage('No task selected');
+			return;
+		}
+
+		const fileUri = item.resourceUri;
+		const filePath = fileUri.fsPath;
+		const parentDir = path.dirname(filePath);
+		const oldFileName = path.basename(filePath);
+		const oldExtension = path.extname(oldFileName);
+
+		const newName = await vscode.window.showInputBox({
+			title: 'Rename Task File',
+			prompt: 'Enter a new filename for the task',
+			value: oldFileName,
+			validateInput: (input) => {
+				const trimmed = input.trim();
+				if (!trimmed) {
+					return 'Filename cannot be empty';
+				}
+				if (/[/\\?%*:|"<>]/.test(trimmed)) {
+					return 'Filename contains invalid characters';
+				}
+				return null;
+			}
+		});
+
+		if (!newName) {
+			return;
+		}
+
+		const trimmedName = newName.trim();
+		// Ensure a markdown extension is preserved if none supplied
+		let finalName = trimmedName;
+		if (path.extname(trimmedName) === '') {
+			finalName = `${trimmedName}${oldExtension || '.md'}`;
+		}
+
+		if (finalName === oldFileName) {
+			return;
+		}
+
+		const targetPath = path.join(parentDir, finalName);
+		const targetUri = vscode.Uri.file(targetPath);
+
+		try {
+			await vscode.workspace.fs.rename(fileUri, targetUri, { overwrite: false });
+			taskProvider.refresh();
+			vscode.window.showInformationMessage(`Renamed task to "${finalName}".`);
+		} catch (error: any) {
+			const message = error instanceof Error ? error.message : String(error);
+			if (/Exists/i.test(message)) {
+				vscode.window.showErrorMessage(`A file named "${finalName}" already exists.`);
+			} else {
+				console.error('Failed to rename task file:', error);
+				vscode.window.showErrorMessage(`Failed to rename task file: ${message}`);
+			}
+		}
+	});
+
 	const renumberFilesCommand = vscode.commands.registerCommand('timex.renumberFiles', async () => {
 		// Get the workspace folder
 		if (!vscode.workspace.workspaceFolders || vscode.workspace.workspaceFolders.length === 0) {
@@ -1117,6 +1178,7 @@ export function activate(context: vscode.ExtensionContext) {
 	context.subscriptions.push(addYearCommand);
 	context.subscriptions.push(deleteTaskCommand);
 	context.subscriptions.push(revealInExplorerCommand);
+	context.subscriptions.push(renameTaskCommand);
 	context.subscriptions.push(renumberFilesCommand);
 	context.subscriptions.push(insertOrdinalFileCommand);
 	context.subscriptions.push(generateMarkdownCommand);

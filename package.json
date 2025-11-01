@@ -139,8 +139,13 @@
       },
       {
         "command": "timex.revealInExplorer",
-        "title": "Reveal in Explorer View",
+        "title": "Reveal in Explorer",
         "icon": "$(files)"
+      },
+      {
+        "command": "timex.renameTask",
+        "title": "Rename",
+        "icon": "$(edit)"
       },
       {
         "command": "timex.renumberFiles",
@@ -187,7 +192,8 @@
       "taskManager": [
         {
           "id": "taskExplorer",
-          "name": "Timex"
+          "name": "Timex",
+          "icon": "$(list-unordered)"
         }
       ]
     },
@@ -289,6 +295,12 @@
           "command": "timex.revealInExplorer",
           "when": "view == taskExplorer",
           "group": "2_file@2"
+        },
+        {
+          "command": "timex.renameTask",
+          "when": "view == taskExplorer",
+          "group": "2_file@3",
+          "icon": "$(edit)"
         }
       ],
       "commandPalette": [
@@ -309,6 +321,9 @@
         },
         {
           "command": "timex.revealInExplorer"
+        },
+        {
+          "command": "timex.renameTask"
         },
         {
           "command": "timex.renumberFiles"
