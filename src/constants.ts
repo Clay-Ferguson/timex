@@ -13,9 +13,3 @@ export enum PriorityTag {
 	Medium = 'p2',
 	Low = 'p3'
 }
-
-export enum CompletionFilter {
-	Any = 'all',
-	Completed = 'completed',
-	NotCompleted = 'not-completed'
-}

@@ -13,11 +13,10 @@ Example:
 - Hover tooltip: Shows the folder location (e.g., "tasks/urgent") and timestamp details
 
 This approach keeps the display consistent and lets you organize tasks with descriptive filenames while seeing the folder context on hover.de panel for managing markdown-based items (tasks, todos, notes, reminders) using lightweight hashtags and timestamps in your files. You can define multiple ca#### Tips
-- If you can't find a completed task, ensure Completion filter isn't set to Not Completed.
 - To review only recently urgent items: select Due Soon + Priority 1.
 - Use Due Today for focus on today's tasks only.
 - Use Future Due Dates to plan ahead without current distractions.
-- Want everything regardless of status? Use Any Priority + Any Time + Any Completion and clear search.
+- Want everything regardless of status? Use Any Priority + Any Time and clear search.
 
 #### Complete Temporal Coverage
 The view filters provide complete, non-overlapping coverage of all possible due dates:
@@ -43,7 +42,6 @@ Think of this extension as a lightweight, chronological stream of dated (or unda
 5. (Optional) Switch the primary hashtag via the tag icon (e.g. from `#todo` to `#note`) to view a different stream.
 6. Use the filter (funnel) icon for Due Soon / Overdue / priority slices; search (🔍) narrows further.
 7. Add or edit timestamps manually or with +Day/+Week/+Month/+Year commands.
-8. Mark something done by adding `#done` anywhere in the file.
 
 You now have a living time series of work: closest due items float to your attention; undated or far‑future items sit quietly at the bottom (sentinel date logic). Switch hashtags to pivot context without noise.
 
@@ -57,7 +55,6 @@ Filename: `plan-sprint.md` → Displays as: `🟠 (3) Plan sprint` (if 3 days ou
 - Priority Icons: 🔴 = P1 / 🟠 = P2 / 🔵 = P3 (absence = P1)
 - Days Indicator: `(5)` in 5 days, `(0)` today, `(-2)` overdue by 2, `(?)` no date
 - ⚠️ added after icon if overdue
-- ✅ indicates `#done`
 - **Filter Coverage**: Overdue (past) ← Due Today (present) ← Due Soon (next 3 days) ← Future Due Dates (beyond)
 
 ### When to Use This vs a Calendar
@@ -74,7 +71,6 @@ Jump to: [Features](#features) · [How to Use](#how-to-use) · [Configuration](#
 - `🔴⚠️ (-2) Update budget` - 2 days overdue
 - `🟠 (0) Fix login bug` - Due today
 - `🔴 (?) Plan vacation` - No due date specified
-- `✅ (-5) Completed presentation` - Completed task (5 days past due date)
 
 An “Item” (task / todo / note / reminder) is just a markdown file containing the currently active primary hashtag (default `#todo`). Optionally add a timestamp `[MM/DD/YYYY HH:MM:SS AM/PM]` or `[MM/DD/YYYY]` to give it a due date. The file is then auto‑indexed and displayed.
 
@@ -91,8 +87,7 @@ The extension scans your workspace for markdown files containing the active prim
 - **Automatic Item Detection**: Scans `.md` files for active hashtag.
 - **Optional Due Dates**: Recognizes `[MM/DD/YYYY HH:MM:SS AM/PM]` or `[MM/DD/YYYY]`.
 - **Priority Tags**: `#p1 #p2 #p3` with sensible default to `#p1`.
-- **Completion Tag**: `#done` hides items unless included via completion filter.
-- **Unified Filtering**: Priority + temporal (All / Due Soon / Overdue) + completion.
+- **Unified Filtering**: Priority + temporal (All / Due Soon / Overdue).
 - **Integrated Search**: Filename + file content, layered atop current filters.
 - **Relative Time Badges**: `(5)`, `(0)`, `(-2)`, `(?)` sentinel for no date.
 - **Quick Create**: + button prompts for filename, then creates new file with active hashtag + timestamp + `#p3`.
@@ -105,7 +100,7 @@ The extension scans your workspace for markdown files containing the active prim
 
 Quick: Click **+** in the panel header. A new file is created using the currently active primary hashtag (e.g. `#todo`) plus a timestamp and `#p3` priority.
 
-Manual: Create a `.md` file that contains the active primary hashtag somewhere inside. Optionally add a timestamp for due date awareness. Priority + completion + other hashtags are additive.
+Manual: Create a `.md` file that contains the active primary hashtag somewhere inside. Optionally add a timestamp for due date awareness. Priority + other hashtags are additive.
 
 Required minimum for inclusion:
 1. `.md` file
@@ -114,7 +109,6 @@ Required minimum for inclusion:
 Optional enhancements:
 - Timestamp `[MM/DD/YYYY HH:MM:SS AM/PM]` or `[MM/DD/YYYY]`
 - Priority `#p1/#p2/#p3`
-- Completion state `#done`
 
 **Example item file:**
 ```markdown
@@ -309,7 +303,6 @@ To access settings:
 
 Core:
 - Active Primary (configurable): marks a file as an actionable item (default `#todo`, switchable to any candidate like `#todo`, `#note`, `#idea`).
-- `#done` – Completed item (hidden unless Completion filter includes it).
 - `#p1`, `#p2`, `#p3` – High / Medium / Low priority (absence = treated as `#p1`).
 
 Custom:
@@ -336,7 +329,7 @@ Notes:
 - Content: Items derived from files containing the primary hashtag.
 
 #### Filter Menu
-Funnel icon; unified picker controlling three orthogonal groups (view / priority / completion). Switching any filter clears active search.
+Funnel icon; unified picker controlling two orthogonal groups (view / priority). Switching any filter clears active search.
 
 #### Search Button
 - Magnifying glass icon; layered filter on already in-memory items (case-insensitive). Title shows query until cleared.
@@ -419,7 +412,7 @@ The panel offers a single unified filtering system plus search to refine what yo
 - Open search via the 🔍 icon (search text combines with the currently selected filters until cleared).
 - Panel title shows current state (e.g., `Due Soon - P1`, or `SEARCH - P* - 'bug'`).
 
-#### Filter Groups (12 Options Total)
+#### Filter Groups (9 Options Total)
 1. (Priority) Any Priority – show every priority level
 2. (Priority) Priority 1 – `#p1` (High priority)
 3. (Priority) Priority 2 – `#p2` (Medium priority)
@@ -429,9 +422,6 @@ The panel offers a single unified filtering system plus search to refine what yo
 7. (View) Due Today – due only today
 8. (View) Future Due Dates – due tomorrow and beyond
 9. (View) Overdue – past due date only (⚠️ shown)
-10. (Completion) Any Completion – completed + not completed
-11. (Completion) Done – contains `#done`
-12. (Completion) Not Done – no `#done` (default)
 
 #### Using Filters
 1. Click the filter (funnel) icon and pick one option in any group; previous selection in that group is replaced.
@@ -462,9 +452,8 @@ The panel offers a single unified filtering system plus search to refine what yo
 - Combine with Future Due Dates to plan specific upcoming work
 
 #### Tips
-- If you can’t find a completed task, ensure Completion filter isn’t set to Not Completed.
 - To review only recently urgent items: select Due Soon + Priority 1.
-- Want everything regardless of status? Use Any Priority + Any Time + Any Completion and clear search.
+- Want everything regardless of status? Use Any Priority + Any Time and clear search.
 
 #### Rationale
 Overdue tasks are included in Due Soon so that a single glance covers the immediate action horizon (past-due plus next 72 hours) without toggling views.
@@ -474,9 +463,7 @@ Overdue tasks are included in Due Soon so that a single glance covers the immedi
 1. **Create**: Add active primary hashtag to a `.md` file (timestamp optional).
 2. **Track**: Listed under that hashtag’s context.
 3. **Switch Context**: Change primary hashtag to pivot to a different stream (notes vs tasks, etc.).
-4. **Complete**: Add `#done` to archive while keeping history.
-5. **Review**: Use completion filters to surface archived items.
-6. **Iterate**: Bump dates via +Day/+Week/+Month/+Year commands.
+4. **Iterate**: Bump dates via +Day/+Week/+Month/+Year commands.
 
 ### Timestamp Format
 
@@ -616,7 +603,6 @@ The test suite covers pure utility functions (date/time operations, parsing logi
 - Confirm active primary hashtag (title bar prefix) matches hashtag inside file.
 - File must be `.md`.
 - Timestamp (if present) must match one of supported formats exactly.
-- Completed item? Change completion filter to All / Completed.
 
 **Changed hashtag list but picker not updated?**
 - Ensure entries are comma-separated; no stray semicolons.

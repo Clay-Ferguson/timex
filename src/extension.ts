@@ -17,7 +17,7 @@ import {
 	NumberedItem
 } from './utils';
 import { parseTimestamp, formatTimestamp, TIMESTAMP_REGEX } from './pure-utils';
-import { ViewFilter, PriorityTag, CompletionFilter } from './constants';
+import { ViewFilter, PriorityTag } from './constants';
 
 const IMAGE_EXTENSIONS = new Set<string>([
 	'.png',
@@ -84,35 +84,19 @@ function setupFileWatcher(context: vscode.ExtensionContext, taskProvider: TaskPr
 				: contentString.includes(primaryHashtag);
 			const isDoneTask = contentString.includes('#done');
 
-			// Check if task should be included based on completion filter
-			let includeTask = false;
-			if (hasTaskHashtag) {
-				const completionFilter = taskProvider.getCompletionFilter();
-				if (completionFilter === CompletionFilter.Any) {
-					includeTask = true;
-				} else if (completionFilter === CompletionFilter.Completed) {
-					includeTask = isDoneTask;
-				} else if (completionFilter === CompletionFilter.NotCompleted) {
-					includeTask = !isDoneTask;
-				}
-			}
 
-			if (includeTask) {
-				// Look for timestamp in the file
-				// Only support new standard [MM/DD/YYYY] or [MM/DD/YYYY HH:MM:SS AM/PM]
-				const timestampMatch = contentString.match(TIMESTAMP_REGEX);
+			// Look for timestamp in the file
+			// Only support new standard [MM/DD/YYYY] or [MM/DD/YYYY HH:MM:SS AM/PM]
+			const timestampMatch = contentString.match(TIMESTAMP_REGEX);
 
-				if (timestampMatch) {
-					// File has timestamp - update it efficiently
-					await taskProvider.updateSingleTask(filePath, timestampMatch[0]);
-				} else {
-					// File doesn't have timestamp - do full refresh (rare case)
-					taskProvider.refresh();
-				}
+			if (timestampMatch) {
+				// File has timestamp - update it efficiently
+				await taskProvider.updateSingleTask(filePath, timestampMatch[0]);
 			} else {
-				// File is no longer a task - do full refresh to remove it
+				// File doesn't have timestamp - do full refresh (rare case)
 				taskProvider.refresh();
 			}
+
 		} catch (error) {
 			console.error('File watcher error:', error);
 			// On error, just ignore - user can manually refresh if needed
@@ -333,7 +317,6 @@ export function activate(context: vscode.ExtensionContext) {
 		// Get current filter states to show checkmarks
 		const currentPriority = taskProvider.getCurrentPriorityFilter();
 		const currentView = taskProvider.getCurrentViewFilter();
-		const completionFilter = taskProvider.getCompletionFilter();
 		const div = '––––––––––'; // visual divider
 		const options = [
 			// Priority group
@@ -376,21 +359,6 @@ export function activate(context: vscode.ExtensionContext) {
 				label: `${currentView === ViewFilter.Overdue ? `$(check) ${ViewFilter.Overdue}` : `$(circle-outline) ${ViewFilter.Overdue}`}`,
 				value: `view:${ViewFilter.Overdue}`
 			},
-			// Second separator
-			{ label: '', value: 'separator2', kind: vscode.QuickPickItemKind.Separator } as any,
-			// Completion group
-			{
-				label: `${completionFilter === CompletionFilter.Any ? `$(check) ${div} Any Completion ${div}` : `$(circle-outline) ${div} Any Completion ${div}`}`,
-				value: `completion:${CompletionFilter.Any}`
-			},
-			{
-				label: `${completionFilter === CompletionFilter.Completed ? '$(check) Done' : '$(circle-outline) Done'}`,
-				value: `completion:${CompletionFilter.Completed}`
-			},
-			{
-				label: `${completionFilter === CompletionFilter.NotCompleted ? '$(check) Not Done' : '$(circle-outline) Not Done'}`,
-				value: `completion:${CompletionFilter.NotCompleted}`
-			}
 		];
 
 		const selected = await vscode.window.showQuickPick(options, {
@@ -421,10 +389,6 @@ export function activate(context: vscode.ExtensionContext) {
 						break;
 					default:
 						break;
-				}
-			} else if (type === 'completion') {
-				if (value === CompletionFilter.Any || value === CompletionFilter.Completed || value === CompletionFilter.NotCompleted) {
-					taskProvider.setCompletionFilter(value as CompletionFilter);
 				}
 			}
 		}
@@ -468,7 +432,7 @@ export function activate(context: vscode.ExtensionContext) {
 		let targetPath = rootPath;
 		if (taskFolderSetting && taskFolderSetting.trim() !== '') {
 			const folderPath = taskFolderSetting.trim();
-			
+
 			// Check if it's an absolute path
 			if (path.isAbsolute(folderPath)) {
 				targetPath = folderPath;
@@ -528,7 +492,7 @@ export function activate(context: vscode.ExtensionContext) {
 				'Overwrite',
 				'Cancel'
 			);
-			
+
 			if (overwrite !== 'Overwrite') {
 				return;
 			}
@@ -783,7 +747,7 @@ export function activate(context: vscode.ExtensionContext) {
 		try {
 			// Generate the next ordinal filename
 			const nextOrdinalInfo = generateNextOrdinalFilename(selectedFilePath);
-			
+
 			if (!nextOrdinalInfo) {
 				vscode.window.showErrorMessage('Selected file does not have an ordinal prefix (e.g., "001_filename.md")');
 				return;
@@ -797,7 +761,7 @@ export function activate(context: vscode.ExtensionContext) {
 					'Overwrite',
 					'Cancel'
 				);
-				
+
 				if (overwrite !== 'Overwrite') {
 					return;
 				}

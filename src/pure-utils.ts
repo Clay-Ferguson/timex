@@ -145,7 +145,6 @@ export function isFarFuture(taskDate: Date): boolean {
  */
 export function getIconForTaskFile(taskFile: {
 	priority: PriorityTag.High | PriorityTag.Medium | PriorityTag.Low | '';
-	isCompleted: boolean;
 	tagsInFile: Set<string>;
 }): string {
 	const isTodo = taskFile.tagsInFile.has('#todo'); 
@@ -157,9 +156,7 @@ export function getIconForTaskFile(taskFile: {
 	}
 
 	if (isTodo) {
-		if (taskFile.isCompleted) {
-			icon = '✅';
-		} else if (taskFile.priority === PriorityTag.High) {
+		if (taskFile.priority === PriorityTag.High) {
 			icon = '🔴';
 		} else if (taskFile.priority === PriorityTag.Medium) {
 			icon = '🟠';

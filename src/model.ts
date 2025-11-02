@@ -3,7 +3,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { containsAnyConfiguredHashtag, findHashtagsInContent, getAllConfiguredHashtags, getIncludeGlobPattern, getExcludeGlobPattern } from './utils';
 import { parseTimestamp, getDaysDifference, isFarFuture as isFarFutureDate, getIconForTaskFile, TIMESTAMP_REGEX } from './pure-utils';
-import { ViewFilter, PriorityTag, CompletionFilter } from './constants';
+import { ViewFilter, PriorityTag } from './constants';
 
 // Constants
 export const SCANNING_MESSAGE = 'Scanning workspace';
@@ -17,7 +17,6 @@ export class TaskFile {
 		public readonly timestamp: Date,
 		public readonly timestampString: string,
 		public readonly priority: PriorityTag.High | PriorityTag.Medium | PriorityTag.Low | '',
-		public readonly isCompleted: boolean = false,
 		public readonly tagsInFile: Set<string> = new Set<string>()
 	) { }
 }
@@ -107,7 +106,6 @@ export class TaskProvider implements vscode.TreeDataProvider<TaskFileItem> {
 	private currentFilter: ViewFilter = ViewFilter.All; // Track current filter state
 	private currentPriorityFilter: PriorityTag = PriorityTag.Any; // Track current priority filter
 	private currentSearchQuery: string = ''; // Track current search query
-	private completionFilter: CompletionFilter = CompletionFilter.Any; // Track completion filter
 	private treeView: vscode.TreeView<TaskFileItem> | null = null;
 	private isScanning: boolean = false; // Track scanning state
 	private cachedPrimaryHashtag: string | null = null; // Cache for primary hashtag
@@ -127,7 +125,6 @@ export class TaskProvider implements vscode.TreeDataProvider<TaskFileItem> {
 	private loadFilterState(): void {
 		const savedFilter = this.context.workspaceState.get<ViewFilter>('timex.currentFilter');
 		const savedPriorityFilter = this.context.workspaceState.get<PriorityTag>('timex.currentPriorityFilter');
-		const savedCompletionFilter = this.context.workspaceState.get<CompletionFilter>('timex.completionFilter');
 		const savedPrimaryHashtag = this.context.workspaceState.get<string>('timex.currentPrimaryHashtag');
 
 		if (savedFilter !== undefined) {
@@ -136,9 +133,7 @@ export class TaskProvider implements vscode.TreeDataProvider<TaskFileItem> {
 		if (savedPriorityFilter !== undefined) {
 			this.currentPriorityFilter = savedPriorityFilter;
 		}
-		if (savedCompletionFilter !== undefined) {
-			this.completionFilter = savedCompletionFilter;
-		}
+
 		if (savedPrimaryHashtag !== undefined) {
 			this.currentPrimaryHashtag = savedPrimaryHashtag;
 		}
@@ -150,7 +145,6 @@ export class TaskProvider implements vscode.TreeDataProvider<TaskFileItem> {
 	private saveFilterState(): void {
 		this.context.workspaceState.update('timex.currentFilter', this.currentFilter);
 		this.context.workspaceState.update('timex.currentPriorityFilter', this.currentPriorityFilter);
-		this.context.workspaceState.update('timex.completionFilter', this.completionFilter);
 		this.context.workspaceState.update('timex.currentPrimaryHashtag', this.currentPrimaryHashtag);
 	}
 
@@ -245,9 +239,6 @@ export class TaskProvider implements vscode.TreeDataProvider<TaskFileItem> {
 		return this.currentFilter;
 	}
 
-	getCompletionFilter(): CompletionFilter {
-		return this.completionFilter;
-	}
 
 	/**
 	 * Updates a single task item after its timestamp has been modified
@@ -289,7 +280,6 @@ export class TaskProvider implements vscode.TreeDataProvider<TaskFileItem> {
 				newTimestamp,
 				newTimestampString,
 				priority,
-				isCompleted,
 				tagsInFile
 			);
 			this.taskFileData[taskIndex] = updatedTask;
@@ -416,18 +406,6 @@ export class TaskProvider implements vscode.TreeDataProvider<TaskFileItem> {
 		});
 	}
 
-	setCompletionFilter(filter: CompletionFilter): void {
-		this.completionFilter = filter;
-		this.currentSearchQuery = ''; // Clear search when changing completed filter
-		this.saveFilterState();
-		this.updateTreeViewTitle();
-		this.showScanningIndicator();
-		this.scanForTaskFiles().then(() => {
-			this.hideScanningIndicator();
-			this._onDidChangeTreeData.fire();
-			this.scheduleReveal();
-		});
-	}
 
 	searchTasks(query: string): void {
 		this.currentSearchQuery = query.toLowerCase();
@@ -461,7 +439,6 @@ export class TaskProvider implements vscode.TreeDataProvider<TaskFileItem> {
 		// Reset all filters to their default "all" states
 		this.currentPriorityFilter = PriorityTag.Any;
 		this.currentFilter = ViewFilter.All;
-		this.completionFilter = CompletionFilter.Any;
 		this.currentSearchQuery = '';
 		this.currentPrimaryHashtag = 'all-tags';
 
@@ -506,21 +483,8 @@ export class TaskProvider implements vscode.TreeDataProvider<TaskFileItem> {
 				titleParts.push(this.currentFilter.toUpperCase());
 			}
 
-			// 4. Completion status: Only show if not 'not-completed' (the default state)			
-			let completionDisplay = '';
-			if (this.completionFilter === CompletionFilter.Any) {
-				// leave blank
-			} else if (this.completionFilter === CompletionFilter.Completed) {
-				completionDisplay = 'DONE';
-			}
-			else {
-				completionDisplay = 'NOT DONE';
-			}
-			if (completionDisplay) {
-				titleParts.push(completionDisplay);
-			}
 
-			// 5. Search query: Only show if there's an active search
+			// 4. Search query: Only show if there's an active search
 			if (this.currentSearchQuery) {
 				titleParts.push(`"${this.currentSearchQuery}"`);
 			}
@@ -769,7 +733,7 @@ export class TaskProvider implements vscode.TreeDataProvider<TaskFileItem> {
 			const daysDiff = getDaysDifference(taskFile.timestamp);
 			const isOverdue = taskFile.timestamp < today;
 			const isFarFuture = isFarFutureDate(taskFile.timestamp);
-			const isTodo = taskFile.tagsInFile.has('#todo'); 
+			const isTodo = taskFile.tagsInFile.has('#todo');
 
 			const icon = getIconForTaskFile(taskFile);
 
@@ -954,63 +918,51 @@ export class TaskProvider implements vscode.TreeDataProvider<TaskFileItem> {
 				? containsAnyConfiguredHashtag(content)
 				: content.includes(primaryHashtag);
 
-			const isDoneTask = content.includes('#done');			// Include files based on completion filter
-			let includeTask = false;
-			if (hasTaskHashtag) {
-				if (this.completionFilter === CompletionFilter.Any) {
-					includeTask = true;
-				} else if (this.completionFilter === CompletionFilter.Completed) {
-					includeTask = isDoneTask;
-				} else if (this.completionFilter === CompletionFilter.NotCompleted) {
-					includeTask = !isDoneTask;
-				}
+
+			// Look for timestamp, but it's optional now
+			// Only support the new standard format: [MM/DD/YYYY] or [MM/DD/YYYY HH:MM:SS AM/PM]
+			const timestampRegex = TIMESTAMP_REGEX;
+			const timestampMatch = content.match(timestampRegex);
+
+			let parsedTimestamp: Date;
+			let timestampString: string;
+
+			if (timestampMatch) {
+				// Use existing timestamp if found (keep original string for display)
+				timestampString = timestampMatch[0];
+				const parsed = parseTimestamp(timestampString);
+				parsedTimestamp = parsed || new Date(2050, 0, 1, 12, 0, 0);
+			} else {
+				// No timestamp found, use January 1st, 2050 as default (far future)
+				parsedTimestamp = new Date(2050, 0, 1, 12, 0, 0);
+				// Emit placeholder in new standard format
+				timestampString = `[01/01/2050 12:00:00 PM]`;
 			}
 
-			if (includeTask) {
-				// Look for timestamp, but it's optional now
-				// Only support the new standard format: [MM/DD/YYYY] or [MM/DD/YYYY HH:MM:SS AM/PM]
-				const timestampRegex = TIMESTAMP_REGEX;
-				const timestampMatch = content.match(timestampRegex);
+			// Detect priority
+			const priority = this.detectPriorityFromContent(content);
 
-				let parsedTimestamp: Date;
-				let timestampString: string;
+			// Check if task is completed
+			//const isCompleted = isDoneTask;
 
-				if (timestampMatch) {
-					// Use existing timestamp if found (keep original string for display)
-					timestampString = timestampMatch[0];
-					const parsed = parseTimestamp(timestampString);
-					parsedTimestamp = parsed || new Date(2050, 0, 1, 12, 0, 0);
-				} else {
-					// No timestamp found, use January 1st, 2050 as default (far future)
-					parsedTimestamp = new Date(2050, 0, 1, 12, 0, 0);
-					// Emit placeholder in new standard format
-					timestampString = `[01/01/2050 12:00:00 PM]`;
-				}
+			const fileName = path.basename(filePath);
+			const fileUri = vscode.Uri.file(filePath);
 
-				// Detect priority
-				const priority = this.detectPriorityFromContent(content);
+			// Find hashtags in the file content
+			const tagsInFile = findHashtagsInContent(content);
 
-				// Check if task is completed
-				const isCompleted = isDoneTask;
+			const taskFile = new TaskFile(
+				filePath,
+				fileName,
+				fileUri,
+				parsedTimestamp,
+				timestampString,
+				priority,
+				// isCompleted,
+				tagsInFile
+			);
+			this.taskFileData.push(taskFile);
 
-				const fileName = path.basename(filePath);
-				const fileUri = vscode.Uri.file(filePath);
-
-				// Find hashtags in the file content
-				const tagsInFile = findHashtagsInContent(content);
-
-				const taskFile = new TaskFile(
-					filePath,
-					fileName,
-					fileUri,
-					parsedTimestamp,
-					timestampString,
-					priority,
-					isCompleted,
-					tagsInFile
-				);
-				this.taskFileData.push(taskFile);
-			}
 		} catch (error) {
 			console.error(`Error scanning file ${filePath}:`, error);
 		}
