@@ -558,10 +558,26 @@ export function activate(context: vscode.ExtensionContext) {
 		try {
 			// Get the path to the README.md in the extension's installation directory
 			const extensionPath = context.extensionPath;
-			const readmePath = vscode.Uri.file(path.join(extensionPath, 'README.md'));
+			
+			// Try both uppercase and lowercase versions since vsce may lowercase the filename
+			let readmePath = path.join(extensionPath, 'README.md');
+			if (!fs.existsSync(readmePath)) {
+				readmePath = path.join(extensionPath, 'readme.md');
+			}
+			
+			// Verify the README file exists
+			if (!fs.existsSync(readmePath)) {
+				vscode.window.showErrorMessage(
+					`README.md not found in extension directory. ` +
+					`Checked: ${path.join(extensionPath, 'README.md')} and ${path.join(extensionPath, 'readme.md')}. ` +
+					`This may indicate the extension was not packaged correctly.`
+				);
+				return;
+			}
 
+			const readmeUri = vscode.Uri.file(readmePath);
 			// Open the README.md file in VS Code's markdown preview
-			await vscode.commands.executeCommand('markdown.showPreview', readmePath);
+			await vscode.commands.executeCommand('markdown.showPreview', readmeUri);
 		} catch (error) {
 			vscode.window.showErrorMessage(`Failed to open About page: ${error}`);
 		}
