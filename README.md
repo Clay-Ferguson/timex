@@ -2,32 +2,7 @@
 
 **Use Markdown files as your Calendar/Task Manager, in a time-series Panel**
 
-A minimalist, fle#### Filename-Based Display
-
-The panel displays each task using the filename (without the `.md` extension) as the item label. This provides clean, readable task names that match your file organization.
-
-Example:
-- Filename: `fix-login-bug.md`
-- Contents: `# Fix Login Bug\n\nThe login form is not validating...\n\n#todo [09/15/2025 05:00:00 PM]`
-- Result: Appears as "fix-login-bug" in the panel
-- Hover tooltip: Shows the folder location (e.g., "tasks/urgent") and timestamp details
-
-This approach keeps the display consistent and lets you organize tasks with descriptive filenames while seeing the folder context on hover.de panel for managing markdown-based items (tasks, todos, notes, reminders) using lightweight hashtags and timestamps in your files. You can define multiple ca#### Tips
-- To review only recently urgent items: select Due Soon + Priority 1.
-- Use Due Today for focus on today's tasks only.
-- Use Future Due Dates to plan ahead without current distractions.
-- Want everything regardless of status? Use Any Priority + Any Time and clear search.
-
-#### Complete Temporal Coverage
-The view filters provide complete, non-overlapping coverage of all possible due dates:
-- **Overdue**: Tasks past their due date (excludes today)
-- **Due Today**: Tasks due specifically today
-- **Due Soon**: Tasks due today through next 3 days (excludes overdue)
-- **Future Due Dates**: Tasks due tomorrow and beyond
-- **Any Time**: All tasks regardless of due date
-
-#### Rationale
-The view filters are designed to provide clear temporal boundaries without overlap, allowing you to focus on specific time horizons for your work. Unlike traditional systems, overdue tasks are separate from "due soon" to avoid cluttering your forward-looking planning view. hashtags (e.g. `#todo, #note`) and switch the **active primary hashtag** live; only files containing the active one are listed. 
+A minimalist, flexible panel for managing markdown-based items (tasks, todos, notes, reminders) using lightweight hashtags and timestamps in your files. You can define multiple hashtags (e.g. `#todo`, `#note`) and switch the **active primary hashtag** live; only files containing the active one are listed. 
 
 ![Task Panel Screenshot](task-panel-screenshot.png)
 
@@ -77,7 +52,7 @@ An “Item” (task / todo / note / reminder) is just a markdown file containing
 
 ## Overview (how it works)
 
-The extension scans your workspace for markdown files containing the active primary hashtag, extracts optional due dates, and displays them in a filterable, prioritized list with overdue indicators. Timex assumes that, When it encounters a file containing. The hashtag `#todo` for example, that the entire file represents the definition of that task. So this extension should not be used to manage things like TODOs Where you might have multiple `#todo` hashtags in the same file. This is because this extension assumes that each file represents only one single thing to be tracked. In other words, when your project is scanned, and a tag like `#todo` is found in a file, that tells the extension the file itself, is a task definition. 
+The extension scans your workspace for markdown files containing the active primary hashtag, extracts optional due dates, and displays them in a filterable, prioritized list with overdue indicators. Timex assumes that when it encounters a file containing the hashtag `#todo` (for example), that the entire file represents the definition of that task. So this extension should not be used to manage things like TODOs where you might have multiple `#todo` hashtags in the same file. This is because this extension assumes that each file represents only one single thing to be tracked. In other words, when your project is scanned and a tag like `#todo` is found in a file, that tells the extension the file itself is a task definition. 
 
 ## Features
 
@@ -264,7 +239,7 @@ Settings (File > Preferences > Settings > Extensions > Timex):
 | Setting | Default | Description |
 |---------|---------|-------------|
 | `timex.primaryHashtag` | `#todo` | Active hashtag scanned for actionable items. Change via the tag toolbar icon or directly here. |
-| `timex.hashtags` | `#todo, #todo, #note` | Comma‑separated candidate hashtags available in the selection picker. Whitespace trimmed; empty entries ignored. |
+| `timex.hashtags` | `#todo, #note, #idea` | Comma‑separated candidate hashtags available in the selection picker. Whitespace trimmed; empty entries ignored. |
 | `timex.newTaskFolder` | (empty) | Absolute path to folder where new task files will be created. Leave empty to create in workspace root. |
 | `timex.includeGlobs` | `**/*.md` | Glob patterns included when scanning the workspace. Empty list falls back to the default. |
 | `timex.excludeGlobs` | `**/node_modules/**`, `**/.git/**`, `**/.vscode/**`, `**/out/**`, `**/dist/**`, `**/build/**`, `**/.next/**`, `**/target/**` | Glob patterns skipped while scanning for markdown items. Empty list scans every folder. |
@@ -302,7 +277,7 @@ To access settings:
 ### Supported Hashtags
 
 Core:
-- Active Primary (configurable): marks a file as an actionable item (default `#todo`, switchable to any candidate like `#todo`, `#note`, `#idea`).
+- Active Primary (configurable): marks a file as an actionable item (default `#todo`, switchable to any candidate like `#note`, `#idea`).
 - `#p1`, `#p2`, `#p3` – High / Medium / Low priority (absence = treated as `#p1`).
 
 Custom:
@@ -352,8 +327,11 @@ Fastest capture path—click +, enter a descriptive filename, and start typing.
 
 **In Text Editor:**
 - **Location**: Any text editor
-- **Option**: "Insert Timestamp"
-- **Function**: Inserts current date/time in the required format at cursor position
+- **Menu**: Right-click → "Timex" submenu
+- **Options**:
+  - **Insert Date+Time**: Inserts current date and time in full timestamp format `[MM/DD/YYYY HH:MM:SS AM/PM]`
+  - **Insert Date**: Inserts current date only in short format `[MM/DD/YYYY]`
+- **Function**: Both commands insert at cursor position in the required bracket format
 
 **In Panel:**
 - **Location**: Right-click on any item in the panel
@@ -418,10 +396,20 @@ The panel offers a single unified filtering system plus search to refine what yo
 3. (Priority) Priority 2 – `#p2` (Medium priority)
 4. (Priority) Priority 3 – `#p3` (Low priority)
 5. (View) Any Time – no due-date restriction
-6. (View) Due Soon – due today through next 3 days (excludes overdue)
+6. (View) Due Soon – due today through next 3 days
 7. (View) Due Today – due only today
 8. (View) Future Due Dates – due tomorrow and beyond
 9. (View) Overdue – past due date only (⚠️ shown)
+
+#### Complete Temporal Coverage
+The view filters provide complete, non-overlapping coverage of all possible due dates:
+- **Overdue**: Tasks past their due date (excludes today)
+- **Due Today**: Tasks due specifically today
+- **Due Soon**: Tasks due today through next 3 days
+- **Future Due Dates**: Tasks due tomorrow and beyond
+- **Any Time**: All tasks regardless of due date
+
+The view filters are designed to provide clear temporal boundaries without overlap, allowing you to focus on specific time horizons for your work.
 
 #### Using Filters
 1. Click the filter (funnel) icon and pick one option in any group; previous selection in that group is replaced.
@@ -434,6 +422,12 @@ The panel offers a single unified filtering system plus search to refine what yo
 - **Due Soon + Any Priority**: See what's coming up in the next few days
 - **Future Due Dates + Priority 2**: Plan medium-priority work for later
 - **Overdue + Any Priority**: Review what needs immediate attention
+
+#### Tips
+- To review only recently urgent items: select Due Soon + Priority 1
+- Use Due Today for focus on today's tasks only
+- Use Future Due Dates to plan ahead without current distractions
+- Want everything regardless of status? Use Any Priority + Any Time and clear search
 
 #### Search
 | Aspect | Behavior |
@@ -450,13 +444,6 @@ The panel offers a single unified filtering system plus search to refine what yo
 - Combine with Priority 1 to focus critical items containing a term
 - Use with Due Today to find specific tasks due today
 - Combine with Future Due Dates to plan specific upcoming work
-
-#### Tips
-- To review only recently urgent items: select Due Soon + Priority 1.
-- Want everything regardless of status? Use Any Priority + Any Time and clear search.
-
-#### Rationale
-Overdue tasks are included in Due Soon so that a single glance covers the immediate action horizon (past-due plus next 72 hours) without toggling views.
 
 ### Item Lifecycle
 
@@ -480,10 +467,13 @@ Overdue tasks are included in Due Soon so that a single glance covers the immedi
 
 **Inserting timestamps:**
 1. Place cursor where you want the timestamp
-2. Right-click → "Insert Timestamp"
-3. Current date/time is automatically inserted in full format
+2. Right-click → "Timex" submenu
+3. Choose either:
+   - **"Insert Date+Time"** for full timestamp format (e.g., `[11/03/2025 02:30:00 PM]`)
+   - **"Insert Date"** for date-only format (e.g., `[11/03/2025]`)
+4. The timestamp is automatically inserted at cursor position
 
-*Note: The "Insert Timestamp" command always creates full timestamps. For date-only timestamps, you can manually edit to remove the time portion.*
+*Tip: Use "Insert Date" for tasks where the specific time doesn't matter, and "Insert Date+Time" when you need precise scheduling.*
 
 ## Prioritization
 
