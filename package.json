@@ -79,7 +79,11 @@
       },
       {
         "command": "timex.insertTimestamp",
-        "title": "Insert Timestamp"
+        "title": "Insert Date+Time"
+      },
+      {
+        "command": "timex.insertDate",
+        "title": "Insert Date"
       },
       {
         "command": "timex.selectPrimaryHashtag",
@@ -186,6 +190,11 @@
         "id": "timex.explorerOrdinal",
         "label": "Timex",
         "icon": "$(list-unordered)"
+      },
+      {
+        "id": "timex.editorTimestamp",
+        "label": "Timex",
+        "icon": "$(calendar)"
       }
     ],
     "views": {
@@ -314,6 +323,9 @@
           "command": "timex.insertTimestamp"
         },
         {
+          "command": "timex.insertDate"
+        },
+        {
           "command": "timex.newTask"
         },
         {
@@ -349,8 +361,18 @@
       ],
       "editor/context": [
         {
-          "command": "timex.insertTimestamp",
+          "submenu": "timex.editorTimestamp",
           "group": "z_commands"
+        }
+      ],
+      "timex.editorTimestamp": [
+        {
+          "command": "timex.insertTimestamp",
+          "group": "1_timestamp@1"
+        },
+        {
+          "command": "timex.insertDate",
+          "group": "1_timestamp@2"
         }
       ],
       "explorer/context": [

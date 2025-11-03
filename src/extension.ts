@@ -41,7 +41,9 @@ async function getTitleFromFile(filePath: string): Promise<string | null> {
 			if (!line) {
 				continue;
 			}
+			// Strip a leading UTF-8 BOM so headings render correctly
 			let title = line.replace(/^\uFEFF/, '');
+			// Normalize markdown headings by stripping "#" prefixes before using as title
 			if (/^#+\s/.test(title)) {
 				title = title.replace(/^#+\s+/, '').trim();
 			}
@@ -257,6 +259,26 @@ export function activate(context: vscode.ExtensionContext) {
 		});
 
 		vscode.window.showInformationMessage(`Timestamp inserted: ${timestamp}`);
+	});
+
+	const insertDateCommand = vscode.commands.registerCommand('timex.insertDate', () => {
+		const editor = vscode.window.activeTextEditor;
+		if (!editor) {
+			vscode.window.showErrorMessage('No active editor found');
+			return;
+		}
+
+		// Generate current date (date-only format, no time)
+		const now = new Date();
+		const dateOnly = formatTimestamp(now, false); // false = short format (date only)
+
+		// Insert date at cursor position
+		const position = editor.selection.active;
+		editor.edit(editBuilder => {
+			editBuilder.insert(position, dateOnly);
+		});
+
+		vscode.window.showInformationMessage(`Date inserted: ${dateOnly}`);
 	});
 
 	const selectPrimaryHashtagCommand = vscode.commands.registerCommand('timex.selectPrimaryHashtag', async () => {
@@ -1130,6 +1152,7 @@ export function activate(context: vscode.ExtensionContext) {
 	// Add to subscriptions
 	context.subscriptions.push(treeView);
 	context.subscriptions.push(insertTimestampCommand);
+	context.subscriptions.push(insertDateCommand);
 	context.subscriptions.push(selectPrimaryHashtagCommand);
 	context.subscriptions.push(filterPriorityCommand);
 	context.subscriptions.push(searchTasksCommand);
