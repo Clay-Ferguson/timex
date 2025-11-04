@@ -340,7 +340,7 @@ Fastest capture path—click +, enter a descriptive filename, and start typing.
   - **Date Extension Commands**: +Day, +Week, +Month, +Year (for tasks with timestamps)
   - **Reveal in Explorer**: Highlights the underlying file in VS Code's Explorer so you can see its location instantly.
   - **Rename**: Prompts for a new filename and renames the markdown file without switching to the Explorer.
-  - **Delete Task**: Permanently removes the task file from your workspace
+  - **Delete**: Permanently removes the task file from your workspace
   - **About**: Shows extension information
 
 **In Explorer:**
@@ -350,8 +350,8 @@ Fastest capture path—click +, enter a descriptive filename, and start typing.
 - **Move Up** and **Move Down** swap prefixes with the previous or next ordinal neighbor.
 - **Cut by Ordinal** and **Paste by Ordinal** let you relocate an item while shuffling surrounding ordinals automatically.
 
-**Delete Task Feature:**
-- Right-click any item in the panel and select "Delete Task"
+**Delete Feature:**
+- Right-click any item in the panel and select "Delete"
 - Shows a confirmation dialog before deletion
 - Permanently removes the markdown file from your workspace
 - Automatically refreshes the panel after deletion

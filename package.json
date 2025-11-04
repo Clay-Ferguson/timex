@@ -138,7 +138,7 @@
       },
       {
         "command": "timex.deleteTask",
-        "title": "Delete Task/File",
+        "title": "Delete",
         "icon": "$(trash)"
       },
       {
@@ -296,20 +296,20 @@
           "group": "1_dateExtension@4"
         },
         {
-          "command": "timex.deleteTask",
+          "command": "timex.revealInExplorer",
           "when": "view == taskExplorer",
           "group": "2_file@1"
         },
         {
-          "command": "timex.revealInExplorer",
-          "when": "view == taskExplorer",
-          "group": "2_file@2"
-        },
-        {
           "command": "timex.renameTask",
           "when": "view == taskExplorer",
-          "group": "2_file@3",
+          "group": "2_file@2",
           "icon": "$(edit)"
+        },
+          {
+          "command": "timex.deleteTask",
+          "when": "view == taskExplorer",
+          "group": "2_file@3"
         }
       ],
       "commandPalette": [
