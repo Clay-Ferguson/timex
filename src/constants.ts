@@ -1,6 +1,8 @@
 export enum ViewFilter {
 	All = 'All',
-	DueSoon = 'Due Soon',
+	DueIn7Days = 'Due in 7 Days',
+	DueIn14Days = 'Due in 14 Days',
+	DueIn30Days = 'Due in 30 Days',
 	DueToday = 'Due Today',
 	FutureDueDates = 'Future Due Dates',
 	Overdue = 'Overdue',

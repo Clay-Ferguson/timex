@@ -366,8 +366,16 @@ export function activate(context: vscode.ExtensionContext) {
 				value: `view:${ViewFilter.All}`
 			},
 			{
-				label: `${currentView === ViewFilter.DueSoon ? `$(check) ${ViewFilter.DueSoon}` : `$(circle-outline) ${ViewFilter.DueSoon}`}`,
-				value: `view:${ViewFilter.DueSoon}`
+				label: `${currentView === ViewFilter.DueIn7Days ? `$(check) ${ViewFilter.DueIn7Days}` : `$(circle-outline) ${ViewFilter.DueIn7Days}`}`,
+				value: `view:${ViewFilter.DueIn7Days}`
+			},
+			{
+				label: `${currentView === ViewFilter.DueIn14Days ? `$(check) ${ViewFilter.DueIn14Days}` : `$(circle-outline) ${ViewFilter.DueIn14Days}`}`,
+				value: `view:${ViewFilter.DueIn14Days}`
+			},
+			{
+				label: `${currentView === ViewFilter.DueIn30Days ? `$(check) ${ViewFilter.DueIn30Days}` : `$(circle-outline) ${ViewFilter.DueIn30Days}`}`,
+				value: `view:${ViewFilter.DueIn30Days}`
 			},
 			{
 				label: `${currentView === ViewFilter.DueToday ? `$(check) ${ViewFilter.DueToday}` : `$(circle-outline) ${ViewFilter.DueToday}`}`,
@@ -397,8 +405,14 @@ export function activate(context: vscode.ExtensionContext) {
 					case ViewFilter.All:
 						taskProvider.refresh();
 						break;
-					case ViewFilter.DueSoon:
-						taskProvider.refreshDueSoon();
+					case ViewFilter.DueIn7Days:
+						taskProvider.refreshDueIn7Days();
+						break;
+					case ViewFilter.DueIn14Days:
+						taskProvider.refreshDueIn14Days();
+						break;
+					case ViewFilter.DueIn30Days:
+						taskProvider.refreshDueIn30Days();
 						break;
 					case ViewFilter.DueToday:
 						taskProvider.refreshDueToday();

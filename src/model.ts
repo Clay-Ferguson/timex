@@ -341,13 +341,39 @@ export class TaskProvider implements vscode.TreeDataProvider<TaskFileItem> {
 		});
 	}
 
-	refreshDueSoon(): void {
-		this.currentFilter = ViewFilter.DueSoon;
+	refreshDueIn7Days(): void {
+		this.currentFilter = ViewFilter.DueIn7Days;
 		this.currentSearchQuery = ''; // Clear search when switching filters
 		this.saveFilterState();
 		this.updateTreeViewTitle();
 		this.showScanningIndicator();
-		this.scanForTaskFiles(true).then(() => {
+		this.scanForTaskFiles(false, false, false, 7).then(() => {
+			this.hideScanningIndicator();
+			this._onDidChangeTreeData.fire();
+			this.scheduleReveal();
+		});
+	}
+
+	refreshDueIn14Days(): void {
+		this.currentFilter = ViewFilter.DueIn14Days;
+		this.currentSearchQuery = ''; // Clear search when switching filters
+		this.saveFilterState();
+		this.updateTreeViewTitle();
+		this.showScanningIndicator();
+		this.scanForTaskFiles(false, false, false, 14).then(() => {
+			this.hideScanningIndicator();
+			this._onDidChangeTreeData.fire();
+			this.scheduleReveal();
+		});
+	}
+
+	refreshDueIn30Days(): void {
+		this.currentFilter = ViewFilter.DueIn30Days;
+		this.currentSearchQuery = ''; // Clear search when switching filters
+		this.saveFilterState();
+		this.updateTreeViewTitle();
+		this.showScanningIndicator();
+		this.scanForTaskFiles(false, false, false, 30).then(() => {
 			this.hideScanningIndicator();
 			this._onDidChangeTreeData.fire();
 			this.scheduleReveal();
@@ -360,7 +386,7 @@ export class TaskProvider implements vscode.TreeDataProvider<TaskFileItem> {
 		this.saveFilterState();
 		this.updateTreeViewTitle();
 		this.showScanningIndicator();
-		this.scanForTaskFiles(false, false, true).then(() => {
+		this.scanForTaskFiles(false, true).then(() => {
 			this.hideScanningIndicator();
 			this._onDidChangeTreeData.fire();
 			this.scheduleReveal();
@@ -373,7 +399,7 @@ export class TaskProvider implements vscode.TreeDataProvider<TaskFileItem> {
 		this.saveFilterState();
 		this.updateTreeViewTitle();
 		this.showScanningIndicator();
-		this.scanForTaskFiles(false, false, false, true).then(() => {
+		this.scanForTaskFiles(false, false, true).then(() => {
 			this.hideScanningIndicator();
 			this._onDidChangeTreeData.fire();
 			this.scheduleReveal();
@@ -386,7 +412,7 @@ export class TaskProvider implements vscode.TreeDataProvider<TaskFileItem> {
 		this.saveFilterState();
 		this.updateTreeViewTitle();
 		this.showScanningIndicator();
-		this.scanForTaskFiles(false, true).then(() => {
+		this.scanForTaskFiles(true).then(() => {
 			this.hideScanningIndicator();
 			this._onDidChangeTreeData.fire();
 			this.scheduleReveal();
@@ -523,13 +549,29 @@ export class TaskProvider implements vscode.TreeDataProvider<TaskFileItem> {
 		const now = new Date();
 		const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
-		if (this.currentFilter === ViewFilter.DueSoon) {
-			const threeDaysFromNow = new Date();
-			threeDaysFromNow.setDate(threeDaysFromNow.getDate() + 3);
-			threeDaysFromNow.setHours(23, 59, 59, 999);
+		if (this.currentFilter === ViewFilter.DueIn7Days) {
+			const daysFromNow = new Date();
+			daysFromNow.setDate(daysFromNow.getDate() + 7);
+			daysFromNow.setHours(23, 59, 59, 999);
 
 			filteredTaskData = this.taskFileData.filter(taskFile =>
-				taskFile.timestamp >= today && taskFile.timestamp <= threeDaysFromNow
+				taskFile.timestamp >= today && taskFile.timestamp <= daysFromNow
+			);
+		} else if (this.currentFilter === ViewFilter.DueIn14Days) {
+			const daysFromNow = new Date();
+			daysFromNow.setDate(daysFromNow.getDate() + 14);
+			daysFromNow.setHours(23, 59, 59, 999);
+
+			filteredTaskData = this.taskFileData.filter(taskFile =>
+				taskFile.timestamp >= today && taskFile.timestamp <= daysFromNow
+			);
+		} else if (this.currentFilter === ViewFilter.DueIn30Days) {
+			const daysFromNow = new Date();
+			daysFromNow.setDate(daysFromNow.getDate() + 30);
+			daysFromNow.setHours(23, 59, 59, 999);
+
+			filteredTaskData = this.taskFileData.filter(taskFile =>
+				taskFile.timestamp >= today && taskFile.timestamp <= daysFromNow
 			);
 		} else if (this.currentFilter === ViewFilter.DueToday) {
 			// Filter by due today only
@@ -671,7 +713,7 @@ export class TaskProvider implements vscode.TreeDataProvider<TaskFileItem> {
 		return Promise.resolve([]);
 	}
 
-	private async scanForTaskFiles(dueSoonOnly: boolean = false, overdueOnly: boolean = false, dueTodayOnly: boolean = false, futureDueDatesOnly: boolean = false): Promise<void> {
+	private async scanForTaskFiles(overdueOnly: boolean = false, dueTodayOnly: boolean = false, futureDueDatesOnly: boolean = false, dueInDays?: number): Promise<void> {
 		this.taskFiles = [];
 		this.taskFileData = [];
 		this.scannedFiles.clear(); // Clear the set of scanned files
@@ -683,19 +725,19 @@ export class TaskProvider implements vscode.TreeDataProvider<TaskFileItem> {
 		// Use VS Code's efficient file search API instead of manual directory traversal
 		await this.scanMarkdownFilesOptimized();
 
-		// Filter by due soon or overdue if requested
+		// Filter by due in X days if requested
 		let filteredTaskData = this.taskFileData;
 		const now = new Date();
 		const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
-		if (dueSoonOnly) {
-			// Filter by due soon (within 3 days, excluding overdue)
-			const threeDaysFromNow = new Date();
-			threeDaysFromNow.setDate(threeDaysFromNow.getDate() + 3);
-			threeDaysFromNow.setHours(23, 59, 59, 999); // End of the day
+		if (dueInDays !== undefined) {
+			// Filter by due within X days (including today)
+			const daysFromNow = new Date();
+			daysFromNow.setDate(daysFromNow.getDate() + dueInDays);
+			daysFromNow.setHours(23, 59, 59, 999); // End of the day
 
 			filteredTaskData = this.taskFileData.filter(taskFile =>
-				taskFile.timestamp >= today && taskFile.timestamp <= threeDaysFromNow
+				taskFile.timestamp >= today && taskFile.timestamp <= daysFromNow
 			);
 		} else if (dueTodayOnly) {
 			// Filter by due today only
