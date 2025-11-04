@@ -73,7 +73,11 @@ watcher.onDidChange(async (uri) => {
 ```
 
 ### Filter State Management
-- **Filter combinations**: View (All|Due Soon|Overdue) × Priority (all|p1|p2|p3) × Completion (all|completed|not-completed)
+- **Filter combinations**: View (All|Due in 7/14/30 Days|Due Today|Future|Overdue) × Priority (all|p1|p2|p3)
+- **Time-based filters**: Three configurable horizons for planning:
+  - `DueIn7Days`: Today through next 7 days (weekly view)
+  - `DueIn14Days`: Today through next 14 days (bi-weekly planning)
+  - `DueIn30Days`: Today through next 30 days (monthly overview)
 - **Search overlay**: Filename + content matching, case-insensitive, preserves other filters
 - **State clearing**: Any filter change clears `currentSearchQuery`
 - **Title sync**: `updateTreeViewTitle()` reflects all active filters
@@ -217,10 +221,12 @@ This ordinal system enables project phase organization, sequential task manageme
 ## Extension Points for New Features
 
 ### Adding New Filters
-1. Extend `TaskProvider` filter state properties
-2. Update `filterPriority` command QuickPick options  
-3. Modify `updateTreeViewTitle()` format logic
-4. Implement filter logic in `scanForTaskFiles()` and `applyFiltersToExistingData()`
+1. Add new enum value to `ViewFilter` in `src/constants.ts`
+2. Create corresponding `refresh*()` method in `TaskProvider` (e.g., `refreshDueIn7Days()`)
+3. Update `filterPriority` command QuickPick options in `src/extension.ts`
+4. Add case to switch statement in `filterPriority` command handler
+5. Implement filter logic in both `scanForTaskFiles()` and `applyFiltersToExistingData()` 
+6. Update `updateTreeViewTitle()` to display new filter in title bar
 
 ### New Task Metadata
 1. Parse during `scanFile()` → extend `TaskFile` class
@@ -233,11 +239,13 @@ Prefer `rebuildTaskDisplay()` pattern over full rescans for operations that only
 
 ## Common Pitfalls
 
-1. **Regex Updates**: Timestamp parsing regex appears in multiple files—update all locations
+1. **Regex Updates**: Timestamp parsing regex (`TIMESTAMP_REGEX` in `pure-utils.ts`) must match formats in multiple files
 2. **Filter State**: Always clear search query when changing other filters (UX consistency)
 3. **File Watcher**: Don't forget `hideScanningIndicator()` after async operations
 4. **Duplicate Prevention**: `scannedFiles` Set prevents duplicate processing—clear on full scans
 5. **Context Values**: TreeItem `contextValue` controls right-click menu availability (timestamp vs no-timestamp)
+6. **Filter Method Signatures**: `scanForTaskFiles()` accepts different parameter combinations for different filters—check existing calls before modifying
+7. **Dual Filter Logic**: Time-based filters must be implemented in BOTH `scanForTaskFiles()` (for full scans) AND `applyFiltersToExistingData()` (for in-memory filtering)
 
 ## Example Task Files
 

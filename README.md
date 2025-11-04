@@ -15,7 +15,7 @@ Think of this extension as a lightweight, chronological stream of dated (or unda
 3. Press the + button: you'll be prompted to enter a filename, then a new file appears with a timestamp and `#p3`.
 4. Type a short description under the prefilled line (or just rename the file — filename can become the label).
 5. (Optional) Switch the primary hashtag via the tag icon (e.g. from `#todo` to `#note`) to view a different stream.
-6. Use the filter (funnel) icon for Due Soon / Overdue / priority slices; search (🔍) narrows further.
+6. Use the filter (funnel) icon for time-based filters (7/14/30 days) / Overdue / priority slices; search (🔍) narrows further.
 7. Add or edit timestamps manually or with +Day/+Week/+Month/+Year commands.
 
 You now have a living time series of work: closest due items float to your attention; undated or far‑future items sit quietly at the bottom (sentinel date logic). Switch hashtags to pivot context without noise.
@@ -30,7 +30,7 @@ Filename: `plan-sprint.md` → Displays as: `🟠 (3) Plan sprint` (if 3 days ou
 - Priority Icons: 🔴 = P1 / 🟠 = P2 / 🔵 = P3 (absence = P1)
 - Days Indicator: `(5)` in 5 days, `(0)` today, `(-2)` overdue by 2, `(?)` no date
 - ⚠️ added after icon if overdue
-- **Filter Coverage**: Overdue (past) ← Due Today (present) ← Due Soon (next 3 days) ← Future Due Dates (beyond)
+- **Filter Coverage**: Overdue (past) ← Due Today (present) ← Due in 7/14/30 Days ← Future Due Dates (beyond)
 
 ### When to Use This vs a Calendar
 - Need fast capture in plain files, not structured tasks
@@ -390,26 +390,30 @@ The panel offers a single unified filtering system plus search to refine what yo
 - Open search via the 🔍 icon (search text combines with the currently selected filters until cleared).
 - Panel title shows current state (e.g., `Due Soon - P1`, or `SEARCH - P* - 'bug'`).
 
-#### Filter Groups (9 Options Total)
+#### Filter Groups (11 Options Total)
 1. (Priority) Any Priority – show every priority level
 2. (Priority) Priority 1 – `#p1` (High priority)
 3. (Priority) Priority 2 – `#p2` (Medium priority)
 4. (Priority) Priority 3 – `#p3` (Low priority)
 5. (View) Any Time – no due-date restriction
-6. (View) Due Soon – due today through next 3 days
-7. (View) Due Today – due only today
-8. (View) Future Due Dates – due tomorrow and beyond
-9. (View) Overdue – past due date only (⚠️ shown)
+6. (View) Due in 7 Days – due today through next 7 days
+7. (View) Due in 14 Days – due today through next 14 days
+8. (View) Due in 30 Days – due today through next 30 days
+9. (View) Due Today – due only today
+10. (View) Future Due Dates – due tomorrow and beyond
+11. (View) Overdue – past due date only (⚠️ shown)
 
 #### Complete Temporal Coverage
-The view filters provide complete, non-overlapping coverage of all possible due dates:
+The view filters provide flexible time-based views of your tasks:
 - **Overdue**: Tasks past their due date (excludes today)
 - **Due Today**: Tasks due specifically today
-- **Due Soon**: Tasks due today through next 3 days
+- **Due in 7 Days**: Tasks due from today through the next 7 days (includes today)
+- **Due in 14 Days**: Tasks due from today through the next 14 days (includes today)
+- **Due in 30 Days**: Tasks due from today through the next 30 days (includes today)
 - **Future Due Dates**: Tasks due tomorrow and beyond
 - **Any Time**: All tasks regardless of due date
 
-The view filters are designed to provide clear temporal boundaries without overlap, allowing you to focus on specific time horizons for your work.
+The time-based filters (7/14/30 days) are designed to give you different planning horizons - use 7 days for immediate focus, 14 days for bi-weekly planning, or 30 days for monthly overview.
 
 #### Using Filters
 1. Click the filter (funnel) icon and pick one option in any group; previous selection in that group is replaced.
@@ -419,12 +423,16 @@ The view filters are designed to provide clear temporal boundaries without overl
 
 **Filter Usage Examples:**
 - **Due Today + Priority 1**: Focus on high-priority tasks due today
-- **Due Soon + Any Priority**: See what's coming up in the next few days
+- **Due in 7 Days + Any Priority**: See what's coming up this week
+- **Due in 14 Days + Priority 2**: Plan medium-priority work for the next two weeks
+- **Due in 30 Days + Any Priority**: Get a monthly overview of upcoming tasks
 - **Future Due Dates + Priority 2**: Plan medium-priority work for later
 - **Overdue + Any Priority**: Review what needs immediate attention
 
 #### Tips
-- To review only recently urgent items: select Due Soon + Priority 1
+- To review urgent items this week: select Due in 7 Days + Priority 1
+- For bi-weekly planning: use Due in 14 Days to see two weeks ahead
+- For monthly planning: use Due in 30 Days to get a full month overview
 - Use Due Today for focus on today's tasks only
 - Use Future Due Dates to plan ahead without current distractions
 - Want everything regardless of status? Use Any Priority + Any Time and clear search
