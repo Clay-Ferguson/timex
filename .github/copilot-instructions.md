@@ -99,21 +99,50 @@ scanForTaskFiles() // Filesystem scan + parse
 
 ### Build & Test
 ```bash
-npm install           # Install dependencies
+npm install           # Install dependencies (or yarn install)
 npm run compile       # TypeScript → out/
 npm run watch         # Auto-rebuild on changes (background task available)
+npm run test:unit     # Run Mocha unit tests for pure functions
+npm run test:all      # Run all tests (unit + VS Code integration)
+```
+
+### Testing Strategy
+**Two-tier testing approach:**
+- **Unit Tests** (`src/test/unit/*.test.ts`): Pure functions in `pure-utils.ts` (date parsing, formatting, calculations)
+  - Use Mocha + Node.js assert (no VS Code APIs)
+  - Fast, no extension host required
+  - Run with `npm run test:unit` or `npm run test:unit -- --watch`
+- **Integration Tests**: Functions using VS Code API (file I/O, workspace, tree view)
+  - Require Extension Development Host environment
+  - More complex setup, slower execution
+
+**Code Organization Pattern:**
+```typescript
+// src/pure-utils.ts - Functions without VS Code dependencies
+export function parseTimestamp(str: string): Date | null { ... }
+export function getDaysDifference(date1: Date, date2: Date): number { ... }
+
+// src/utils.ts - VS Code-dependent utilities
+import * as vscode from 'vscode';
+export function getIncludeGlobPattern(): string { 
+  const config = vscode.workspace.getConfiguration('timex');
+  // ...
+}
 ```
 
 ### Debug Setup
 - **F5**: Launch Extension Development Host (clean VS Code instance)
 - **Test Strategy**: Open external workspace folder with `.md` files (don't create test files in this repo)
 - **Extension logs**: Help → Toggle Developer Tools → Console
+- **Test File Debugging**: Set breakpoints in `src/test/unit/*.test.ts` and run debug task
 
 ### Packaging & Distribution
 ```bash
 npm install -g @vscode/vsce
 vsce package                    # Creates .vsix file
 code --install-extension timex-0.0.2.vsix
+# Or use convenience script:
+./install.sh                    # Automated build + install
 ```
 
 ## Critical Implementation Details
@@ -147,6 +176,58 @@ Year 2050+ indicates "no real timestamp":
 - Always sorts to bottom
 - Gets far-future icon treatment
 - Used for files without `[MM/DD/YYYY...]` patterns
+
+### Configuration System (NEW)
+**Glob Patterns for Scanning** (`package.json` → `contributes.configuration`):
+- `timex.includeGlobs`: Files to scan (default `**/*.md`)
+- `timex.excludeGlobs`: Directories to skip (default: node_modules, .git, etc.)
+- **Implementation**: `getIncludeGlobPattern()` and `getExcludeGlobPattern()` in `utils.ts`
+- **Dynamic Normalization**: Trims whitespace, filters empty entries, wraps multiple patterns in `{}`
+- **Fallback Logic**: Empty include list → default to `**/*.md`; empty exclude list → scan everything
+
+```typescript
+// File watching uses dynamic glob pattern
+const watcherPattern = getIncludeGlobPattern(); // e.g., "**/*.md" or "{**/*.md,**/*.mdx}"
+const watcher = vscode.workspace.createFileSystemWatcher(watcherPattern);
+```
+
+### Attachment Management System (ADVANCED)
+**Hash-based file tracking** prevents broken links when files move:
+
+```typescript
+// Core attachment workflow (extension.ts:insertAttachment)
+1. User selects file via file picker
+2. Generate SHA-256 hash of file content (first 128 bits → hex)
+3. Rename file: "screenshot.png" → "screenshot.TIMEX-a3f5b2c8d9e1f4a7.png"
+4. Insert markdown link with relative path from current file
+5. Auto-detect images (IMAGE_EXTENSIONS set) → use "![...](...)" syntax
+
+// Link repair workflow (extension.ts:fixAttachmentLinks)
+1. Build index: scan workspace for all TIMEX-{hash} files
+2. Parse markdown files for TIMEX_LINK_REGEX matches
+3. Extract hash from broken link, lookup in index by hash
+4. Recalculate relative path from markdown file to found attachment
+5. Update link inline (preserves alt text and link label)
+```
+
+**Critical Regex** (`TIMEX_LINK_REGEX` in utils.ts):
+```typescript
+/(!?\[[^\]]*\])\(([^)]*TIMEX-[a-f0-9]+[^)]*)\)/g
+// Captures: [1] = link text with brackets, [2] = path with TIMEX-hash
+```
+
+**Clipboard Image Insertion** (`insertImageFromClipboard`):
+- **Platform dependencies**: Linux=xclip, macOS=pngpaste, Windows=native
+- Reads binary from clipboard, saves as PNG with TIMEX hash name
+- Uses same hash-based naming → benefits from link repair
+- Insert point: cursor position in active text editor
+
+**Index Generation** (`generateMarkdown`):
+- Walks ordinal folders recursively
+- Concatenates `.md` files in ordinal order with `---` separators
+- Embeds images using `![](...)` syntax (checks IMAGE_EXTENSIONS)
+- Folder links: extracts first meaningful line from child `_index.md` as label
+- Opens top-level index in Markdown preview (not editor)
 
 ## Ordinal-Based File Management (NEW)
 
@@ -218,6 +299,35 @@ fileName.replace(/^[\d_]+/, ''); // Strip "0001_" prefixes from labels
 
 This ordinal system enables project phase organization, sequential task management, and ordered file workflows while maintaining the extension's core task management functionality.
 
+### Ordinal File Management - Advanced Patterns
+
+**Cut/Paste by Ordinal** (NEW):
+- **Context value**: `timex.hasOrdinalCutItem` controls paste visibility in explorer context menu
+- **State management**: Global state key `'ordinalCutItem'` stores `{path: string, ordinal: number}`
+- **Paste behavior**: Inserts cut item after selected ordinal, renumbers neighbors automatically
+- **Implementation**: `cutByOrdinal()` stores, `pasteByOrdinal()` relocates + calls `renumberItems()`
+
+**Move Up/Down** (NEW):
+- Swaps numeric prefixes with adjacent ordinal item (preserves rest of filename)
+- Edge cases: No-op at top/bottom, shows information message
+- Uses `extractOrdinalFromFilename()` and `generateNumberPrefix()` for atomic swaps
+- **Pattern**: `00020_file.md` + Move Down → swaps with `00030_next.md`
+
+**Order Preservation in Re-numbering**:
+```typescript
+// CRITICAL: Does NOT sort alphabetically - preserves existing numeric order
+numberedItems.sort((a, b) => a.ordinal - b.ordinal); // Sort by current numbers
+// Then renumber 00010, 00020, 00030... maintaining that sequence
+```
+
+**Numbered Item Detection**:
+```typescript
+// Regex: /^(\d+)_(.*)$/
+// Matches: "001_file.md", "00020_folder", "12345_anything"
+// Skips: Hidden files (startsWith('.' or '_')), non-ordinal names
+// Operates on workspace root only (non-recursive for renumber command)
+```
+
 ## Extension Points for New Features
 
 ### Adding New Filters
@@ -246,6 +356,11 @@ Prefer `rebuildTaskDisplay()` pattern over full rescans for operations that only
 5. **Context Values**: TreeItem `contextValue` controls right-click menu availability (timestamp vs no-timestamp)
 6. **Filter Method Signatures**: `scanForTaskFiles()` accepts different parameter combinations for different filters—check existing calls before modifying
 7. **Dual Filter Logic**: Time-based filters must be implemented in BOTH `scanForTaskFiles()` (for full scans) AND `applyFiltersToExistingData()` (for in-memory filtering)
+8. **Hash Filename Pattern**: TIMEX attachment filenames MUST follow `name.TIMEX-{hash}.ext` pattern (not `name-TIMEX-{hash}.ext` or other variations)
+9. **Clipboard Platform Dependencies**: `insertImageFromClipboard` requires external tools (xclip/pngpaste)—graceful error handling needed
+10. **Pure vs VS Code Functions**: Keep `pure-utils.ts` free of `import * as vscode` to maintain unit testability
+11. **Ordinal File State**: `timex.hasOrdinalCutItem` context value must be set/cleared via `context.setContext()` for paste menu visibility
+12. **Relative Path Calculations**: Attachment links use `path.relative()` from markdown file location—handle edge cases with nested folders
 
 ## Example Task Files
 
