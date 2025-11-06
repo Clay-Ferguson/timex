@@ -16,7 +16,10 @@ import {
 	stripOrdinalPrefix,
 	NumberedItem,
 	isImageFileName,
-	generateFileHash
+	generateFileHash,
+	buildAttachmentIndex,
+	extractHashFromTimexFilename,
+	TIMEX_LINK_REGEX
 } from './utils';
 import { parseTimestamp, formatTimestamp, TIMESTAMP_REGEX } from './pure-utils';
 import { ViewFilter, PriorityTag } from './constants';
@@ -1281,6 +1284,160 @@ export function activate(context: vscode.ExtensionContext) {
 		await moveOrdinal(uri, 'down');
 	});
 
+	const fixAttachmentLinksCommand = vscode.commands.registerCommand('timex.fixAttachmentLinks', async (uri: vscode.Uri) => {
+		if (!uri) {
+			vscode.window.showErrorMessage('No file or folder selected');
+			return;
+		}
+
+		let folderPath: string;
+
+		// Check if selected item is a file or folder
+		try {
+			const stats = await fs.promises.stat(uri.fsPath);
+			if (stats.isDirectory()) {
+				// It's a folder, use it directly
+				folderPath = uri.fsPath;
+			} else {
+				// It's a file, use the workspace root instead
+				if (!vscode.workspace.workspaceFolders || vscode.workspace.workspaceFolders.length === 0) {
+					vscode.window.showErrorMessage('No workspace folder found');
+					return;
+				}
+				folderPath = vscode.workspace.workspaceFolders[0].uri.fsPath;
+			}
+		} catch (error) {
+			vscode.window.showErrorMessage(`Failed to access selected item: ${error}`);
+			return;
+		}
+
+		await vscode.window.withProgress({
+			location: vscode.ProgressLocation.Notification,
+			title: 'Fixing Attachment Links',
+			cancellable: false
+		}, async (progress) => {
+			try {
+				progress.report({ increment: 0, message: 'Building attachment index...' });
+
+				// Build index of all TIMEX- files in the folder
+				const config = vscode.workspace.getConfiguration('timex');
+				const excludeGlobsArray = config.get<string[]>('excludeGlobs', []);
+				const excludePattern = excludeGlobsArray.length > 0 ? `{${excludeGlobsArray.join(',')}}` : undefined;
+				
+				const attachmentIndex = await buildAttachmentIndex(folderPath, excludePattern);
+				
+				progress.report({ increment: 20, message: `Found ${attachmentIndex.size} attachments. Scanning markdown files...` });
+
+				// Find all markdown files in the folder
+				const pattern = new vscode.RelativePattern(folderPath, '**/*.md');
+				const mdFiles = await vscode.workspace.findFiles(pattern, excludePattern);
+
+				progress.report({ increment: 10, message: `Processing ${mdFiles.length} markdown files...` });
+
+				let totalLinksFixed = 0;
+				let totalFilesModified = 0;
+				const missingAttachments: string[] = [];
+				const progressIncrement = mdFiles.length > 0 ? 60 / mdFiles.length : 60;
+
+				// Process each markdown file
+				for (const mdFileUri of mdFiles) {
+					const mdFilePath = mdFileUri.fsPath;
+					const mdFileDir = path.dirname(mdFilePath);
+					
+					let content = await fs.promises.readFile(mdFilePath, 'utf8');
+					let modified = false;
+					let linksFixedInFile = 0;
+
+					// Find all TIMEX- links in the file
+					const newContent = content.replace(TIMEX_LINK_REGEX, (fullMatch, _fullLink, linkText, linkUrl) => {
+						// Decode URL in case it's encoded
+						const decodedUrl = decodeURIComponent(linkUrl);
+						
+						// Resolve the link relative to the markdown file
+						const absoluteLinkPath = path.resolve(mdFileDir, decodedUrl);
+						
+						// Check if file exists
+						if (fs.existsSync(absoluteLinkPath)) {
+							// Link is not broken, leave it as-is
+							return fullMatch;
+						}
+
+						// Link is broken - try to fix it using hash
+						const hash = extractHashFromTimexFilename(decodedUrl);
+						if (!hash) {
+							// Can't extract hash, skip
+							console.warn(`Could not extract hash from link: ${linkUrl}`);
+							return fullMatch;
+						}
+
+						// Look up the hash in our attachment index
+						const attachmentInfo = attachmentIndex.get(hash.toLowerCase());
+						if (!attachmentInfo) {
+							// Attachment not found anywhere in the folder
+							if (!missingAttachments.includes(decodedUrl)) {
+								missingAttachments.push(decodedUrl);
+								console.warn(`Missing attachment: ${decodedUrl} (hash: ${hash})`);
+							}
+							return fullMatch;
+						}
+
+						// Calculate new relative path
+						const newRelativePath = path.relative(mdFileDir, attachmentInfo.fullPath);
+						const newRelativePathMarkdown = newRelativePath.split(path.sep).join('/');
+						
+						// URL-encode the path
+						const encodedPath = newRelativePathMarkdown.split('/').map(segment => encodeURIComponent(segment)).join('/');
+						
+						// Preserve the ! prefix if it's an image
+						const isImage = fullMatch.startsWith('!');
+						const prefix = isImage ? '!' : '';
+						
+						// Build the new link
+						const newLink = `${prefix}[](${encodedPath})`;
+						
+						modified = true;
+						linksFixedInFile++;
+						
+						return newLink;
+					});
+
+					// Write back if modified
+					if (modified) {
+						await fs.promises.writeFile(mdFilePath, newContent, 'utf8');
+						totalLinksFixed += linksFixedInFile;
+						totalFilesModified++;
+						console.log(`Fixed ${linksFixedInFile} link(s) in ${path.basename(mdFilePath)}`);
+					}
+
+					progress.report({ increment: progressIncrement });
+				}
+
+				progress.report({ increment: 10, message: 'Complete!' });
+
+				// Show results to user
+				let message = `Fixed ${totalLinksFixed} attachment link(s) in ${totalFilesModified} file(s)`;
+				
+				if (missingAttachments.length > 0) {
+					message += `\n\nWarning: ${missingAttachments.length} attachment(s) could not be found:`;
+					missingAttachments.forEach(att => {
+						message += `\n  - ${att}`;
+						console.warn(`Missing attachment: ${att}`);
+					});
+					vscode.window.showWarningMessage(message, { modal: false });
+				} else if (totalLinksFixed > 0) {
+					vscode.window.showInformationMessage(message);
+				} else {
+					vscode.window.showInformationMessage('No broken attachment links found');
+				}
+
+			} catch (error: any) {
+				const message = error instanceof Error ? error.message : String(error);
+				vscode.window.showErrorMessage(`Failed to fix attachment links: ${message}`);
+				console.error('Fix attachment links error:', error);
+			}
+		});
+	});
+
 	// Add to subscriptions
 	context.subscriptions.push(treeView);
 	context.subscriptions.push(insertTimestampCommand);
@@ -1307,6 +1464,7 @@ export function activate(context: vscode.ExtensionContext) {
 	context.subscriptions.push(pasteByOrdinalCommand);
 	context.subscriptions.push(moveOrdinalUpCommand);
 	context.subscriptions.push(moveOrdinalDownCommand);
+	context.subscriptions.push(fixAttachmentLinksCommand);
 }
 
 // This method is called when your extension is deactivated

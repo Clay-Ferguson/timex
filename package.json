@@ -187,6 +187,11 @@
         "command": "timex.moveOrdinalDown",
         "title": "Move Down",
         "icon": "$(arrow-down)"
+      },
+      {
+        "command": "timex.fixAttachmentLinks",
+        "title": "Fix Attachment Links",
+        "icon": "$(link)"
       }
     ],
     "submenus": [
@@ -360,6 +365,9 @@
           "command": "timex.pasteByOrdinal"
         },
         {
+          "command": "timex.fixAttachmentLinks"
+        },
+        {
           "command": "timex.about"
         },
         {
@@ -411,6 +419,12 @@
           "command": "timex.generateMarkdown",
           "group": "1_main@3",
           "icon": "$(book)"
+        },
+        {
+          "command": "timex.fixAttachmentLinks",
+          "group": "1_main@4",
+          "when": "resourceScheme == 'file'",
+          "icon": "$(link)"
         },
         {
           "command": "timex.cutByOrdinal",
