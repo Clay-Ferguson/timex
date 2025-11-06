@@ -86,6 +86,10 @@
         "title": "Insert Date"
       },
       {
+        "command": "timex.insertAttachment",
+        "title": "Insert Attachment"
+      },
+      {
         "command": "timex.selectPrimaryHashtag",
         "title": "Select Primary Hashtag",
         "icon": "$(tag)"
@@ -326,6 +330,9 @@
           "command": "timex.insertDate"
         },
         {
+          "command": "timex.insertAttachment"
+        },
+        {
           "command": "timex.newTask"
         },
         {
@@ -373,6 +380,11 @@
         {
           "command": "timex.insertDate",
           "group": "1_timestamp@2"
+        },
+        {
+          "command": "timex.insertAttachment",
+          "group": "2_attachment@1",
+          "when": "editorLangId == markdown"
         }
       ],
       "explorer/context": [

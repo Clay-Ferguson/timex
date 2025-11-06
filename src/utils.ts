@@ -1,6 +1,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import * as vscode from 'vscode';
+import * as crypto from 'crypto';
 
 export const DEFAULT_INCLUDE_GLOBS = ['**/*.md'] as const;
 
@@ -314,4 +315,61 @@ export function generateNextOrdinalFilename(selectedFilePath: string): { filenam
 export function stripOrdinalPrefix(fileName: string): string {
 	const match = fileName.match(NUMBERED_ITEM_REGEX);
 	return match ? match[2] : fileName;
+}
+
+/**
+ * Set of common image file extensions
+ */
+const IMAGE_EXTENSIONS = new Set<string>([
+	'.png',
+	'.jpg',
+	'.jpeg',
+	'.gif',
+	'.bmp',
+	'.svg',
+	'.webp',
+	'.tif',
+	'.tiff',
+	'.avif'
+]);
+
+/**
+ * Checks if a filename has an image extension
+ * @param filename The filename to check
+ * @returns True if the file has an image extension, false otherwise
+ */
+export function isImageFileName(filename: string): boolean {
+	const ext = path.extname(filename).toLowerCase();
+	return IMAGE_EXTENSIONS.has(ext);
+}
+
+/**
+ * Generates a 128-bit hash (32 hex characters) of a file's contents
+ * @param filePath The absolute path to the file
+ * @returns A promise that resolves to the hash string in hexadecimal format
+ */
+export async function generateFileHash(filePath: string): Promise<string> {
+	return new Promise((resolve, reject) => {
+		try {
+			const hash = crypto.createHash('sha256');
+			const stream = fs.createReadStream(filePath);
+
+			stream.on('data', (data) => {
+				hash.update(data);
+			});
+
+			stream.on('end', () => {
+				// Get full SHA-256 hash (64 hex chars) and truncate to 128 bits (32 hex chars)
+				const fullHash = hash.digest('hex');
+				const hash128 = fullHash.substring(0, 32);
+				resolve(hash128);
+			});
+
+			stream.on('error', (error) => {
+				reject(new Error(`Failed to read file for hashing: ${error.message}`));
+			});
+		} catch (error) {
+			reject(error);
+		}
+	});
 }
