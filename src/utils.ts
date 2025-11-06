@@ -378,8 +378,9 @@ export async function generateFileHash(filePath: string): Promise<string> {
  * Regular expression to match markdown links with TIMEX- pattern
  * Matches both regular links [text](url) and image links ![text](url)
  * Pattern matches files like: name.TIMEX-hash.ext
+ * Allows empty brackets like ![]() or []()
  */
-export const TIMEX_LINK_REGEX = /(!?\[([^\]]+)\]\(([^)]*\.TIMEX-[^)]+)\))/g;
+export const TIMEX_LINK_REGEX = /(!?\[([^\]]*)\]\(([^)]*\.TIMEX-[^)]+)\))/g;
 
 /**
  * Extracts the hash from a TIMEX- filename
