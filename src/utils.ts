@@ -375,20 +375,21 @@ export async function generateFileHash(filePath: string): Promise<string> {
 }
 
 /**
- * Regular expression to match markdown links with TIMEX- prefix
+ * Regular expression to match markdown links with TIMEX- pattern
  * Matches both regular links [text](url) and image links ![text](url)
+ * Pattern matches files like: name.TIMEX-hash.ext
  */
-export const TIMEX_LINK_REGEX = /(!?\[([^\]]+)\]\(([^)]*TIMEX-[^)]+)\))/g;
+export const TIMEX_LINK_REGEX = /(!?\[([^\]]+)\]\(([^)]*\.TIMEX-[^)]+)\))/g;
 
 /**
  * Extracts the hash from a TIMEX- filename
- * Expected format: TIMEX-name.hash.ext where hash is 32 hex characters
+ * Expected format: name.TIMEX-hash.ext where hash is 32 hex characters
  * @param filename The filename or path to parse
  * @returns The hash string or null if not found
  */
 export function extractHashFromTimexFilename(filename: string): string | null {
-	// Match pattern: TIMEX-*.{32 hex chars}.ext
-	const match = filename.match(/TIMEX-.*\.([a-f0-9]{32})\.[^.]+$/i);
+	// Match pattern: *.TIMEX-{32 hex chars}.ext
+	const match = filename.match(/\.TIMEX-([a-f0-9]{32})\.[^.]+$/i);
 	return match ? match[1].toLowerCase() : null;
 }
 
@@ -411,7 +412,8 @@ export async function buildAttachmentIndex(rootPath: string, excludePattern?: st
 	const attachmentMap = new Map<string, AttachmentInfo>();
 	
 	// Use workspace.findFiles for efficient scanning
-	const pattern = new vscode.RelativePattern(rootPath, '**/TIMEX-*.*');
+	// Pattern matches files like: name.TIMEX-hash.ext
+	const pattern = new vscode.RelativePattern(rootPath, '**/*.TIMEX-*.*');
 	const files = await vscode.workspace.findFiles(pattern, excludePattern);
 	
 	for (const fileUri of files) {

@@ -334,20 +334,25 @@ export function activate(context: vscode.ExtensionContext) {
 			const fileNameWithoutExt = path.parse(fileName).name;
 			const fileExt = path.parse(fileName).ext;
 
-			// Check if the file already has the TIMEX- prefix
+			// Check if the file already has the TIMEX- pattern (name.TIMEX-hash.ext)
 			let finalFilePath: string;
 			let finalFileName: string;
 			let displayName: string;
 
-			if (fileName.startsWith('TIMEX-')) {
-				// File already has TIMEX- prefix, use it as-is (hash is already correct)
+			// Check if filename matches pattern: *.TIMEX-{32 hex chars}.ext
+			const hasTimexPattern = /\.TIMEX-[a-f0-9]{32}$/i.test(fileNameWithoutExt);
+
+			if (hasTimexPattern) {
+				// File already has TIMEX- pattern, use it as-is (hash is already correct)
 				finalFilePath = selectedFilePath;
 				finalFileName = fileName;
-				displayName = fileNameWithoutExt.replace(/^TIMEX-/, '').replace(/\.\d+$/, '');
+				// Remove .TIMEX-hash from display name
+				displayName = fileNameWithoutExt.replace(/\.TIMEX-[a-f0-9]{32}$/i, '');
 			} else {
-				// File doesn't have TIMEX- prefix, generate hash and rename it
+				// File doesn't have TIMEX- pattern, generate hash and rename it
 				const hash = await generateFileHash(selectedFilePath);
-				const newFileName = `TIMEX-${fileNameWithoutExt}.${hash}${fileExt}`;
+				// New format: name.TIMEX-hash.ext
+				const newFileName = `${fileNameWithoutExt}.TIMEX-${hash}${fileExt}`;
 				const newFilePath = path.join(path.dirname(selectedFilePath), newFileName);
 
 				// Rename the file with the new naming convention
@@ -1319,7 +1324,7 @@ export function activate(context: vscode.ExtensionContext) {
 			try {
 				progress.report({ increment: 0, message: 'Building attachment index...' });
 
-				// Build index of all TIMEX- files in the folder
+				// Build index of all TIMEX- pattern files in the folder
 				const config = vscode.workspace.getConfiguration('timex');
 				const excludeGlobsArray = config.get<string[]>('excludeGlobs', []);
 				const excludePattern = excludeGlobsArray.length > 0 ? `{${excludeGlobsArray.join(',')}}` : undefined;
@@ -1348,7 +1353,7 @@ export function activate(context: vscode.ExtensionContext) {
 					let modified = false;
 					let linksFixedInFile = 0;
 
-					// Find all TIMEX- links in the file
+					// Find all TIMEX- pattern links in the file
 					const newContent = content.replace(TIMEX_LINK_REGEX, (fullMatch, _fullLink, linkText, linkUrl) => {
 						// Decode URL in case it's encoded
 						const decodedUrl = decodeURIComponent(linkUrl);
