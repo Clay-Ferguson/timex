@@ -3,6 +3,7 @@
 import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
+import * as crypto from 'crypto';
 import { TaskProvider } from './model';
 import {
 	containsAnyConfiguredHashtag,
@@ -388,6 +389,91 @@ export function activate(context: vscode.ExtensionContext) {
 
 		} catch (error) {
 			vscode.window.showErrorMessage(`Failed to insert attachment: ${error}`);
+		}
+	});
+
+	const insertImageFromClipboardCommand = vscode.commands.registerCommand('timex.insertImageFromClipboard', async () => {
+		const editor = vscode.window.activeTextEditor;
+		if (!editor) {
+			vscode.window.showErrorMessage('No active editor found');
+			return;
+		}
+
+		// Check if we're in a markdown file
+		if (editor.document.languageId !== 'markdown') {
+			vscode.window.showErrorMessage('This command only works in markdown files');
+			return;
+		}
+
+		try {
+			// Read image data from clipboard
+			const clipboardData = await vscode.env.clipboard.readText();
+			
+			// Try to read image from clipboard using VS Code's built-in API
+			// Note: VS Code API doesn't directly support reading binary image data from clipboard
+			// We need to use a workaround by executing a paste command and detecting the result
+			
+			// For now, let's try a different approach: use the clipboard API that's available
+			// Unfortunately, VS Code's clipboard API only supports text
+			// We'll need to use a shell command to extract image data
+			
+			const markdownFilePath = editor.document.uri.fsPath;
+			const markdownDir = path.dirname(markdownFilePath);
+			
+			// Try to get image from clipboard using platform-specific commands
+			let imageBuffer: Buffer | null = null;
+			const platform = process.platform;
+			
+			if (platform === 'linux') {
+				// Use xclip to get image from clipboard
+				try {
+					const { execSync } = require('child_process');
+					imageBuffer = execSync('xclip -selection clipboard -t image/png -o', { encoding: null });
+				} catch (error) {
+					vscode.window.showErrorMessage('No image found in clipboard. Make sure xclip is installed (sudo apt install xclip)');
+					return;
+				}
+			} else {
+				vscode.window.showErrorMessage('Clipboard image paste is not supported on this platform');
+				return;
+			}
+			
+			if (!imageBuffer || imageBuffer.length === 0) {
+				vscode.window.showErrorMessage('No image data found in clipboard');
+				return;
+			}
+			
+			// Generate hash of the image data
+			const hash = crypto.createHash('sha256').update(imageBuffer).digest('hex').substring(0, 32);
+			
+			// Create filename with TIMEX pattern
+			const fileName = `img.TIMEX-${hash}.png`;
+			const filePath = path.join(markdownDir, fileName);
+			
+			// Save the image file
+			await fs.promises.writeFile(filePath, imageBuffer);
+			
+			// Calculate relative path (in this case, it's just the filename since it's in the same directory)
+			const relativePath = fileName;
+			
+			// URL-encode the path to handle spaces and special characters
+			const encodedPath = encodeURIComponent(relativePath);
+			
+			// Create markdown link for image (with ! prefix)
+			const displayName = baseName;
+			const markdownLink = `![${displayName}](${encodedPath})`;
+			
+			// Insert link at cursor position
+			const position = editor.selection.active;
+			await editor.edit(editBuilder => {
+				editBuilder.insert(position, markdownLink);
+			});
+			
+			vscode.window.showInformationMessage(`Image inserted from clipboard: ${fileName}`);
+			
+		} catch (error) {
+			vscode.window.showErrorMessage(`Failed to insert image from clipboard: ${error}`);
+			console.error('Insert image from clipboard error:', error);
 		}
 	});
 
@@ -1448,6 +1534,7 @@ export function activate(context: vscode.ExtensionContext) {
 	context.subscriptions.push(insertTimestampCommand);
 	context.subscriptions.push(insertDateCommand);
 	context.subscriptions.push(insertAttachmentCommand);
+	context.subscriptions.push(insertImageFromClipboardCommand);
 	context.subscriptions.push(selectPrimaryHashtagCommand);
 	context.subscriptions.push(filterPriorityCommand);
 	context.subscriptions.push(searchTasksCommand);

@@ -90,6 +90,10 @@
         "title": "Insert Attachment"
       },
       {
+        "command": "timex.insertImageFromClipboard",
+        "title": "Insert Image from Clipboard"
+      },
+      {
         "command": "timex.selectPrimaryHashtag",
         "title": "Select Primary Hashtag",
         "icon": "$(tag)"
@@ -392,6 +396,11 @@
         {
           "command": "timex.insertAttachment",
           "group": "2_attachment@1",
+          "when": "editorLangId == markdown"
+        },
+        {
+          "command": "timex.insertImageFromClipboard",
+          "group": "2_attachment@2",
           "when": "editorLangId == markdown"
         }
       ],

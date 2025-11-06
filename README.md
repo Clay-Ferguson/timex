@@ -517,6 +517,34 @@ The extension uses a content-based hashing system to uniquely identify attachmen
 [document](./files/report.TIMEX-b4c3d8e2f1a4b7c9.pdf)
 ```
 
+### Insert Image from Clipboard
+
+For rapid image insertion, use the **"Insert Image from Clipboard"** feature to paste screenshots and images directly into your markdown files.
+
+**How to use:**
+1. Copy an image to your system clipboard (e.g., take a screenshot)
+2. Open a markdown file and place cursor where you want the image
+3. Right-click → "Insert Image from Clipboard"
+4. The image is automatically saved and linked into your document
+
+**What happens:**
+- Image data is read from the system clipboard
+- A PNG file is created in the same directory as your markdown file
+- File is named using the TIMEX convention: `img.TIMEX-{hash}.png`
+- A markdown image link is inserted at your cursor: `![img](img.TIMEX-{hash}.png)`
+
+**Platform requirements:**
+- **Linux**: Requires `xclip` (install: `sudo apt install xclip`)
+- **macOS**: Requires `pngpaste` (install: `brew install pngpaste`)
+- **Windows**: No additional dependencies needed
+
+**Example workflow:**
+1. Press `PrtScn` or use a screenshot tool to capture part of your screen
+2. In your markdown file, right-click and select "Insert Image from Clipboard"
+3. Image appears inline immediately: `![img](img.TIMEX-a3f5b2c8.png)`
+
+This feature is perfect for quickly documenting UI issues, capturing error messages, or adding visual context to your notes without the overhead of manually saving and linking image files.
+
 ### Fix Broken Attachment Links
 
 When you move or reorganize files, attachment links may break. The "Fix Attachment Links" command automatically repairs them using the embedded hash codes.
