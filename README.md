@@ -68,6 +68,7 @@ The extension scans your workspace for markdown files containing the active prim
 - **Quick Create**: + button prompts for filename, then creates new file with active hashtag + timestamp + `#p3`.
 - **Panel File Actions**: Right-click a task to reveal it in the Explorer or rename it without leaving the panel.
 - **Timestamp Tools**: Insert current timestamp; add +Day/+Week/+Month/+Year.
+- **Attachment Management**: Hash-based file attachment system with automatic link repair when files move.
 
 ## How to Use
 
@@ -482,6 +483,83 @@ The time-based filters (7/14/30 days) are designed to give you different plannin
 4. The timestamp is automatically inserted at cursor position
 
 *Tip: Use "Insert Date" for tasks where the specific time doesn't matter, and "Insert Date+Time" when you need precise scheduling.*
+
+## Attachment Management
+
+Timex provides intelligent attachment management for markdown files, making it easy to embed images and other files while maintaining link integrity even when files are moved or renamed.
+
+### How It Works
+
+The extension uses a content-based hashing system to uniquely identify attachments. When you insert an attachment, Timex:
+1. Generates a 128-bit SHA-256 hash of the file's contents
+2. Renames the file to include the hash: `filename.TIMEX-{hash}.ext`
+3. Inserts a properly formatted markdown link at your cursor position
+
+**Example**: An image `screenshot.png` becomes `screenshot.TIMEX-a3f5b2c8d9e1f4a7b6c3d8e2f1a4b7c9.png`
+
+### Inserting Attachments
+
+1. Open a markdown file
+2. Place cursor where you want the attachment link
+3. Right-click → "Timex" submenu → "Insert Attachment"
+4. Select the file from the file picker dialog
+5. The file is renamed (if needed) and a markdown link is inserted
+
+**Key Features:**
+- **Automatic Image Detection**: Image files (`.png`, `.jpg`, `.jpeg`, `.gif`, `.bmp`, `.svg`, `.webp`, `.tif`, `.tiff`, `.avif`) are inserted with `!` prefix for inline display
+- **Smart Renaming**: Files already in the correct format (with `.TIMEX-{hash}`) are used as-is
+- **Relative Paths**: Links use paths relative to the markdown file, not absolute paths
+- **URL Encoding**: Automatically handles spaces and special characters in filenames
+
+**Example inserted links:**
+```markdown
+![screenshot](../images/screenshot.TIMEX-a3f5b2c8d9e1f4a7.png)
+[document](./files/report.TIMEX-b4c3d8e2f1a4b7c9.pdf)
+```
+
+### Fix Broken Attachment Links
+
+When you move or reorganize files, attachment links may break. The "Fix Attachment Links" command automatically repairs them using the embedded hash codes.
+
+**To use:**
+1. Right-click on any file or folder in the Explorer
+2. Select "Timex" submenu → "Fix Attachment Links"
+3. The extension will:
+   - Scan for all TIMEX-formatted attachments in the selected folder
+   - Find all markdown files with attachment links
+   - Detect broken links (files that have moved)
+   - Automatically update links to the correct new location
+
+**Smart Behavior:**
+- **Folder Selection**: Scans the selected folder recursively
+- **File Selection**: Scans the entire workspace root (convenient when right-clicking any file)
+- **Hash Matching**: Uses content hash to find moved files, even if renamed
+- **Progress Indicator**: Shows scanning and fixing progress
+- **Results Report**: Displays number of links fixed and files modified
+- **Missing Files Warning**: Lists any attachments that couldn't be found
+
+**Example scenario:**
+1. You move `screenshot.TIMEX-abc123.png` from `images/` to `assets/screenshots/`
+2. Markdown links break: `![screenshot](../images/screenshot.TIMEX-abc123.png)`
+3. Run "Fix Attachment Links" on project root
+4. Links automatically update: `![screenshot](../assets/screenshots/screenshot.TIMEX-abc123.png)`
+
+### Why Use Content Hashes?
+
+The hash-based naming system provides:
+- **Move Resilience**: Links can be repaired even when files move to different folders
+- **Rename Resilience**: As long as the hash portion remains, links can be fixed
+- **Deduplication**: Same content = same hash, making duplicate detection possible
+- **Integrity**: Hash verifies file content hasn't changed
+
+### Best Practices
+
+1. **Always use "Insert Attachment"** instead of manually creating links - this ensures proper hash naming
+2. **Run "Fix Attachment Links" after reorganization** - keeps all links working after moving files around
+3. **Keep the hash intact** - the `.TIMEX-{hash}` portion is critical for link repair
+4. **Rename the descriptive part freely** - you can change `screenshot` to `login-page` as long as `.TIMEX-{hash}` stays
+
+**Supported file types**: Any file can be attached, but images get special treatment with the `!` prefix for inline display.
 
 ## Prioritization
 
