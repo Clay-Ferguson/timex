@@ -1450,6 +1450,7 @@ export function activate(context: vscode.ExtensionContext) {
 				let totalLinksFixed = 0;
 				let totalFilesModified = 0;
 				const missingAttachments: string[] = [];
+				const referencedHashes = new Set<string>(); // Track which attachments are referenced
 				const progressIncrement = mdFiles.length > 0 ? 60 / mdFiles.length : 60;
 
 				// Process each markdown file
@@ -1466,6 +1467,12 @@ export function activate(context: vscode.ExtensionContext) {
 						// Decode URL in case it's encoded
 						const decodedUrl = decodeURIComponent(linkUrl);
 						
+						// Extract hash to track referenced attachments
+						const hash = extractHashFromTimexFilename(decodedUrl);
+						if (hash) {
+							referencedHashes.add(hash.toLowerCase());
+						}
+						
 						// Resolve the link relative to the markdown file
 						const absoluteLinkPath = path.resolve(mdFileDir, decodedUrl);
 						
@@ -1476,7 +1483,6 @@ export function activate(context: vscode.ExtensionContext) {
 						}
 
 						// Link is broken - try to fix it using hash
-						const hash = extractHashFromTimexFilename(decodedUrl);
 						if (!hash) {
 							// Can't extract hash, skip
 							console.warn(`Could not extract hash from link: ${linkUrl}`);
@@ -1525,10 +1531,43 @@ export function activate(context: vscode.ExtensionContext) {
 					progress.report({ increment: progressIncrement });
 				}
 
+				progress.report({ increment: 10, message: 'Detecting orphaned attachments...' });
+
+				// Identify and rename orphaned attachments
+				let orphansFound = 0;
+				for (const [hash, attachmentInfo] of attachmentIndex.entries()) {
+					// If this hash was not referenced in any markdown file, it's an orphan
+					if (!referencedHashes.has(hash)) {
+						const fileName = path.basename(attachmentInfo.fullPath);
+						
+						// Check if file is already marked as orphan
+						if (!fileName.startsWith('ORPHAN-')) {
+							// Rename to add ORPHAN- prefix
+							const dirPath = path.dirname(attachmentInfo.fullPath);
+							const newFileName = `ORPHAN-${fileName}`;
+							const newFilePath = path.join(dirPath, newFileName);
+							
+							try {
+								await fs.promises.rename(attachmentInfo.fullPath, newFilePath);
+								orphansFound++;
+								console.log(`Marked as orphan: ${fileName} -> ${newFileName}`);
+							} catch (error) {
+								console.error(`Failed to rename orphan ${fileName}:`, error);
+							}
+						} else {
+							// Already marked as orphan, just count it
+							orphansFound++;
+						}
+					}
+				}
+
 				progress.report({ increment: 10, message: 'Complete!' });
 
 				// Show results to user
 				let message = `Fixed ${totalLinksFixed} attachment link(s) in ${totalFilesModified} file(s)`;
+				if (orphansFound > 0) {
+					message += `\nFound ${orphansFound} orphaned attachment(s)`;
+				}
 				
 				if (missingAttachments.length > 0) {
 					message += `\n\nWarning: ${missingAttachments.length} attachment(s) could not be found:`;

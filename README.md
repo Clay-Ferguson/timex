@@ -589,6 +589,40 @@ The hash-based naming system provides:
 
 **Supported file types**: Any file can be attached, but images get special treatment with the `!` prefix for inline display.
 
+### Orphan Detection and Management
+
+The "Fix Attachment Links" command includes automatic orphan detection. An orphaned attachment is a file with the TIMEX-hash naming convention that is no longer referenced in any markdown file within the scanned folder.
+
+**What happens during orphan detection:**
+1. The system tracks all attachment references while scanning markdown files
+2. After fixing broken links, it compares all TIMEX-formatted files against the reference list
+3. Any unreferenced attachments are automatically marked as orphans
+4. Orphaned files are renamed with an "ORPHAN-" prefix for easy identification
+
+**Example:**
+```markdown
+# Before deletion of markdown link
+![screenshot](my-image.TIMEX-7235fd3525f14bad.png)
+
+# After you delete the link or markdown file
+# File automatically renamed to:
+ORPHAN-my-image.TIMEX-7235fd3525f14bad.png
+```
+
+**Why this is useful:**
+- **Easy Cleanup**: Quickly identify which attachments are no longer needed
+- **Safe Deletion**: Review orphans before permanently deleting them
+- **Reuse Opportunity**: Spot files you might want to use elsewhere
+- **Storage Management**: Find unused files consuming disk space
+
+**What to do with orphans:**
+- **Delete them** if you're certain they're no longer needed
+- **Re-link them** if you realize they should be referenced somewhere
+- **Archive them** for potential future use
+- **Leave them marked** as orphans if you're unsure
+
+**Progress reporting:** The "Fix Attachment Links" command shows how many orphans were found in the completion message, making it easy to monitor unused attachments in your project.
+
 ## Prioritization
 
 Set priority per item using hashtags:
