@@ -443,11 +443,34 @@ export function activate(context: vscode.ExtensionContext) {
 				return;
 			}
 			
+			// Prompt user for the filename (without extension)
+			const userEnteredName = await vscode.window.showInputBox({
+				placeHolder: 'Enter filename for the image',
+				prompt: 'Filename (without extension - .TIMEX-hash.png will be added automatically)',
+				value: 'img',
+				validateInput: (value) => {
+					if (!value || value.trim() === '') {
+						return 'Filename cannot be empty';
+					}
+					// Check for invalid filename characters (basic check)
+					const invalidChars = /[<>:"/\\|?*]/g;
+					if (invalidChars.test(value)) {
+						return 'Filename contains invalid characters';
+					}
+					return null;
+				}
+			});
+
+			if (!userEnteredName) {
+				// User cancelled the input
+				return;
+			}
+			
 			// Generate hash of the image data
 			const hash = crypto.createHash('sha256').update(imageBuffer).digest('hex').substring(0, 32);
 			
-			// Create filename with TIMEX pattern
-			const fileName = `img.TIMEX-${hash}.png`;
+			// Create filename with TIMEX pattern using user's input
+			const fileName = `${userEnteredName.trim()}.TIMEX-${hash}.png`;
 			const filePath = path.join(markdownDir, fileName);
 			
 			// Save the image file
@@ -460,8 +483,7 @@ export function activate(context: vscode.ExtensionContext) {
 			const encodedPath = encodeURIComponent(relativePath);
 			
 			// Create markdown link for image (with ! prefix)
-			const displayName = baseName;
-			const markdownLink = `![${displayName}](${encodedPath})`;
+			const markdownLink = `![](${encodedPath})`;
 			
 			// Insert link at cursor position
 			const position = editor.selection.active;
