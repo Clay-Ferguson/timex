@@ -35,9 +35,16 @@
           "order": 20
         },
         "timex.hashtags": {
-          "type": "string",
-          "default": "#task, #todo, #note",
-          "description": "Comma-separated list of hashtags that can be used to identify task files.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [
+            "#task",
+            "#todo",
+            "#note"
+          ],
+          "description": "List of hashtags that can be used to identify task files.",
           "scope": "application",
           "order": 30
         },

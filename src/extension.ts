@@ -505,10 +505,19 @@ export function activate(context: vscode.ExtensionContext) {
 
 		// Get configuration for available hashtags
 		const config = vscode.workspace.getConfiguration('timex');
-		const hashtagsString = config.get<string>('hashtags', '#todo, #note');
-
-		// Parse hashtags from comma-delimited string
-		const hashtags = hashtagsString.split(',').map(tag => tag.trim()).filter(tag => tag.length > 0);
+		const hashtagsConfig = config.get('hashtags', ['#todo', '#note']);
+		
+		// Handle both old string format and new array format for backward compatibility
+		let hashtags: string[];
+		if (Array.isArray(hashtagsConfig)) {
+			hashtags = hashtagsConfig;
+		} else if (typeof hashtagsConfig === 'string') {
+			// Legacy format: comma-delimited string
+			hashtags = (hashtagsConfig as string).split(',').map((tag: string) => tag.trim()).filter((tag: string) => tag.length > 0);
+		} else {
+			hashtags = ['#todo', '#note'];
+		}
+		hashtags = hashtags.map(tag => tag.trim()).filter(tag => tag.length > 0);
 
 		// Create options with "all-tags" at the top, then individual hashtags
 		const allHashtagsOption = {
@@ -535,9 +544,9 @@ export function activate(context: vscode.ExtensionContext) {
 					// Set runtime override for all-tags mode
 					taskProvider.setPrimaryHashtagOverride('all-tags');
 				} else {
-					// Clear runtime override and update workspace configuration for specific hashtag
+					// Clear runtime override and update user configuration for specific hashtag
 					taskProvider.setPrimaryHashtagOverride(null);
-					await config.update('primaryHashtag', selected.value, vscode.ConfigurationTarget.Workspace);
+					await config.update('primaryHashtag', selected.value, vscode.ConfigurationTarget.Global);
 
 					// Clear the cached primary hashtag to force reload from config
 					taskProvider.clearPrimaryHashtagCache();
@@ -762,8 +771,20 @@ export function activate(context: vscode.ExtensionContext) {
 		let hashtagToUse = primaryHashtag;
 		if (primaryHashtag === 'all-tags') {
 			const config = vscode.workspace.getConfiguration('timex');
-			const hashtagsString = config.get<string>('hashtags', '#todo, #note');
-			const hashtags = hashtagsString.split(',').map(tag => tag.trim()).filter(tag => tag.length > 0);
+			const hashtagsConfig = config.get('hashtags', ['#todo', '#note']);
+			
+			// Handle both old string format and new array format for backward compatibility
+			let hashtags: string[];
+			if (Array.isArray(hashtagsConfig)) {
+				hashtags = hashtagsConfig;
+			} else if (typeof hashtagsConfig === 'string') {
+				// Legacy format: comma-delimited string
+				hashtags = (hashtagsConfig as string).split(',').map((tag: string) => tag.trim()).filter((tag: string) => tag.length > 0);
+			} else {
+				hashtags = ['#todo', '#note'];
+			}
+			hashtags = hashtags.map(tag => tag.trim()).filter(tag => tag.length > 0);
+			
 			hashtagToUse = hashtags.length > 0 ? hashtags[0] : '#todo'; // fallback to #todo if no hashtags configured
 		}
 		const taskContent = `\n\n${hashtagToUse} ${timestamp} #${PriorityTag.Low}`;
