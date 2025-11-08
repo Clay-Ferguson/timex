@@ -13,5 +13,6 @@ export enum PriorityTag {
 	Any = 'all',
 	High = 'p1',
 	Medium = 'p2',
-	Low = 'p3'
+	Low = 'p3',
+	None = 'none'
 }

@@ -593,9 +593,17 @@ export class TaskProvider implements vscode.TreeDataProvider<TaskFileItem> {
 
 		// Apply priority filter if not "all"
 		if (this.currentPriorityFilter !== PriorityTag.Any) {
-			filteredTaskData = filteredTaskData.filter(taskFile =>
-				taskFile.priority === this.currentPriorityFilter
-			);
+			if (this.currentPriorityFilter === PriorityTag.None) {
+				// Filter for files with no priority tag (empty string)
+				filteredTaskData = filteredTaskData.filter(taskFile =>
+					taskFile.priority === ''
+				);
+			} else {
+				// Filter for specific priority tag
+				filteredTaskData = filteredTaskData.filter(taskFile =>
+					taskFile.priority === this.currentPriorityFilter
+				);
+			}
 		}
 
 		// Apply search filter if there's a search query
@@ -760,9 +768,17 @@ export class TaskProvider implements vscode.TreeDataProvider<TaskFileItem> {
 
 		// Apply priority filter if not "all"
 		if (this.currentPriorityFilter !== PriorityTag.Any) {
-			filteredTaskData = filteredTaskData.filter(taskFile =>
-				taskFile.priority === this.currentPriorityFilter
-			);
+			if (this.currentPriorityFilter === PriorityTag.None) {
+				// Filter for files with no priority tag (empty string)
+				filteredTaskData = filteredTaskData.filter(taskFile =>
+					taskFile.priority === ''
+				);
+			} else {
+				// Filter for specific priority tag
+				filteredTaskData = filteredTaskData.filter(taskFile =>
+					taskFile.priority === this.currentPriorityFilter
+				);
+			}
 		}
 
 		// Sort task files by timestamp (chronological order)

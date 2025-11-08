@@ -73,7 +73,13 @@ watcher.onDidChange(async (uri) => {
 ```
 
 ### Filter State Management
-- **Filter combinations**: View (All|Due in 7/14/30 Days|Due Today|Future|Overdue) × Priority (all|p1|p2|p3)
+- **Filter combinations**: View (All|Due in 7/14/30 Days|Due Today|Future|Overdue) × Priority (all|p1|p2|p3|none)
+- **Priority filters**: 
+  - `PriorityTag.Any`: All priorities (default)
+  - `PriorityTag.High` (p1): High priority tasks
+  - `PriorityTag.Medium` (p2): Medium priority tasks
+  - `PriorityTag.Low` (p3): Low priority tasks
+  - `PriorityTag.None` (none): Tasks without any priority tag - filters for files where `priority === ''`
 - **Time-based filters**: Three configurable horizons for planning:
   - `DueIn7Days`: Today through next 7 days (weekly view)
   - `DueIn14Days`: Today through next 14 days (bi-weekly planning)
@@ -359,7 +365,7 @@ Prefer `rebuildTaskDisplay()` pattern over full rescans for operations that only
 4. **Duplicate Prevention**: `scannedFiles` Set prevents duplicate processing—clear on full scans
 5. **Context Values**: TreeItem `contextValue` controls right-click menu availability (timestamp vs no-timestamp)
 6. **Filter Method Signatures**: `scanForTaskFiles()` accepts different parameter combinations for different filters—check existing calls before modifying
-7. **Dual Filter Logic**: Time-based filters must be implemented in BOTH `scanForTaskFiles()` (for full scans) AND `applyFiltersToExistingData()` (for in-memory filtering)
+7. **Dual Filter Logic**: Time-based filters must be implemented in BOTH `scanForTaskFiles()` (for full scans) AND `applyFiltersToExistingData()` (for in-memory filtering). Priority filters must check for special case `PriorityTag.None` which filters for empty string priority (`priority === ''`)
 8. **Hash Filename Pattern**: TIMEX attachment filenames MUST follow `name.TIMEX-{hash}.ext` pattern (not `name-TIMEX-{hash}.ext` or other variations)
 9. **Clipboard Platform Dependencies**: `insertImageFromClipboard` requires external tools (xclip/pngpaste)—graceful error handling needed
 10. **Pure vs VS Code Functions**: Keep `pure-utils.ts` free of `import * as vscode` to maintain unit testability

@@ -391,18 +391,19 @@ The panel offers a single unified filtering system plus search to refine what yo
 - Open search via the 🔍 icon (search text combines with the currently selected filters until cleared).
 - Panel title shows current state (e.g., `Due Soon - P1`, or `SEARCH - P* - 'bug'`).
 
-#### Filter Groups (11 Options Total)
+#### Filter Groups (12 Options Total)
 1. (Priority) Any Priority – show every priority level
 2. (Priority) Priority 1 – `#p1` (High priority)
 3. (Priority) Priority 2 – `#p2` (Medium priority)
 4. (Priority) Priority 3 – `#p3` (Low priority)
-5. (View) Any Time – no due-date restriction
-6. (View) Due in 7 Days – due today through next 7 days
-7. (View) Due in 14 Days – due today through next 14 days
-8. (View) Due in 30 Days – due today through next 30 days
-9. (View) Due Today – due only today
-10. (View) Future Due Dates – due tomorrow and beyond
-11. (View) Overdue – past due date only (⚠️ shown)
+5. (Priority) No Priority – files without any priority tag
+6. (View) Any Time – no due-date restriction
+7. (View) Due in 7 Days – due today through next 7 days
+8. (View) Due in 14 Days – due today through next 14 days
+9. (View) Due in 30 Days – due today through next 30 days
+10. (View) Due Today – due only today
+11. (View) Future Due Dates – due tomorrow and beyond
+12. (View) Overdue – past due date only (⚠️ shown)
 
 #### Complete Temporal Coverage
 The view filters provide flexible time-based views of your tasks:
@@ -429,6 +430,7 @@ The time-based filters (7/14/30 days) are designed to give you different plannin
 - **Due in 30 Days + Any Priority**: Get a monthly overview of upcoming tasks
 - **Future Due Dates + Priority 2**: Plan medium-priority work for later
 - **Overdue + Any Priority**: Review what needs immediate attention
+- **No Priority + Any Time**: Find all tasks that need priority assignment
 
 #### Tips
 - To review urgent items this week: select Due in 7 Days + Priority 1
@@ -654,8 +656,9 @@ If no priority hashtag is present, treated as high priority (`#p1`).
 - **Priority 1**: Shows only high-priority tasks
 - **Priority 2**: Shows only medium-priority tasks  
 - **Priority 3**: Shows only low-priority tasks
+- **No Priority**: Shows only tasks without any priority tag (`#p1`, `#p2`, or `#p3`)
 
-Add the priority hashtag anywhere inside the file.
+Add the priority hashtag anywhere inside the file. The "No Priority" filter is useful for finding tasks that haven't been prioritized yet so you can assign them appropriate priority levels.
 
 ## Developer Information
 

@@ -585,6 +585,10 @@ export function activate(context: vscode.ExtensionContext) {
 				label: `${currentPriority === PriorityTag.Low ? '$(check) Priority 3' : '$(circle-outline) Priority 3'}`,
 				value: `priority:${PriorityTag.Low}`
 			},
+			{
+				label: `${currentPriority === PriorityTag.None ? '$(check) No Priority' : '$(circle-outline) No Priority'}`,
+				value: `priority:${PriorityTag.None}`
+			},
 			// Separator
 			{ label: '', value: 'separator', kind: vscode.QuickPickItemKind.Separator } as any,
 			// View group
