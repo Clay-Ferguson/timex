@@ -9,7 +9,6 @@ src/
 ├── test/
 │   └── unit/           # Unit tests for pure functions
 │       └── *.test.ts   # Test files (follow *.test.ts naming convention)
-├── pure-utils.ts       # Pure functions (no VS Code dependencies)
 └── utils.ts           # VS Code-dependent utilities
 ```
 
@@ -67,11 +66,6 @@ describe('functionToTest', () => {
 - `assert.strictEqual(result, null)` - Null check
 
 ## Pure vs VS Code-Dependent Functions
-
-**Pure functions** (can be unit tested easily):
-- Put in `src/pure-utils.ts`
-- No VS Code API dependencies
-- Test in `src/test/unit/`
 
 **VS Code-dependent functions** (require integration tests):
 - Functions using `vscode.*` APIs

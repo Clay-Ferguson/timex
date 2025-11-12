@@ -114,7 +114,7 @@ npm run test:all      # Run all tests (unit + VS Code integration)
 
 ### Testing Strategy
 **Two-tier testing approach:**
-- **Unit Tests** (`src/test/unit/*.test.ts`): Pure functions in `pure-utils.ts` (date parsing, formatting, calculations)
+- **Unit Tests** (`src/test/unit/*.test.ts`): Functions in `utils.ts` (date parsing, formatting, calculations)
   - Use Mocha + Node.js assert (no VS Code APIs)
   - Fast, no extension host required
   - Run with `npm run test:unit` or `npm run test:unit -- --watch`
@@ -124,7 +124,7 @@ npm run test:all      # Run all tests (unit + VS Code integration)
 
 **Code Organization Pattern:**
 ```typescript
-// src/pure-utils.ts - Functions without VS Code dependencies
+// src/utils.ts - Functions without VS Code dependencies
 export function parseTimestamp(str: string): Date | null { ... }
 export function getDaysDifference(date1: Date, date2: Date): number { ... }
 
@@ -359,7 +359,7 @@ Prefer `rebuildTaskDisplay()` pattern over full rescans for operations that only
 
 ## Common Pitfalls
 
-1. **Regex Updates**: Timestamp parsing regex (`TIMESTAMP_REGEX` in `pure-utils.ts`) must match formats in multiple files
+1. **Regex Updates**: Timestamp parsing regex (`TIMESTAMP_REGEX` in `utils.ts`) must match formats in multiple files
 2. **Filter State**: Always clear search query when changing other filters (UX consistency)
 3. **File Watcher**: Don't forget `hideScanningIndicator()` after async operations
 4. **Duplicate Prevention**: `scannedFiles` Set prevents duplicate processing—clear on full scans
@@ -368,7 +368,7 @@ Prefer `rebuildTaskDisplay()` pattern over full rescans for operations that only
 7. **Dual Filter Logic**: Time-based filters must be implemented in BOTH `scanForTaskFiles()` (for full scans) AND `applyFiltersToExistingData()` (for in-memory filtering). Priority filters must check for special case `PriorityTag.None` which filters for empty string priority (`priority === ''`)
 8. **Hash Filename Pattern**: TIMEX attachment filenames MUST follow `name.TIMEX-{hash}.ext` pattern (not `name-TIMEX-{hash}.ext` or other variations)
 9. **Clipboard Platform Dependencies**: `insertImageFromClipboard` requires external tools (xclip/pngpaste)—graceful error handling needed
-10. **Pure vs VS Code Functions**: Keep `pure-utils.ts` free of `import * as vscode` to maintain unit testability
+10. **Pure vs VS Code Functions**: Keep `utils.ts` free of `import * as vscode` to maintain unit testability
 11. **Ordinal File State**: `timex.hasOrdinalCutItem` context value must be set/cleared via `context.setContext()` for paste menu visibility
 12. **Relative Path Calculations**: Attachment links use `path.relative()` from markdown file location—handle edge cases with nested folders
 13. **Orphan Detection**: `fixAttachmentLinks` tracks referenced hashes during markdown scan—must extract hash from ALL links (broken or not) to accurately identify orphans

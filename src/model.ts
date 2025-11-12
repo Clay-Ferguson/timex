@@ -1,8 +1,11 @@
 import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
-import { containsAnyConfiguredHashtag, findHashtagsInContent, getAllConfiguredHashtags, getIncludeGlobPattern, getExcludeGlobPattern } from './utils';
-import { parseTimestamp, getDaysDifference, isFarFuture as isFarFutureDate, getIconForTaskFile, TIMESTAMP_REGEX } from './pure-utils';
+import { containsAnyConfiguredHashtag, findHashtagsInContent, getAllConfiguredHashtags, getIncludeGlobPattern, getExcludeGlobPattern, TIMESTAMP_REGEX } from './utils';
+import { getIconForTaskFile } from './utils';
+import { isFarFuture as isFarFutureDate } from './utils';
+import { getDaysDifference } from './utils';
+import { parseTimestamp } from './utils';
 import { ViewFilter, PriorityTag } from './constants';
 
 // Constants

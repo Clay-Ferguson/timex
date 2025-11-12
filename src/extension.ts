@@ -20,9 +20,11 @@ import {
 	generateFileHash,
 	buildAttachmentIndex,
 	extractHashFromTimexFilename,
-	TIMEX_LINK_REGEX
+	TIMEX_LINK_REGEX,
+	TIMESTAMP_REGEX
 } from './utils';
-import { parseTimestamp, formatTimestamp, TIMESTAMP_REGEX } from './pure-utils';
+import { formatTimestamp } from './utils';
+import { parseTimestamp } from './utils';
 import { ViewFilter, PriorityTag } from './constants';
 
 const IMAGE_EXTENSIONS = new Set<string>([

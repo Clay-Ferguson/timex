@@ -1,6 +1,9 @@
 import { describe, it } from 'mocha';
 import * as assert from 'assert';
-import { parseTimestamp, formatTimestamp, getDaysDifference, getRelativeDateString } from '../../pure-utils';
+import { getDaysDifference } from '../../utils';
+import { getRelativeDateString } from '../../utils';
+import { formatTimestamp } from '../../utils';
+import { parseTimestamp } from '../../utils';
 
 describe('parseTimestamp', () => {
 	describe('valid timestamp formats', () => {
