@@ -555,14 +555,13 @@ When you move or reorganize files, attachment links may break. The "Fix Attachme
 1. Right-click on any file or folder in the Explorer
 2. Select "Timex" submenu → "Fix Attachment Links"
 3. The extension will:
-   - Scan for all TIMEX-formatted attachments in the selected folder
+   - Scan the entire project root and all subfolders for TIMEX-formatted attachments
    - Find all markdown files with attachment links
    - Detect broken links (files that have moved)
    - Automatically update links to the correct new location
 
 **Smart Behavior:**
-- **Folder Selection**: Scans the selected folder recursively
-- **File Selection**: Scans the entire workspace root (convenient when right-clicking any file)
+- **Comprehensive Scanning**: Processes the entire workspace root and all subdirectories
 - **Hash Matching**: Uses content hash to find moved files, even if renamed
 - **Progress Indicator**: Shows scanning and fixing progress
 - **Results Report**: Displays number of links fixed and files modified
@@ -571,7 +570,7 @@ When you move or reorganize files, attachment links may break. The "Fix Attachme
 **Example scenario:**
 1. You move `screenshot.TIMEX-abc123.png` from `images/` to `assets/screenshots/`
 2. Markdown links break: `![screenshot](../images/screenshot.TIMEX-abc123.png)`
-3. Run "Fix Attachment Links" on project root
+3. Run "Fix Attachment Links"
 4. Links automatically update: `![screenshot](../assets/screenshots/screenshot.TIMEX-abc123.png)`
 
 ### Why Use Content Hashes?
@@ -593,10 +592,10 @@ The hash-based naming system provides:
 
 ### Orphan Detection and Management
 
-The "Fix Attachment Links" command includes automatic orphan detection. An orphaned attachment is a file with the TIMEX-hash naming convention that is no longer referenced in any markdown file within the scanned folder.
+The "Fix Attachment Links" command includes automatic orphan detection. An orphaned attachment is a file with the TIMEX-hash naming convention that is no longer referenced in any markdown file within the project.
 
 **What happens during orphan detection:**
-1. The system tracks all attachment references while scanning markdown files
+1. The system tracks all attachment references while scanning markdown files across the entire project
 2. After fixing broken links, it compares all TIMEX-formatted files against the reference list
 3. Any unreferenced attachments are automatically marked as orphans
 4. Orphaned files are renamed with an "ORPHAN-" prefix for easy identification

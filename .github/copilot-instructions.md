@@ -209,8 +209,8 @@ const watcher = vscode.workspace.createFileSystemWatcher(watcherPattern);
 5. Auto-detect images (IMAGE_EXTENSIONS set) → use "![...](...)" syntax
 
 // Link repair workflow (extension.ts:fixAttachmentLinks)
-1. Build index: scan workspace for all TIMEX-{hash} files
-2. Parse markdown files for TIMEX_LINK_REGEX matches
+1. Build index: scan entire workspace root and all subdirectories for TIMEX-{hash} files
+2. Parse all markdown files in the project for TIMEX_LINK_REGEX matches
 3. Track referenced hashes in Set during markdown scanning
 4. Extract hash from broken link, lookup in index by hash
 5. Recalculate relative path from markdown file to found attachment
@@ -371,7 +371,7 @@ Prefer `rebuildTaskDisplay()` pattern over full rescans for operations that only
 10. **Pure vs VS Code Functions**: Keep `utils.ts` free of `import * as vscode` to maintain unit testability
 11. **Ordinal File State**: `timex.hasOrdinalCutItem` context value must be set/cleared via `context.setContext()` for paste menu visibility
 12. **Relative Path Calculations**: Attachment links use `path.relative()` from markdown file location—handle edge cases with nested folders
-13. **Orphan Detection**: `fixAttachmentLinks` tracks referenced hashes during markdown scan—must extract hash from ALL links (broken or not) to accurately identify orphans
+13. **Orphan Detection**: `fixAttachmentLinks` tracks referenced hashes during project-wide markdown scan—must extract hash from ALL links (broken or not) to accurately identify orphans
 
 ## Example Task Files
 

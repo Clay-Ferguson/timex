@@ -1432,27 +1432,12 @@ export function activate(context: vscode.ExtensionContext) {
 			vscode.window.showErrorMessage('No file or folder selected');
 			return;
 		}
-
-		let folderPath: string;
-
-		// Check if selected item is a file or folder
-		try {
-			const stats = await fs.promises.stat(uri.fsPath);
-			if (stats.isDirectory()) {
-				// It's a folder, use it directly
-				folderPath = uri.fsPath;
-			} else {
-				// It's a file, use the workspace root instead
-				if (!vscode.workspace.workspaceFolders || vscode.workspace.workspaceFolders.length === 0) {
-					vscode.window.showErrorMessage('No workspace folder found');
-					return;
-				}
-				folderPath = vscode.workspace.workspaceFolders[0].uri.fsPath;
-			}
-		} catch (error) {
-			vscode.window.showErrorMessage(`Failed to access selected item: ${error}`);
+		
+		if (!vscode.workspace.workspaceFolders || vscode.workspace.workspaceFolders.length === 0) {
+			vscode.window.showErrorMessage('No workspace folder found');
 			return;
 		}
+		let folderPath = vscode.workspace.workspaceFolders[0].uri.fsPath;
 
 		await vscode.window.withProgress({
 			location: vscode.ProgressLocation.Notification,
