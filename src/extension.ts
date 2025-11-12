@@ -521,6 +521,9 @@ export function activate(context: vscode.ExtensionContext) {
 		}
 		hashtags = hashtags.map(tag => tag.trim()).filter(tag => tag.length > 0);
 
+		// Sort hashtags alphabetically (case-insensitive)
+		hashtags.sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()));
+
 		// Create options with "all-tags" at the top, then individual hashtags
 		const allHashtagsOption = {
 			label: `${currentPrimaryHashtag === 'all-tags' ? '$(check)' : '$(circle-outline)'} Any Hashtag`,
