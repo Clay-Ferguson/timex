@@ -668,14 +668,20 @@ export function activate(context: vscode.ExtensionContext) {
 	});
 
 	const openFilterPanelCommand = vscode.commands.registerCommand('timex.openFilterPanel', () => {
-		const currentPriority = taskProvider.getCurrentPriorityFilter();
-		TimexFilterPanel.show(
-			context.extensionUri,
-			(priority: PriorityTag) => {
-				taskProvider.filterByPriority(priority);
-			},
-			currentPriority
-		);
+		try {
+			const currentPriority = taskProvider.getCurrentPriorityFilter();
+			
+			TimexFilterPanel.show(
+				context.extensionUri,
+				(priority: PriorityTag) => {
+					taskProvider.filterByPriority(priority);
+				},
+				currentPriority
+			);
+		} catch (error) {
+			console.error('[Extension] Error in openFilterPanel command:', error);
+			vscode.window.showErrorMessage(`Filter panel error: ${error}`);
+		}
 	});
 
 	const searchTasksCommand = vscode.commands.registerCommand('timex.searchTasks', async () => {

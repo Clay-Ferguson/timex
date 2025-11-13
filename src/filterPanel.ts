@@ -6,6 +6,7 @@ import { PriorityTag } from './constants';
 export class TimexFilterPanel {
     private static currentPanel: TimexFilterPanel | undefined;
     private static cachedCss: string | undefined;
+    private static cachedJs: string | undefined;
     private readonly panel: vscode.WebviewPanel;
     private disposables: vscode.Disposable[] = [];
 
@@ -17,12 +18,23 @@ export class TimexFilterPanel {
     ) {
         this.panel = panel;
         
-        // Load CSS if not already cached
-        if (!TimexFilterPanel.cachedCss) {
-            TimexFilterPanel.cachedCss = this.loadCss(extensionPath);
+        try {
+            // Load CSS if not already cached
+            if (!TimexFilterPanel.cachedCss) {
+                TimexFilterPanel.cachedCss = this.loadCss(extensionPath);
+            }
+            
+            // Load JS if not already cached
+            if (!TimexFilterPanel.cachedJs) {
+                TimexFilterPanel.cachedJs = this.loadJs(extensionPath);
+            }
+            
+            this.panel.webview.html = this.getHtmlContent();
+        } catch (error) {
+            console.error('[TimexFilterPanel] Error during initialization:', error);
+            vscode.window.showErrorMessage(`Failed to initialize filter panel: ${error}`);
+            throw error;
         }
-        
-        this.panel.webview.html = this.getHtmlContent();
 
         // Handle messages from the webview
         this.panel.webview.onDidReceiveMessage(
@@ -49,30 +61,36 @@ export class TimexFilterPanel {
         extensionUri: vscode.Uri,
         onFilterApplied: (priority: PriorityTag) => void,
         currentPriority: PriorityTag
-    ) {
-        // If we already have a panel, show it
-        if (TimexFilterPanel.currentPanel) {
-            TimexFilterPanel.currentPanel.panel.reveal();
-            return;
-        }
-
-        // Create a new panel
-        const panel = vscode.window.createWebviewPanel(
-            'timexFilterPanel',
-            'Timex Filters',
-            vscode.ViewColumn.One,
-            {
-                enableScripts: true,
-                retainContextWhenHidden: true
+    ) {        
+        try {
+            // If we already have a panel, show it
+            if (TimexFilterPanel.currentPanel) {
+                TimexFilterPanel.currentPanel.panel.reveal();
+                return;
             }
-        );
 
-        TimexFilterPanel.currentPanel = new TimexFilterPanel(
-            panel,
-            extensionUri.fsPath,
-            onFilterApplied,
-            currentPriority
-        );
+            // Create a new panel
+            const panel = vscode.window.createWebviewPanel(
+                'timexFilterPanel',
+                'Timex Filters',
+                vscode.ViewColumn.One,
+                {
+                    enableScripts: true,
+                    retainContextWhenHidden: true
+                }
+            );
+
+            TimexFilterPanel.currentPanel = new TimexFilterPanel(
+                panel,
+                extensionUri.fsPath,
+                onFilterApplied,
+                currentPriority
+            );
+        } catch (error) {
+            console.error('[TimexFilterPanel] Error in show():', error);
+            vscode.window.showErrorMessage(`Failed to show filter panel: ${error}`);
+            throw error;
+        }
     }
 
     private loadCss(extensionPath: string): string {
@@ -85,9 +103,20 @@ export class TimexFilterPanel {
         }
     }
 
+    private loadJs(extensionPath: string): string {
+        try {
+            const jsPath = path.join(extensionPath, 'out', 'filterPanelWebview.js');
+            return fs.readFileSync(jsPath, 'utf8');
+        } catch (error) {
+            console.error('Failed to load filterPanelWebview.js:', error);
+            return '/* JS file not found */';
+        }
+    }
+
     private getHtmlContent(): string {
         const nonce = this.getNonce();
         const css = TimexFilterPanel.cachedCss || '';
+        const js = TimexFilterPanel.cachedJs || '';
 
         return `<!DOCTYPE html>
 <html lang="en">
@@ -133,30 +162,7 @@ export class TimexFilterPanel {
     </div>
 
     <script nonce="${nonce}">
-        const vscode = acquireVsCodeApi();
-
-        document.getElementById('applyBtn').addEventListener('click', () => {
-            const selectedPriority = document.querySelector('input[name="priority"]:checked').value;
-            vscode.postMessage({
-                command: 'apply',
-                priority: selectedPriority
-            });
-        });
-
-        document.getElementById('cancelBtn').addEventListener('click', () => {
-            vscode.postMessage({
-                command: 'cancel'
-            });
-        });
-
-        // Allow Enter key to submit
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter') {
-                document.getElementById('applyBtn').click();
-            } else if (e.key === 'Escape') {
-                document.getElementById('cancelBtn').click();
-            }
-        });
+        ${js}
     </script>
 </body>
 </html>`;
