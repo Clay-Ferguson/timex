@@ -1,17 +1,27 @@
 import * as vscode from 'vscode';
+import * as path from 'path';
+import * as fs from 'fs';
 import { PriorityTag } from './constants';
 
 export class TimexFilterPanel {
     private static currentPanel: TimexFilterPanel | undefined;
+    private static cachedCss: string | undefined;
     private readonly panel: vscode.WebviewPanel;
     private disposables: vscode.Disposable[] = [];
 
     private constructor(
         panel: vscode.WebviewPanel,
+        extensionPath: string,
         private readonly onFilterApplied: (priority: PriorityTag) => void,
         private readonly currentPriority: PriorityTag
     ) {
         this.panel = panel;
+        
+        // Load CSS if not already cached
+        if (!TimexFilterPanel.cachedCss) {
+            TimexFilterPanel.cachedCss = this.loadCss(extensionPath);
+        }
+        
         this.panel.webview.html = this.getHtmlContent();
 
         // Handle messages from the webview
@@ -59,13 +69,25 @@ export class TimexFilterPanel {
 
         TimexFilterPanel.currentPanel = new TimexFilterPanel(
             panel,
+            extensionUri.fsPath,
             onFilterApplied,
             currentPriority
         );
     }
 
+    private loadCss(extensionPath: string): string {
+        try {
+            const cssPath = path.join(extensionPath, 'out', 'filterPanel.css');
+            return fs.readFileSync(cssPath, 'utf8');
+        } catch (error) {
+            console.error('Failed to load filterPanel.css:', error);
+            return '/* CSS file not found */';
+        }
+    }
+
     private getHtmlContent(): string {
         const nonce = this.getNonce();
+        const css = TimexFilterPanel.cachedCss || '';
 
         return `<!DOCTYPE html>
 <html lang="en">
@@ -75,82 +97,7 @@ export class TimexFilterPanel {
     <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'nonce-${nonce}';">
     <title>Timex Filters</title>
     <style>
-        body {
-            padding: 20px;
-            color: var(--vscode-foreground);
-            font-family: var(--vscode-font-family);
-            font-size: var(--vscode-font-size);
-        }
-        
-        .filter-section {
-            margin-bottom: 30px;
-        }
-        
-        .filter-section h2 {
-            font-size: 14px;
-            font-weight: 600;
-            margin-bottom: 12px;
-            color: var(--vscode-foreground);
-        }
-        
-        .radio-group {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-        }
-        
-        .radio-option {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            cursor: pointer;
-            padding: 4px;
-        }
-        
-        .radio-option:hover {
-            background-color: var(--vscode-list-hoverBackground);
-        }
-        
-        .radio-option input[type="radio"] {
-            cursor: pointer;
-            margin: 0;
-        }
-        
-        .radio-option label {
-            cursor: pointer;
-            flex: 1;
-        }
-        
-        .button-group {
-            display: flex;
-            gap: 10px;
-            justify-content: flex-end;
-            margin-top: 30px;
-            padding-top: 20px;
-            border-top: 1px solid var(--vscode-panel-border);
-        }
-        
-        button {
-            padding: 6px 14px;
-            background-color: var(--vscode-button-background);
-            color: var(--vscode-button-foreground);
-            border: none;
-            cursor: pointer;
-            font-size: 13px;
-        }
-        
-        button:hover {
-            background-color: var(--vscode-button-hoverBackground);
-        }
-        
-        button.secondary {
-            background-color: var(--vscode-button-secondaryBackground);
-            color: var(--vscode-button-secondaryForeground);
-        }
-        
-        button.secondary:hover {
-            background-color: var(--vscode-button-secondaryHoverBackground);
-        }
+        ${css}
     </style>
 </head>
 <body>
