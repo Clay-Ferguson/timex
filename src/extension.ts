@@ -26,6 +26,7 @@ import {
 import { formatTimestamp } from './utils';
 import { parseTimestamp } from './utils';
 import { ViewFilter, PriorityTag } from './constants';
+import { TimexFilterPanel } from './filterPanel';
 
 const IMAGE_EXTENSIONS = new Set<string>([
 	'.png',
@@ -664,6 +665,17 @@ export function activate(context: vscode.ExtensionContext) {
 				}
 			}
 		}
+	});
+
+	const openFilterPanelCommand = vscode.commands.registerCommand('timex.openFilterPanel', () => {
+		const currentPriority = taskProvider.getCurrentPriorityFilter();
+		TimexFilterPanel.show(
+			context.extensionUri,
+			(priority: PriorityTag) => {
+				taskProvider.filterByPriority(priority);
+			},
+			currentPriority
+		);
 	});
 
 	const searchTasksCommand = vscode.commands.registerCommand('timex.searchTasks', async () => {
@@ -1613,6 +1625,7 @@ export function activate(context: vscode.ExtensionContext) {
 	context.subscriptions.push(insertImageFromClipboardCommand);
 	context.subscriptions.push(selectPrimaryHashtagCommand);
 	context.subscriptions.push(filterPriorityCommand);
+	context.subscriptions.push(openFilterPanelCommand);
 	context.subscriptions.push(searchTasksCommand);
 	context.subscriptions.push(newTaskCommand);
 	context.subscriptions.push(aboutCommand);
