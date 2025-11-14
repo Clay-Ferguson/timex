@@ -109,11 +109,6 @@
         "icon": "$(tag)"
       },
       {
-        "command": "timex.filterPriority",
-        "title": "Filter Tasks",
-        "icon": "$(filter)"
-      },
-      {
         "command": "timex.openFilterPanel",
         "title": "Open Filter Panel",
         "icon": "$(filter)"
@@ -251,14 +246,9 @@
           "group": "navigation@0"
         },
         {
-          "command": "timex.filterPriority",
-          "when": "view == taskExplorer",
-          "group": "navigation@1"
-        },
-        {
           "command": "timex.openFilterPanel",
           "when": "view == taskExplorer",
-          "group": "navigation@2"
+          "group": "navigation@1"
         },
         {
           "command": "timex.searchTasks",

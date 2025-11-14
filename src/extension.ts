@@ -568,105 +568,6 @@ export function activate(context: vscode.ExtensionContext) {
 		}
 	});
 
-	const filterPriorityCommand = vscode.commands.registerCommand('timex.filterPriority', async () => {
-		// Get current filter states to show checkmarks
-		const currentPriority = taskProvider.getCurrentPriorityFilter();
-		const currentView = taskProvider.getCurrentViewFilter();
-		const div = '––––––––––'; // visual divider
-		const options = [
-			// Priority group
-			{
-				label: `${currentPriority === PriorityTag.Any ? `$(check) ${div} Any Priority ${div}` : `$(circle-outline) ${div} Any Priority ${div}`}`,
-				value: `priority:${PriorityTag.Any}`
-			},
-			{
-				label: `${currentPriority === PriorityTag.High ? '$(check) Priority 1' : '$(circle-outline) Priority 1'}`,
-				value: `priority:${PriorityTag.High}`
-			},
-			{
-				label: `${currentPriority === PriorityTag.Medium ? '$(check) Priority 2' : '$(circle-outline) Priority 2'}`,
-				value: `priority:${PriorityTag.Medium}`
-			},
-			{
-				label: `${currentPriority === PriorityTag.Low ? '$(check) Priority 3' : '$(circle-outline) Priority 3'}`,
-				value: `priority:${PriorityTag.Low}`
-			},
-			{
-				label: `${currentPriority === PriorityTag.None ? '$(check) No Priority' : '$(circle-outline) No Priority'}`,
-				value: `priority:${PriorityTag.None}`
-			},
-			// Separator
-			{ label: '', value: 'separator', kind: vscode.QuickPickItemKind.Separator } as any,
-			// View group
-			{
-				label: `${currentView === ViewFilter.All ? `$(check) ${div} Any Time ${div}` : `$(circle-outline) ${div} Any Time ${div}`}`,
-				value: `view:${ViewFilter.All}`
-			},
-			{
-				label: `${currentView === ViewFilter.DueIn7Days ? `$(check) ${ViewFilter.DueIn7Days}` : `$(circle-outline) ${ViewFilter.DueIn7Days}`}`,
-				value: `view:${ViewFilter.DueIn7Days}`
-			},
-			{
-				label: `${currentView === ViewFilter.DueIn14Days ? `$(check) ${ViewFilter.DueIn14Days}` : `$(circle-outline) ${ViewFilter.DueIn14Days}`}`,
-				value: `view:${ViewFilter.DueIn14Days}`
-			},
-			{
-				label: `${currentView === ViewFilter.DueIn30Days ? `$(check) ${ViewFilter.DueIn30Days}` : `$(circle-outline) ${ViewFilter.DueIn30Days}`}`,
-				value: `view:${ViewFilter.DueIn30Days}`
-			},
-			{
-				label: `${currentView === ViewFilter.DueToday ? `$(check) ${ViewFilter.DueToday}` : `$(circle-outline) ${ViewFilter.DueToday}`}`,
-				value: `view:${ViewFilter.DueToday}`
-			},
-			{
-				label: `${currentView === ViewFilter.FutureDueDates ? `$(check) ${ViewFilter.FutureDueDates}` : `$(circle-outline) ${ViewFilter.FutureDueDates}`}`,
-				value: `view:${ViewFilter.FutureDueDates}`
-			},
-			{
-				label: `${currentView === ViewFilter.Overdue ? `$(check) ${ViewFilter.Overdue}` : `$(circle-outline) ${ViewFilter.Overdue}`}`,
-				value: `view:${ViewFilter.Overdue}`
-			},
-		];
-
-		const selected = await vscode.window.showQuickPick(options, {
-			placeHolder: 'Select filter options'
-		});
-
-		if (selected && selected.value !== 'separator' && selected.value !== 'separator2') {
-			const [type, value] = selected.value.split(':');
-			if (type === 'priority') {
-				taskProvider.filterByPriority(value as PriorityTag);
-			} else if (type === 'view') {
-				const viewValue = value as ViewFilter;
-				switch (viewValue) {
-					case ViewFilter.All:
-						taskProvider.refresh();
-						break;
-					case ViewFilter.DueIn7Days:
-						taskProvider.refreshDueIn7Days();
-						break;
-					case ViewFilter.DueIn14Days:
-						taskProvider.refreshDueIn14Days();
-						break;
-					case ViewFilter.DueIn30Days:
-						taskProvider.refreshDueIn30Days();
-						break;
-					case ViewFilter.DueToday:
-						taskProvider.refreshDueToday();
-						break;
-					case ViewFilter.FutureDueDates:
-						taskProvider.refreshFutureDueDates();
-						break;
-					case ViewFilter.Overdue:
-						taskProvider.refreshOverdue();
-						break;
-					default:
-						break;
-				}
-			}
-		}
-	});
-
 	const openFilterPanelCommand = vscode.commands.registerCommand('timex.openFilterPanel', () => {
 		try {
 			const currentPriority = taskProvider.getCurrentPriorityFilter();
@@ -1658,7 +1559,6 @@ export function activate(context: vscode.ExtensionContext) {
 	context.subscriptions.push(insertAttachmentCommand);
 	context.subscriptions.push(insertImageFromClipboardCommand);
 	context.subscriptions.push(selectPrimaryHashtagCommand);
-	context.subscriptions.push(filterPriorityCommand);
 	context.subscriptions.push(openFilterPanelCommand);
 	context.subscriptions.push(searchTasksCommand);
 	context.subscriptions.push(newTaskCommand);
