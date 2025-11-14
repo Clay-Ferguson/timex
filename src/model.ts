@@ -242,6 +242,10 @@ export class TaskProvider implements vscode.TreeDataProvider<TaskFileItem> {
 		return this.currentFilter;
 	}
 
+	getCurrentSearchQuery(): string {
+		return this.currentSearchQuery;
+	}
+
 
 	/**
 	 * Updates a single task item after its timestamp has been modified
@@ -458,6 +462,34 @@ export class TaskProvider implements vscode.TreeDataProvider<TaskFileItem> {
 		this.updateTreeViewTitle();
 		this.showScanningIndicator();
 		this.applyFiltersToExistingData().then(() => {
+			this.hideScanningIndicator();
+			this._onDidChangeTreeData.fire();
+			this.scheduleReveal();
+		});
+	}
+
+	/**
+	 * Apply all filters at once from the filter panel
+	 * This method sets priority, view filter, and search query without the side effects
+	 * of clearing other filters that the individual methods have.
+	 */
+	applyAllFilters(priorityFilter: PriorityTag, viewFilter: ViewFilter, searchQuery: string): void {
+		// Set all filter values
+		this.currentPriorityFilter = priorityFilter;
+		this.currentFilter = viewFilter;
+		this.currentSearchQuery = searchQuery ? searchQuery.toLowerCase() : '';
+		
+		// Save state and update UI
+		this.saveFilterState();
+		this.updateTreeViewTitle();
+		this.showScanningIndicator();
+		
+		// First do a full scan to get all tasks (no time filtering at scan level)
+		// This loads all tasks into taskFileData
+		this.scanForTaskFiles().then(() => {
+			// Now apply all filters (time, priority, and search) to the scanned data
+			return this.applyFiltersToExistingData();
+		}).then(() => {
 			this.hideScanningIndicator();
 			this._onDidChangeTreeData.fire();
 			this.scheduleReveal();

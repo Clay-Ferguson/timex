@@ -7,6 +7,40 @@ body {
     font-size: var(--vscode-font-size);
 }
 
+.search-section {
+    margin-bottom: 20px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--vscode-panel-border);
+}
+
+.search-section label {
+    display: block;
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 8px;
+    color: var(--vscode-foreground);
+}
+
+.search-section input[type="text"] {
+    width: 100%;
+    padding: 6px 8px;
+    background-color: var(--vscode-input-background);
+    color: var(--vscode-input-foreground);
+    border: 1px solid var(--vscode-input-border);
+    font-family: var(--vscode-font-family);
+    font-size: var(--vscode-font-size);
+    box-sizing: border-box;
+}
+
+.search-section input[type="text"]:focus {
+    outline: 1px solid var(--vscode-focusBorder);
+    outline-offset: -1px;
+}
+
+.search-section input[type="text"]::placeholder {
+    color: var(--vscode-input-placeholderForeground);
+}
+
 .filters-container {
     display: grid;
     grid-template-columns: auto auto;

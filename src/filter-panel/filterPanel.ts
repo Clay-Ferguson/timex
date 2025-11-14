@@ -14,9 +14,10 @@ export class TimexFilterPanel {
     private constructor(
         panel: vscode.WebviewPanel,
         extensionPath: string,
-        private readonly onFilterApplied: (priority: PriorityTag, viewFilter: ViewFilter) => void,
+        private readonly onFilterApplied: (priority: PriorityTag, viewFilter: ViewFilter, searchQuery: string) => void,
         private readonly currentPriority: PriorityTag,
-        private readonly currentViewFilter: ViewFilter
+        private readonly currentViewFilter: ViewFilter,
+        private readonly currentSearchQuery: string
     ) {
         this.panel = panel;
 
@@ -50,7 +51,8 @@ export class TimexFilterPanel {
                     case 'apply':
                         this.onFilterApplied(
                             message.priority as PriorityTag,
-                            message.viewFilter as ViewFilter
+                            message.viewFilter as ViewFilter,
+                            message.searchQuery || ''
                         );
                         this.panel.dispose();
                         break;
@@ -58,7 +60,8 @@ export class TimexFilterPanel {
                         // Apply default filters (clears all filters)
                         this.onFilterApplied(
                             PriorityTag.Any,
-                            ViewFilter.All
+                            ViewFilter.All,
+                            ''
                         );
                         this.panel.dispose();
                         break;
@@ -77,9 +80,10 @@ export class TimexFilterPanel {
 
     public static show(
         extensionUri: vscode.Uri,
-        onFilterApplied: (priority: PriorityTag, viewFilter: ViewFilter) => void,
+        onFilterApplied: (priority: PriorityTag, viewFilter: ViewFilter, searchQuery: string) => void,
         currentPriority: PriorityTag,
-        currentViewFilter: ViewFilter
+        currentViewFilter: ViewFilter,
+        currentSearchQuery: string
     ) {
         try {
             // If we already have a panel, show it
@@ -104,7 +108,8 @@ export class TimexFilterPanel {
                 extensionUri.fsPath,
                 onFilterApplied,
                 currentPriority,
-                currentViewFilter
+                currentViewFilter,
+                currentSearchQuery
             );
         } catch (error) {
             console.error('[TimexFilterPanel] Error in show():', error);
@@ -168,33 +173,36 @@ export class TimexFilterPanel {
     }
 
     private getTimeFilterRadioGroup(): string {
+        // If current view filter is Search, default to All
+        const effectiveViewFilter = this.currentViewFilter === ViewFilter.Search ? ViewFilter.All : this.currentViewFilter;
+        
         return `
             <div class="radio-option">
-                <input type="radio" id="time-all" name="timeFilter" value="${ViewFilter.All}" ${this.currentViewFilter === ViewFilter.All ? 'checked' : ''}>
+                <input type="radio" id="time-all" name="timeFilter" value="${ViewFilter.All}" ${effectiveViewFilter === ViewFilter.All ? 'checked' : ''}>
                 <label for="time-all">Due Anytime</label>
             </div>
             <div class="radio-option">
-                <input type="radio" id="time-7days" name="timeFilter" value="${ViewFilter.DueIn7Days}" ${this.currentViewFilter === ViewFilter.DueIn7Days ? 'checked' : ''}>
+                <input type="radio" id="time-7days" name="timeFilter" value="${ViewFilter.DueIn7Days}" ${effectiveViewFilter === ViewFilter.DueIn7Days ? 'checked' : ''}>
                 <label for="time-7days">Due in 7 Days</label>
             </div>
             <div class="radio-option">
-                <input type="radio" id="time-14days" name="timeFilter" value="${ViewFilter.DueIn14Days}" ${this.currentViewFilter === ViewFilter.DueIn14Days ? 'checked' : ''}>
+                <input type="radio" id="time-14days" name="timeFilter" value="${ViewFilter.DueIn14Days}" ${effectiveViewFilter === ViewFilter.DueIn14Days ? 'checked' : ''}>
                 <label for="time-14days">Due in 14 Days</label>
             </div>
             <div class="radio-option">
-                <input type="radio" id="time-30days" name="timeFilter" value="${ViewFilter.DueIn30Days}" ${this.currentViewFilter === ViewFilter.DueIn30Days ? 'checked' : ''}>
+                <input type="radio" id="time-30days" name="timeFilter" value="${ViewFilter.DueIn30Days}" ${effectiveViewFilter === ViewFilter.DueIn30Days ? 'checked' : ''}>
                 <label for="time-30days">Due in 30 Days</label>
             </div>
             <div class="radio-option">
-                <input type="radio" id="time-today" name="timeFilter" value="${ViewFilter.DueToday}" ${this.currentViewFilter === ViewFilter.DueToday ? 'checked' : ''}>
+                <input type="radio" id="time-today" name="timeFilter" value="${ViewFilter.DueToday}" ${effectiveViewFilter === ViewFilter.DueToday ? 'checked' : ''}>
                 <label for="time-today">Due Today</label>
             </div>
             <div class="radio-option">
-                <input type="radio" id="time-future" name="timeFilter" value="${ViewFilter.FutureDueDates}" ${this.currentViewFilter === ViewFilter.FutureDueDates ? 'checked' : ''}>
+                <input type="radio" id="time-future" name="timeFilter" value="${ViewFilter.FutureDueDates}" ${effectiveViewFilter === ViewFilter.FutureDueDates ? 'checked' : ''}>
                 <label for="time-future">Future Due Dates</label>
             </div>
             <div class="radio-option">
-                <input type="radio" id="time-overdue" name="timeFilter" value="${ViewFilter.Overdue}" ${this.currentViewFilter === ViewFilter.Overdue ? 'checked' : ''}>
+                <input type="radio" id="time-overdue" name="timeFilter" value="${ViewFilter.Overdue}" ${effectiveViewFilter === ViewFilter.Overdue ? 'checked' : ''}>
                 <label for="time-overdue">Overdue</label>
             </div>`;
     }
@@ -212,7 +220,8 @@ export class TimexFilterPanel {
             .replace(/\/\* CSS \*\//g, css)
             .replace(/\/\* JS \*\//g, js)
             .replace(/<!-- PRIORITY_FILTER_RADIO_GROUP -->/g, priorityFilterRadioGroup)
-            .replace(/<!-- TIME_FILTER_RADIO_GROUP -->/g, timeFilterRadioGroup);
+            .replace(/<!-- TIME_FILTER_RADIO_GROUP -->/g, timeFilterRadioGroup)
+            .replace(/<!-- SEARCH_QUERY -->/g, this.currentSearchQuery);
     }
 
     private getNonce(): string {
