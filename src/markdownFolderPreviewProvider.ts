@@ -161,7 +161,7 @@ export class MarkdownFolderPreviewProvider implements vscode.TextDocumentContent
 			const markdown = await generateMarkdownForDirectory(folderPath);
 			
 			// Add a header with the folder name
-			return `# Preview: ${folderName}\n\n${markdown}`;
+			return markdown;
 			
 		} catch (error: any) {
 			const message = error instanceof Error ? error.message : String(error);

@@ -1514,24 +1514,35 @@ export function activate(context: vscode.ExtensionContext) {
 
 	const previewFolderAsMarkdownCommand = vscode.commands.registerCommand('timex.previewFolderAsMarkdown', async (uri: vscode.Uri) => {
 		if (!uri) {
-			vscode.window.showErrorMessage('No folder selected');
+			vscode.window.showErrorMessage('No file or folder selected');
 			return;
 		}
 
 		try {
-			// Verify it's a directory
+			// Determine the folder to preview
+			let folderPath: string;
 			const stat = await fs.promises.stat(uri.fsPath);
-			if (!stat.isDirectory()) {
-				vscode.window.showErrorMessage('Please select a folder, not a file');
-				return;
+			
+			if (stat.isDirectory()) {
+				// User clicked a folder - use it directly
+				folderPath = uri.fsPath;
+			} else {
+				// User clicked a file - use workspace root instead
+				// This allows previewing the root folder (which can't be directly selected in VS Code)
+				const workspaceFolders = vscode.workspace.workspaceFolders;
+				if (!workspaceFolders || workspaceFolders.length === 0) {
+					vscode.window.showErrorMessage('No workspace folder found');
+					return;
+				}
+				folderPath = workspaceFolders[0].uri.fsPath;
 			}
 
 			// Create a virtual URI using our custom scheme
 			// Format: timex-preview:/path/to/folder
-			const folderName = path.basename(uri.fsPath);
-			const previewUri = vscode.Uri.parse(`timex-preview:${uri.fsPath}`).with({
+			const folderName = path.basename(folderPath);
+			const previewUri = vscode.Uri.parse(`timex-preview:${folderPath}`).with({
 				scheme: 'timex-preview',
-				path: uri.fsPath
+				path: folderPath
 			});
 
 			// Open the virtual document

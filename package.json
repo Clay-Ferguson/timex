@@ -420,7 +420,6 @@
         {
           "command": "timex.previewFolderAsMarkdown",
           "group": "1_main@4",
-          "when": "explorerResourceIsFolder",
           "icon": "$(open-preview)"
         },
         {
