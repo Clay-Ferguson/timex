@@ -114,11 +114,6 @@
         "icon": "$(filter)"
       },
       {
-        "command": "timex.searchTasks",
-        "title": "Search Tasks",
-        "icon": "$(search)"
-      },
-      {
         "command": "timex.newTask",
         "title": "New Task",
         "icon": "$(add)"
@@ -246,11 +241,6 @@
           "group": "navigation@1"
         },
         {
-          "command": "timex.searchTasks",
-          "when": "view == taskExplorer",
-          "group": "navigation@5"
-        },
-        {
           "command": "timex.newTask",
           "when": "view == taskExplorer",
           "group": "navigation@6"
@@ -321,9 +311,6 @@
       "commandPalette": [
         {
           "command": "timex.showAllTasks"
-        },
-        {
-          "command": "timex.searchTasks"
         },
         {
           "command": "timex.insertTimestamp"
