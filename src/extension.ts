@@ -26,7 +26,7 @@ import {
 import { formatTimestamp } from './utils';
 import { parseTimestamp } from './utils';
 import { ViewFilter, PriorityTag } from './constants';
-import { TimexFilterPanel } from './filterPanel';
+import { TimexFilterPanel } from './filter-panel/filterPanel';
 
 const IMAGE_EXTENSIONS = new Set<string>([
 	'.png',
@@ -800,12 +800,6 @@ export function activate(context: vscode.ExtensionContext) {
 		}
 	});
 
-	// Clear all filters command
-	const clearFiltersCommand = vscode.commands.registerCommand('timex.clearFilters', async () => {
-		taskProvider.clearFilters();
-		vscode.window.showInformationMessage('All filters cleared');
-	});
-
 	// Date extension commands
 	const addDayCommand = vscode.commands.registerCommand('timex.addDay', async (item) => {
 		await addTimeToTask(item, 1, 'day', taskProvider);
@@ -1564,7 +1558,6 @@ export function activate(context: vscode.ExtensionContext) {
 	context.subscriptions.push(newTaskCommand);
 	context.subscriptions.push(aboutCommand);
 	context.subscriptions.push(openSettingsCommand);
-	context.subscriptions.push(clearFiltersCommand);
 	context.subscriptions.push(addDayCommand);
 	context.subscriptions.push(addWeekCommand);
 	context.subscriptions.push(addMonthCommand);

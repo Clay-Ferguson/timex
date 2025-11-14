@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
 import * as fs from 'fs';
-import { PriorityTag, ViewFilter } from './constants';
+import { PriorityTag, ViewFilter } from '../constants';
 
 export class TimexFilterPanel {
     private static currentPanel: TimexFilterPanel | undefined;
@@ -51,6 +51,14 @@ export class TimexFilterPanel {
                         this.onFilterApplied(
                             message.priority as PriorityTag,
                             message.viewFilter as ViewFilter
+                        );
+                        this.panel.dispose();
+                        break;
+                    case 'clear':
+                        // Apply default filters (clears all filters)
+                        this.onFilterApplied(
+                            PriorityTag.Any,
+                            ViewFilter.All
                         );
                         this.panel.dispose();
                         break;
@@ -107,7 +115,7 @@ export class TimexFilterPanel {
 
     private loadCss(extensionPath: string): string {
         try {
-            const cssPath = path.join(extensionPath, 'out', 'filterPanel.css');
+            const cssPath = path.join(extensionPath, 'out', 'filter-panel', 'filterPanel.css');
             return fs.readFileSync(cssPath, 'utf8');
         } catch (error) {
             console.error('Failed to load filterPanel.css:', error);
@@ -117,7 +125,7 @@ export class TimexFilterPanel {
 
     private loadJs(extensionPath: string): string {
         try {
-            const jsPath = path.join(extensionPath, 'out', 'filterPanelWebview.js');
+            const jsPath = path.join(extensionPath, 'out', 'filter-panel', 'filterPanelWebview.js');
             return fs.readFileSync(jsPath, 'utf8');
         } catch (error) {
             console.error('Failed to load filterPanelWebview.js:', error);
@@ -127,7 +135,7 @@ export class TimexFilterPanel {
 
     private loadHtml(extensionPath: string): string {
         try {
-            const htmlPath = path.join(extensionPath, 'out', 'filterPanel.html');
+            const htmlPath = path.join(extensionPath, 'out', 'filter-panel', 'filterPanel.html');
             return fs.readFileSync(htmlPath, 'utf8');
         } catch (error) {
             console.error('Failed to load filterPanel.html:', error);

@@ -17,6 +17,12 @@ document.getElementById('cancelBtn').addEventListener('click', () => {
     });
 });
 
+document.getElementById('clearBtn').addEventListener('click', () => {
+    vscode.postMessage({
+        command: 'clear'
+    });
+});
+
 // Allow Enter key to submit
 document.addEventListener('keydown', (e) => {
     if (e.key === 'Enter') {

@@ -134,11 +134,6 @@
         "icon": "$(gear)"
       },
       {
-        "command": "timex.clearFilters",
-        "title": "Clear Filters",
-        "icon": "$(clear-all)"
-      },
-      {
         "command": "timex.addDay",
         "title": "+Day"
       },
@@ -267,12 +262,6 @@
           "icon": "$(gear)"
         },
         {
-          "command": "timex.clearFilters",
-          "when": "view == taskExplorer",
-          "group": "0_settings@5",
-          "icon": "$(clear-all)"
-        },
-        {
           "command": "timex.about",
           "when": "view == taskExplorer",
           "group": "1_about"
@@ -284,12 +273,6 @@
           "when": "view == taskExplorer",
           "group": "0_settings@1",
           "icon": "$(gear)"
-        },
-        {
-          "command": "timex.clearFilters",
-          "when": "view == taskExplorer",
-          "group": "0_settings@5",
-          "icon": "$(clear-all)"
         },
         {
           "command": "timex.about",
@@ -475,7 +458,7 @@
   "scripts": {
     "vscode:prepublish": "npm run compile",
     "compile": "tsc -p ./ && npm run copy-resources",
-    "copy-resources": "cp src/*.css src/*.js src/*.html out/ 2>/dev/null || true",
+    "copy-resources": "mkdir -p out/filter-panel && cp src/filter-panel/*.css src/filter-panel/*.js src/filter-panel/*.html out/filter-panel/ 2>/dev/null || true",
     "watch": "tsc -watch -p ./",
     "pretest": "npm run compile && npm run lint",
     "lint": "eslint src",
