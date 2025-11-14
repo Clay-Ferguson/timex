@@ -18,18 +18,18 @@ export class TimexFilterPanel {
         private readonly currentViewFilter: ViewFilter
     ) {
         this.panel = panel;
-        
+
         try {
             // Load CSS if not already cached
             if (!TimexFilterPanel.cachedCss) {
                 TimexFilterPanel.cachedCss = this.loadCss(extensionPath);
             }
-            
+
             // Load JS if not already cached
             if (!TimexFilterPanel.cachedJs) {
                 TimexFilterPanel.cachedJs = this.loadJs(extensionPath);
             }
-            
+
             this.panel.webview.html = this.getHtmlContent();
         } catch (error) {
             console.error('[TimexFilterPanel] Error during initialization:', error);
@@ -66,7 +66,7 @@ export class TimexFilterPanel {
         onFilterApplied: (priority: PriorityTag, viewFilter: ViewFilter) => void,
         currentPriority: PriorityTag,
         currentViewFilter: ViewFilter
-    ) {        
+    ) {
         try {
             // If we already have a panel, show it
             if (TimexFilterPanel.currentPanel) {
@@ -211,8 +211,8 @@ export class TimexFilterPanel {
     </div>
 
     <div class="button-group">
-        <button class="secondary" id="cancelBtn">Cancel</button>
         <button id="applyBtn">OK</button>
+        <button class="secondary" id="cancelBtn">Cancel</button>
     </div>
 
     <script nonce="${nonce}">

@@ -9,9 +9,10 @@ body {
 
 .filters-container {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: auto auto;
     gap: 30px;
     margin-bottom: 30px;
+    justify-content: start;
 }
 
 .filter-section {
@@ -57,10 +58,8 @@ body {
 .button-group {
     display: flex;
     gap: 10px;
-    justify-content: flex-end;
-    margin-top: 30px;
-    padding-top: 20px;
-    border-top: 1px solid var(--vscode-panel-border);
+    justify-content: flex-start;
+    margin-top: 15px;
 }
 
 button {
