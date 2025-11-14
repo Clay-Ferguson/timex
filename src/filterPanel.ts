@@ -194,17 +194,19 @@ export class TimexFilterPanel {
     </style>
 </head>
 <body>
-    <div class="filter-section">
-        <h2>Priority Filter</h2>
-        <div class="radio-group">
-            ${priorityFilterRadioGroup}
+    <div class="filters-container">
+        <div class="filter-section">
+            <h2>Priority Filter</h2>
+            <div class="radio-group">
+                ${priorityFilterRadioGroup}
+            </div>
         </div>
-    </div>
 
-    <div class="filter-section">
-        <h2>Time Filter</h2>
-        <div class="radio-group">
-            ${timeFilterRadioGroup}
+        <div class="filter-section">
+            <h2>Time Filter</h2>
+            <div class="radio-group">
+                ${timeFilterRadioGroup}
+            </div>
         </div>
     </div>
 

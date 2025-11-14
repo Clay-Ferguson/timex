@@ -7,8 +7,16 @@ body {
     font-size: var(--vscode-font-size);
 }
 
-.filter-section {
+.filters-container {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 30px;
     margin-bottom: 30px;
+}
+
+.filter-section {
+    display: flex;
+    flex-direction: column;
 }
 
 .filter-section h2 {
