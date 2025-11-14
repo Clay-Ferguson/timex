@@ -54,7 +54,8 @@ export class TimexFilterPanel {
                             message.viewFilter as ViewFilter,
                             message.searchQuery || ''
                         );
-                        this.panel.dispose();
+                        // COMMENTED OUT: Keep panel open after applying filters
+                        // this.panel.dispose();
                         break;
                     case 'clear':
                         // Apply default filters (clears all filters)
@@ -63,7 +64,8 @@ export class TimexFilterPanel {
                             ViewFilter.All,
                             ''
                         );
-                        this.panel.dispose();
+                        // COMMENTED OUT: Keep panel open after clearing filters
+                        // this.panel.dispose();
                         break;
                     case 'cancel':
                         this.panel.dispose();
