@@ -670,13 +670,41 @@ export function activate(context: vscode.ExtensionContext) {
 	const openFilterPanelCommand = vscode.commands.registerCommand('timex.openFilterPanel', () => {
 		try {
 			const currentPriority = taskProvider.getCurrentPriorityFilter();
+			const currentViewFilter = taskProvider.getCurrentViewFilter();
 			
 			TimexFilterPanel.show(
 				context.extensionUri,
-				(priority: PriorityTag) => {
+				(priority: PriorityTag, viewFilter: ViewFilter) => {
+					// Apply priority filter
 					taskProvider.filterByPriority(priority);
+					
+					// Apply view filter
+					switch (viewFilter) {
+						case ViewFilter.All:
+							taskProvider.refresh();
+							break;
+						case ViewFilter.DueIn7Days:
+							taskProvider.refreshDueIn7Days();
+							break;
+						case ViewFilter.DueIn14Days:
+							taskProvider.refreshDueIn14Days();
+							break;
+						case ViewFilter.DueIn30Days:
+							taskProvider.refreshDueIn30Days();
+							break;
+						case ViewFilter.DueToday:
+							taskProvider.refreshDueToday();
+							break;
+						case ViewFilter.FutureDueDates:
+							taskProvider.refreshFutureDueDates();
+							break;
+						case ViewFilter.Overdue:
+							taskProvider.refreshOverdue();
+							break;
+					}
 				},
-				currentPriority
+				currentPriority,
+				currentViewFilter
 			);
 		} catch (error) {
 			console.error('[Extension] Error in openFilterPanel command:', error);

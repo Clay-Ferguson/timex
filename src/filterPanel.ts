@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
 import * as fs from 'fs';
-import { PriorityTag } from './constants';
+import { PriorityTag, ViewFilter } from './constants';
 
 export class TimexFilterPanel {
     private static currentPanel: TimexFilterPanel | undefined;
@@ -13,8 +13,9 @@ export class TimexFilterPanel {
     private constructor(
         panel: vscode.WebviewPanel,
         extensionPath: string,
-        private readonly onFilterApplied: (priority: PriorityTag) => void,
-        private readonly currentPriority: PriorityTag
+        private readonly onFilterApplied: (priority: PriorityTag, viewFilter: ViewFilter) => void,
+        private readonly currentPriority: PriorityTag,
+        private readonly currentViewFilter: ViewFilter
     ) {
         this.panel = panel;
         
@@ -41,7 +42,10 @@ export class TimexFilterPanel {
             message => {
                 switch (message.command) {
                     case 'apply':
-                        this.onFilterApplied(message.priority as PriorityTag);
+                        this.onFilterApplied(
+                            message.priority as PriorityTag,
+                            message.viewFilter as ViewFilter
+                        );
                         this.panel.dispose();
                         break;
                     case 'cancel':
@@ -59,8 +63,9 @@ export class TimexFilterPanel {
 
     public static show(
         extensionUri: vscode.Uri,
-        onFilterApplied: (priority: PriorityTag) => void,
-        currentPriority: PriorityTag
+        onFilterApplied: (priority: PriorityTag, viewFilter: ViewFilter) => void,
+        currentPriority: PriorityTag,
+        currentViewFilter: ViewFilter
     ) {        
         try {
             // If we already have a panel, show it
@@ -84,7 +89,8 @@ export class TimexFilterPanel {
                 panel,
                 extensionUri.fsPath,
                 onFilterApplied,
-                currentPriority
+                currentPriority,
+                currentViewFilter
             );
         } catch (error) {
             console.error('[TimexFilterPanel] Error in show():', error);
@@ -113,26 +119,8 @@ export class TimexFilterPanel {
         }
     }
 
-    private getHtmlContent(): string {
-        const nonce = this.getNonce();
-        const css = TimexFilterPanel.cachedCss || '';
-        const js = TimexFilterPanel.cachedJs || '';
-
-        return `<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'nonce-${nonce}';">
-    <title>Timex Filters</title>
-    <style>
-        ${css}
-    </style>
-</head>
-<body>
-    <div class="filter-section">
-        <h2>Priority Filter</h2>
-        <div class="radio-group">
+    private getPriorityFilterRadioGroup(): string {
+        return `
             <div class="radio-option">
                 <input type="radio" id="priority-any" name="priority" value="${PriorityTag.Any}" ${this.currentPriority === PriorityTag.Any ? 'checked' : ''}>
                 <label for="priority-any">Any Priority</label>
@@ -152,7 +140,71 @@ export class TimexFilterPanel {
             <div class="radio-option">
                 <input type="radio" id="priority-none" name="priority" value="${PriorityTag.None}" ${this.currentPriority === PriorityTag.None ? 'checked' : ''}>
                 <label for="priority-none">No Priority</label>
+            </div>`;
+    }
+
+    private getTimeFilterRadioGroup(): string {
+        return `
+            <div class="radio-option">
+                <input type="radio" id="time-all" name="timeFilter" value="${ViewFilter.All}" ${this.currentViewFilter === ViewFilter.All ? 'checked' : ''}>
+                <label for="time-all">Due Anytime</label>
             </div>
+            <div class="radio-option">
+                <input type="radio" id="time-7days" name="timeFilter" value="${ViewFilter.DueIn7Days}" ${this.currentViewFilter === ViewFilter.DueIn7Days ? 'checked' : ''}>
+                <label for="time-7days">Due in 7 Days</label>
+            </div>
+            <div class="radio-option">
+                <input type="radio" id="time-14days" name="timeFilter" value="${ViewFilter.DueIn14Days}" ${this.currentViewFilter === ViewFilter.DueIn14Days ? 'checked' : ''}>
+                <label for="time-14days">Due in 14 Days</label>
+            </div>
+            <div class="radio-option">
+                <input type="radio" id="time-30days" name="timeFilter" value="${ViewFilter.DueIn30Days}" ${this.currentViewFilter === ViewFilter.DueIn30Days ? 'checked' : ''}>
+                <label for="time-30days">Due in 30 Days</label>
+            </div>
+            <div class="radio-option">
+                <input type="radio" id="time-today" name="timeFilter" value="${ViewFilter.DueToday}" ${this.currentViewFilter === ViewFilter.DueToday ? 'checked' : ''}>
+                <label for="time-today">Due Today</label>
+            </div>
+            <div class="radio-option">
+                <input type="radio" id="time-future" name="timeFilter" value="${ViewFilter.FutureDueDates}" ${this.currentViewFilter === ViewFilter.FutureDueDates ? 'checked' : ''}>
+                <label for="time-future">Future Due Dates</label>
+            </div>
+            <div class="radio-option">
+                <input type="radio" id="time-overdue" name="timeFilter" value="${ViewFilter.Overdue}" ${this.currentViewFilter === ViewFilter.Overdue ? 'checked' : ''}>
+                <label for="time-overdue">Overdue</label>
+            </div>`;
+    }
+
+    private getHtmlContent(): string {
+        const nonce = this.getNonce();
+        const css = TimexFilterPanel.cachedCss || '';
+        const js = TimexFilterPanel.cachedJs || '';
+        const priorityFilterRadioGroup = this.getPriorityFilterRadioGroup();
+        const timeFilterRadioGroup = this.getTimeFilterRadioGroup();
+
+        return `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'nonce-${nonce}';">
+    <title>Timex Filters</title>
+    <style>
+        ${css}
+    </style>
+</head>
+<body>
+    <div class="filter-section">
+        <h2>Priority Filter</h2>
+        <div class="radio-group">
+            ${priorityFilterRadioGroup}
+        </div>
+    </div>
+
+    <div class="filter-section">
+        <h2>Time Filter</h2>
+        <div class="radio-group">
+            ${timeFilterRadioGroup}
         </div>
     </div>
 

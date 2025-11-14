@@ -3,9 +3,11 @@ const vscode = acquireVsCodeApi();
 
 document.getElementById('applyBtn').addEventListener('click', () => {
     const selectedPriority = document.querySelector('input[name="priority"]:checked').value;
+    const selectedTimeFilter = document.querySelector('input[name="timeFilter"]:checked').value;
     vscode.postMessage({
         command: 'apply',
-        priority: selectedPriority
+        priority: selectedPriority,
+        viewFilter: selectedTimeFilter
     });
 });
 
