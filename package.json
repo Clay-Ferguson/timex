@@ -475,7 +475,7 @@
   "scripts": {
     "vscode:prepublish": "npm run compile",
     "compile": "tsc -p ./ && npm run copy-resources",
-    "copy-resources": "cp src/*.css src/*.js out/ 2>/dev/null || true",
+    "copy-resources": "cp src/*.css src/*.js src/*.html out/ 2>/dev/null || true",
     "watch": "tsc -watch -p ./",
     "pretest": "npm run compile && npm run lint",
     "lint": "eslint src",

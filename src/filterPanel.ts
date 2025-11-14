@@ -7,6 +7,7 @@ export class TimexFilterPanel {
     private static currentPanel: TimexFilterPanel | undefined;
     private static cachedCss: string | undefined;
     private static cachedJs: string | undefined;
+    private static cachedHtml: string | undefined;
     private readonly panel: vscode.WebviewPanel;
     private disposables: vscode.Disposable[] = [];
 
@@ -28,6 +29,11 @@ export class TimexFilterPanel {
             // Load JS if not already cached
             if (!TimexFilterPanel.cachedJs) {
                 TimexFilterPanel.cachedJs = this.loadJs(extensionPath);
+            }
+
+            // Load HTML if not already cached
+            if (!TimexFilterPanel.cachedHtml) {
+                TimexFilterPanel.cachedHtml = this.loadHtml(extensionPath);
             }
 
             this.panel.webview.html = this.getHtmlContent();
@@ -119,6 +125,16 @@ export class TimexFilterPanel {
         }
     }
 
+    private loadHtml(extensionPath: string): string {
+        try {
+            const htmlPath = path.join(extensionPath, 'out', 'filterPanel.html');
+            return fs.readFileSync(htmlPath, 'utf8');
+        } catch (error) {
+            console.error('Failed to load filterPanel.html:', error);
+            return '<!DOCTYPE html><html><body>HTML template not found</body></html>';
+        }
+    }
+
     private getPriorityFilterRadioGroup(): string {
         return `
             <div class="radio-option">
@@ -179,47 +195,16 @@ export class TimexFilterPanel {
         const nonce = this.getNonce();
         const css = TimexFilterPanel.cachedCss || '';
         const js = TimexFilterPanel.cachedJs || '';
+        const html = TimexFilterPanel.cachedHtml || '';
         const priorityFilterRadioGroup = this.getPriorityFilterRadioGroup();
         const timeFilterRadioGroup = this.getTimeFilterRadioGroup();
 
-        return `<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'nonce-${nonce}';">
-    <title>Timex Filters</title>
-    <style>
-        ${css}
-    </style>
-</head>
-<body>
-    <div class="filters-container">
-        <div class="filter-section">
-            <h2>Priority Filter</h2>
-            <div class="radio-group">
-                ${priorityFilterRadioGroup}
-            </div>
-        </div>
-
-        <div class="filter-section">
-            <h2>Time Filter</h2>
-            <div class="radio-group">
-                ${timeFilterRadioGroup}
-            </div>
-        </div>
-    </div>
-
-    <div class="button-group">
-        <button id="applyBtn">OK</button>
-        <button class="secondary" id="cancelBtn">Cancel</button>
-    </div>
-
-    <script nonce="${nonce}">
-        ${js}
-    </script>
-</body>
-</html>`;
+        return html
+            .replace(/<!-- NONCE -->/g, nonce)
+            .replace(/\/\* CSS \*\//g, css)
+            .replace(/\/\* JS \*\//g, js)
+            .replace(/<!-- PRIORITY_FILTER_RADIO_GROUP -->/g, priorityFilterRadioGroup)
+            .replace(/<!-- TIME_FILTER_RADIO_GROUP -->/g, timeFilterRadioGroup);
     }
 
     private getNonce(): string {
