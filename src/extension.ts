@@ -27,6 +27,7 @@ import { formatTimestamp } from './utils';
 import { parseTimestamp } from './utils';
 import { ViewFilter, PriorityTag } from './constants';
 import { TimexFilterPanel } from './filter-panel/filterPanel';
+import { MarkdownFolderPreviewProvider } from './markdownFolderPreviewProvider';
 
 const IMAGE_EXTENSIONS = new Set<string>([
 	'.png',
@@ -210,6 +211,14 @@ export function activate(context: vscode.ExtensionContext) {
 	taskProvider.setTreeView(treeView);
 	taskProvider.clearCutIndicator();
 	void vscode.commands.executeCommand('setContext', 'timex.hasOrdinalCutItem', false);
+
+	// Register the MarkdownFolderPreviewProvider for virtual folder preview documents
+	const markdownFolderPreviewProvider = new MarkdownFolderPreviewProvider();
+	const previewProviderDisposable = vscode.workspace.registerTextDocumentContentProvider(
+		'timex-preview',
+		markdownFolderPreviewProvider
+	);
+	context.subscriptions.push(previewProviderDisposable);
 
 	interface OrdinalClipboardItem {
 		sourcePath: string;
@@ -1503,6 +1512,41 @@ export function activate(context: vscode.ExtensionContext) {
 		});
 	});
 
+	const previewFolderAsMarkdownCommand = vscode.commands.registerCommand('timex.previewFolderAsMarkdown', async (uri: vscode.Uri) => {
+		if (!uri) {
+			vscode.window.showErrorMessage('No folder selected');
+			return;
+		}
+
+		try {
+			// Verify it's a directory
+			const stat = await fs.promises.stat(uri.fsPath);
+			if (!stat.isDirectory()) {
+				vscode.window.showErrorMessage('Please select a folder, not a file');
+				return;
+			}
+
+			// Create a virtual URI using our custom scheme
+			// Format: timex-preview:/path/to/folder
+			const folderName = path.basename(uri.fsPath);
+			const previewUri = vscode.Uri.parse(`timex-preview:${uri.fsPath}`).with({
+				scheme: 'timex-preview',
+				path: uri.fsPath
+			});
+
+			// Open the virtual document
+			const doc = await vscode.workspace.openTextDocument(previewUri);
+			
+			// Show it in markdown preview mode
+			await vscode.commands.executeCommand('markdown.showPreview', doc.uri);
+
+		} catch (error: any) {
+			const message = error instanceof Error ? error.message : String(error);
+			vscode.window.showErrorMessage(`Failed to preview folder: ${message}`);
+			console.error('Preview folder error:', error);
+		}
+	});
+
 	// Add to subscriptions
 	context.subscriptions.push(treeView);
 	context.subscriptions.push(insertTimestampCommand);
@@ -1529,6 +1573,7 @@ export function activate(context: vscode.ExtensionContext) {
 	context.subscriptions.push(moveOrdinalUpCommand);
 	context.subscriptions.push(moveOrdinalDownCommand);
 	context.subscriptions.push(fixAttachmentLinksCommand);
+	context.subscriptions.push(previewFolderAsMarkdownCommand);
 }
 
 // This method is called when your extension is deactivated

@@ -196,6 +196,11 @@
         "command": "timex.fixAttachmentLinks",
         "title": "Fix Attachment Links",
         "icon": "$(link)"
+      },
+      {
+        "command": "timex.previewFolderAsMarkdown",
+        "title": "Preview Folder as Markdown",
+        "icon": "$(open-preview)"
       }
     ],
     "submenus": [
@@ -352,6 +357,9 @@
           "command": "timex.fixAttachmentLinks"
         },
         {
+          "command": "timex.previewFolderAsMarkdown"
+        },
+        {
           "command": "timex.about"
         },
         {
@@ -410,8 +418,14 @@
           "icon": "$(book)"
         },
         {
-          "command": "timex.fixAttachmentLinks",
+          "command": "timex.previewFolderAsMarkdown",
           "group": "1_main@4",
+          "when": "explorerResourceIsFolder",
+          "icon": "$(open-preview)"
+        },
+        {
+          "command": "timex.fixAttachmentLinks",
+          "group": "1_main@5",
           "when": "resourceScheme == 'file'",
           "icon": "$(link)"
         },
