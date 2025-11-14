@@ -11,6 +11,7 @@ Lightweight VS Code extension that transforms markdown files into a chronologica
 - **Commands Registration**: 17+ commands from timestamp insertion to ordinal file management
 - **File Watcher**: Real-time `.md` file monitoring with 100ms debounce
 - **Tree View Setup**: Wires `TaskProvider` to VS Code's tree view API
+- **Filter Panel Integration**: Opens `TimexFilterPanel` webview for combined priority and time filtering
 - **Timestamp Manipulation**: `addTimeToTask()` preserves original format (date-only vs full datetime)
 
 ### Data Layer (`src/model.ts`)
@@ -19,6 +20,14 @@ Lightweight VS Code extension that transforms markdown files into a chronologica
 - **TaskFileItem**: VS Code TreeItem with display formatting and tooltips
 - **State Management**: In-memory arrays (`taskFileData`, `taskFiles`) + filter state
 - **Performance Strategy**: `updateSingleTask()` for targeted updates vs full `scanForTaskFiles()`
+
+### Filter Panel (`src/filterPanel.ts`)
+- **TimexFilterPanel**: Singleton webview panel for combined filtering
+- **UI Architecture**: Modal dialog with two-column CSS Grid layout (Priority | Time filters)
+- **Radio Button Groups**: `getPriorityFilterRadioGroup()` (5 options) + `getTimeFilterRadioGroup()` (7 options)
+- **Message Passing**: Webview → Extension communication via `vscode.postMessage()` with 'apply'/'cancel' commands
+- **Resource Loading**: External CSS (`filterPanel.css`) and JavaScript (`filterPanelWebview.js`) with static caching
+- **State Persistence**: Shows currently selected filters as checked radio buttons on panel open
 
 ### Configuration (`package.json`)
 Three workspace settings:
@@ -73,17 +82,19 @@ watcher.onDidChange(async (uri) => {
 ```
 
 ### Filter State Management
+- **UI Method**: Click filter (funnel) icon → opens `TimexFilterPanel` modal with side-by-side radio button sections
 - **Filter combinations**: View (All|Due in 7/14/30 Days|Due Today|Future|Overdue) × Priority (all|p1|p2|p3|none)
-- **Priority filters**: 
+- **Priority filters** (left column in panel): 
   - `PriorityTag.Any`: All priorities (default)
   - `PriorityTag.High` (p1): High priority tasks
   - `PriorityTag.Medium` (p2): Medium priority tasks
   - `PriorityTag.Low` (p3): Low priority tasks
   - `PriorityTag.None` (none): Tasks without any priority tag - filters for files where `priority === ''`
-- **Time-based filters**: Three configurable horizons for planning:
+- **Time-based filters** (right column in panel): Three configurable horizons for planning:
   - `DueIn7Days`: Today through next 7 days (weekly view)
   - `DueIn14Days`: Today through next 14 days (bi-weekly planning)
   - `DueIn30Days`: Today through next 30 days (monthly overview)
+- **Apply workflow**: OK button applies both priority AND view filters simultaneously via callback handler
 - **Search overlay**: Filename + content matching, case-insensitive, preserves other filters
 - **State clearing**: Any filter change clears `currentSearchQuery`
 - **Title sync**: `updateTreeViewTitle()` reflects all active filters
@@ -341,10 +352,10 @@ numberedItems.sort((a, b) => a.ordinal - b.ordinal); // Sort by current numbers
 ## Extension Points for New Features
 
 ### Adding New Filters
-1. Add new enum value to `ViewFilter` in `src/constants.ts`
+1. Add new enum value to `ViewFilter` or `PriorityTag` in `src/constants.ts`
 2. Create corresponding `refresh*()` method in `TaskProvider` (e.g., `refreshDueIn7Days()`)
-3. Update `filterPriority` command QuickPick options in `src/extension.ts`
-4. Add case to switch statement in `filterPriority` command handler
+3. Update radio button groups in `src/filterPanel.ts` (`getPriorityFilterRadioGroup()` or `getTimeFilterRadioGroup()`)
+4. Update the switch statement in the `openFilterPanelCommand` callback handler in `src/extension.ts`
 5. Implement filter logic in both `scanForTaskFiles()` and `applyFiltersToExistingData()` 
 6. Update `updateTreeViewTitle()` to display new filter in title bar
 

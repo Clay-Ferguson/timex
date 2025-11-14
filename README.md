@@ -304,8 +304,8 @@ Notes:
 - Title: `<primaryHashtag> - <VIEW> - <PRIORITY>` plus search snippet when active.
 - Content: Items derived from files containing the primary hashtag.
 
-#### Filter Menu
-Funnel icon; unified picker controlling two orthogonal groups (view / priority). Switching any filter clears active search.
+#### Filter Panel
+Filter icon (funnel); opens a modal panel with two side-by-side filter sections (Priority and Time). Select one option from each section and click OK to apply both filters simultaneously. Switching any filter clears active search.
 
 #### Search Button
 - Magnifying glass icon; layered filter on already in-memory items (case-insensitive). Title shows query until cleared.
@@ -387,7 +387,7 @@ The item description is either:
 The panel offers a single unified filtering system plus search to refine what you see. All functionality related to filtering and searching is documented here (nowhere else) for simplicity.
 
 #### Overview
-- Open the filter picker via the filter (funnel) icon (one active choice per group; groups combine).
+- Open the filter panel via the filter (funnel) icon to see Priority and Time filters side-by-side. Select your desired options and click OK to apply.
 - Open search via the 🔍 icon (search text combines with the currently selected filters until cleared).
 - Panel title shows current state (e.g., `Due Soon - P1`, or `SEARCH - P* - 'bug'`).
 
@@ -418,10 +418,13 @@ The view filters provide flexible time-based views of your tasks:
 The time-based filters (7/14/30 days) are designed to give you different planning horizons - use 7 days for immediate focus, 14 days for bi-weekly planning, or 30 days for monthly overview.
 
 #### Using Filters
-1. Click the filter (funnel) icon and pick one option in any group; previous selection in that group is replaced.
-2. Combine one selection from each group for precise views (e.g., High + Due Today + Not Done).
-3. Changing filters clears any active search automatically.
-4. Overdue tasks always show the warning icon ⚠️.
+1. Click the filter (funnel) icon to open the filter panel showing Priority and Time filters side-by-side.
+2. Select one priority option (Any Priority, Priority 1/2/3, or No Priority) from the left column.
+3. Select one time filter option (Due Anytime, Due in 7/14/30 Days, Due Today, Future Due Dates, or Overdue) from the right column.
+4. Click OK to apply both filters simultaneously, or Cancel to close without changes.
+5. The panel shows your currently selected options as checked radio buttons.
+6. Changing filters clears any active search automatically.
+7. Overdue tasks always show the warning icon ⚠️.
 
 **Filter Usage Examples:**
 - **Due Today + Priority 1**: Focus on high-priority tasks due today
