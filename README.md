@@ -15,7 +15,7 @@ Think of this extension as a lightweight, chronological stream of dated (or unda
 3. Press the + button: you'll be prompted to enter a filename, then a new file appears with a timestamp and `#p3`.
 4. Type a short description under the prefilled line (or just rename the file — filename can become the label).
 5. (Optional) Switch the primary hashtag via the tag icon (e.g. from `#todo` to `#note`) to view a different stream.
-6. Use the filter (funnel) icon for time-based filters (7/14/30 days) / Overdue / priority slices; search (🔍) narrows further.
+6. Use the filter (funnel) icon to open the filter panel with priority filters, time-based filters (7/14/30 days) / Overdue, and a search field to narrow results further.
 7. Add or edit timestamps manually or with +Day/+Week/+Month/+Year commands.
 
 You now have a living time series of work: closest due items float to your attention; undated or far‑future items sit quietly at the bottom (sentinel date logic). Switch hashtags to pivot context without noise.
@@ -62,8 +62,8 @@ The extension scans your workspace for markdown files containing the active prim
 - **Automatic Item Detection**: Scans `.md` files for active hashtag.
 - **Optional Due Dates**: Recognizes `[MM/DD/YYYY HH:MM:SS AM/PM]` or `[MM/DD/YYYY]`.
 - **Priority Tags**: `#p1 #p2 #p3` with sensible default to `#p1`.
-- **Unified Filtering**: Priority + temporal (All / Due Soon / Overdue).
-- **Integrated Search**: Filename + file content, layered atop current filters.
+- **Unified Filtering**: Priority + temporal (All / Due Soon / Overdue) in a single filter panel.
+- **Integrated Search**: Search field in filter panel searches filename + file content, layered atop current filters.
 - **Relative Time Badges**: `(5)`, `(0)`, `(-2)`, `(?)` sentinel for no date.
 - **Quick Create**: + button prompts for filename, then creates new file with active hashtag + timestamp + `#p3`.
 - **Panel File Actions**: Right-click a task to reveal it in the Explorer or rename it without leaving the panel.
@@ -305,10 +305,17 @@ Notes:
 - Content: Items derived from files containing the primary hashtag.
 
 #### Filter Panel
-Filter icon (funnel); opens a modal panel with two side-by-side filter sections (Priority and Time). Select one option from each section and click OK to apply both filters simultaneously. Switching any filter clears active search.
+Filter icon (funnel); opens a persistent filter panel with three sections:
+- **Priority Filter** (left column): Select priority level (Any, P1, P2, P3, or None)
+- **Time Filter** (right column): Select time range (Due Anytime, 7/14/30 Days, Today, Future, or Overdue)
+- **Search Field** (top): Enter search text to filter by filename or content
 
-#### Search Button
-- Magnifying glass icon; layered filter on already in-memory items (case-insensitive). Title shows query until cleared.
+The panel remains open after clicking "Search" so you can adjust filters and search again. Click "Close" to dismiss the panel. The "Clear" button resets all filters to defaults.
+
+#### Search Field
+- Located in the filter panel itself; searches filenames and file content (case-insensitive)
+- Search results are constrained by active priority and time filters
+- Title bar shows active search query
 
 **Search Examples:**
 - Search for `"bug"` - finds files named `fix-login-bug.md` or files containing the word "bug"
@@ -384,11 +391,14 @@ The item description is either:
 
 ### Filtering & Search
 
-The panel offers a single unified filtering system plus search to refine what you see. All functionality related to filtering and searching is documented here (nowhere else) for simplicity.
+The panel offers a single unified filtering system with integrated search to refine what you see. All functionality related to filtering and searching is documented here (nowhere else) for simplicity.
 
 #### Overview
-- Open the filter panel via the filter (funnel) icon to see Priority and Time filters side-by-side. Select your desired options and click OK to apply.
-- Open search via the 🔍 icon (search text combines with the currently selected filters until cleared).
+- Open the filter panel via the filter (funnel) icon to see Priority filters, Time filters, and Search field all in one place
+- Select priority (left column) and time range (right column) using radio buttons
+- Enter search text in the field at the top to further narrow results
+- Click "Search" to apply all filters and search criteria - the panel stays open for further adjustments
+- Click "Clear" to reset all filters to defaults, or "Close" to dismiss the panel
 - Panel title shows current state (e.g., `Due Soon - P1`, or `SEARCH - P* - 'bug'`).
 
 #### Filter Groups (12 Options Total)
@@ -418,13 +428,15 @@ The view filters provide flexible time-based views of your tasks:
 The time-based filters (7/14/30 days) are designed to give you different planning horizons - use 7 days for immediate focus, 14 days for bi-weekly planning, or 30 days for monthly overview.
 
 #### Using Filters
-1. Click the filter (funnel) icon to open the filter panel showing Priority and Time filters side-by-side.
+1. Click the filter (funnel) icon to open the filter panel.
 2. Select one priority option (Any Priority, Priority 1/2/3, or No Priority) from the left column.
 3. Select one time filter option (Due Anytime, Due in 7/14/30 Days, Due Today, Future Due Dates, or Overdue) from the right column.
-4. Click OK to apply both filters simultaneously, or Cancel to close without changes.
-5. The panel shows your currently selected options as checked radio buttons.
-6. Changing filters clears any active search automatically.
-7. Overdue tasks always show the warning icon ⚠️.
+4. (Optional) Enter search text in the search field at the top to filter by filename or content.
+5. Click "Search" to apply all filters and search criteria. The panel remains open for further adjustments.
+6. Click "Clear" to reset all filters to defaults and clear the search field.
+7. Click "Close" to dismiss the panel.
+8. The panel shows your currently selected options as checked radio buttons and displays your current search text.
+9. Overdue tasks always show the warning icon ⚠️.
 
 **Filter Usage Examples:**
 - **Due Today + Priority 1**: Focus on high-priority tasks due today
@@ -446,10 +458,10 @@ The time-based filters (7/14/30 days) are designed to give you different plannin
 #### Search
 | Aspect | Behavior |
 |--------|----------|
-| Trigger | Click 🔍 icon |
+| Location | Search field at top of filter panel |
 | Scope | Case-insensitive match in filenames and file content |
-| Interaction with Filters | Search results are still constrained by active filters |
-| Clearing | Run search with empty input OR change any filter |
+| Interaction with Filters | Search results are constrained by active priority and time filters |
+| Clearing | Click "Clear" button in filter panel to reset search and filters |
 | Performance | Uses in-memory task data (no full rescan) |
 
 ##### Effective Search Use-Cases

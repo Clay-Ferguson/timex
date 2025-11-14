@@ -22,12 +22,13 @@ Lightweight VS Code extension that transforms markdown files into a chronologica
 - **Performance Strategy**: `updateSingleTask()` for targeted updates vs full `scanForTaskFiles()`
 
 ### Filter Panel (`src/filterPanel.ts`)
-- **TimexFilterPanel**: Singleton webview panel for combined filtering
-- **UI Architecture**: Modal dialog with two-column CSS Grid layout (Priority | Time filters)
+- **TimexFilterPanel**: Singleton webview panel for combined filtering with integrated search
+- **UI Architecture**: Persistent dialog with two-column CSS Grid layout (Priority | Time filters) plus search field
 - **Radio Button Groups**: `getPriorityFilterRadioGroup()` (5 options) + `getTimeFilterRadioGroup()` (7 options)
-- **Message Passing**: Webview → Extension communication via `vscode.postMessage()` with 'apply'/'cancel' commands
+- **Message Passing**: Webview → Extension communication via `vscode.postMessage()` with 'apply'/'clear'/'cancel' commands
+- **Panel Persistence**: Panel stays open after "Search" button click (only "Close" button dismisses panel)
 - **Resource Loading**: External CSS (`filterPanel.css`) and JavaScript (`filterPanelWebview.js`) with static caching
-- **State Persistence**: Shows currently selected filters as checked radio buttons on panel open
+- **State Persistence**: Shows currently selected filters as checked radio buttons and current search text on panel open
 
 ### Configuration (`package.json`)
 Three workspace settings:
@@ -82,8 +83,12 @@ watcher.onDidChange(async (uri) => {
 ```
 
 ### Filter State Management
-- **UI Method**: Click filter (funnel) icon → opens `TimexFilterPanel` modal with side-by-side radio button sections
-- **Filter combinations**: View (All|Due in 7/14/30 Days|Due Today|Future|Overdue) × Priority (all|p1|p2|p3|none)
+- **UI Method**: Click filter (funnel) icon → opens `TimexFilterPanel` persistent panel with side-by-side radio button sections plus search field
+- **Panel Buttons**: 
+  - "Search" button: Applies all filters and search criteria, **panel stays open** for further adjustments
+  - "Clear" button: Resets all filters to defaults and clears search, **panel stays open**
+  - "Close" button: Dismisses the panel (only button that closes it)
+- **Filter combinations**: View (All|Due in 7/14/30 Days|Due Today|Future|Overdue) × Priority (all|p1|p2|p3|none) × Search text
 - **Priority filters** (left column in panel): 
   - `PriorityTag.Any`: All priorities (default)
   - `PriorityTag.High` (p1): High priority tasks
@@ -94,10 +99,10 @@ watcher.onDidChange(async (uri) => {
   - `DueIn7Days`: Today through next 7 days (weekly view)
   - `DueIn14Days`: Today through next 14 days (bi-weekly planning)
   - `DueIn30Days`: Today through next 30 days (monthly overview)
-- **Apply workflow**: OK button applies both priority AND view filters simultaneously via callback handler
-- **Search overlay**: Filename + content matching, case-insensitive, preserves other filters
-- **State clearing**: Any filter change clears `currentSearchQuery`
-- **Title sync**: `updateTreeViewTitle()` reflects all active filters
+- **Search field**: Located in filter panel itself (top section), searches filename + content matching, case-insensitive
+- **Apply workflow**: "Search" button applies priority AND view filters AND search text simultaneously via callback handler, panel remains open
+- **State clearing**: "Clear" button resets all filters and clears `currentSearchQuery`
+- **Title sync**: `updateTreeViewTitle()` reflects all active filters including search query
 
 ### Performance Optimization
 ```typescript
@@ -377,12 +382,14 @@ Prefer `rebuildTaskDisplay()` pattern over full rescans for operations that only
 5. **Context Values**: TreeItem `contextValue` controls right-click menu availability (timestamp vs no-timestamp)
 6. **Filter Method Signatures**: `scanForTaskFiles()` accepts different parameter combinations for different filters—check existing calls before modifying
 7. **Dual Filter Logic**: Time-based filters must be implemented in BOTH `scanForTaskFiles()` (for full scans) AND `applyFiltersToExistingData()` (for in-memory filtering). Priority filters must check for special case `PriorityTag.None` which filters for empty string priority (`priority === ''`)
-8. **Hash Filename Pattern**: TIMEX attachment filenames MUST follow `name.TIMEX-{hash}.ext` pattern (not `name-TIMEX-{hash}.ext` or other variations)
-9. **Clipboard Platform Dependencies**: `insertImageFromClipboard` requires external tools (xclip/pngpaste)—graceful error handling needed
-10. **Pure vs VS Code Functions**: Keep `utils.ts` free of `import * as vscode` to maintain unit testability
-11. **Ordinal File State**: `timex.hasOrdinalCutItem` context value must be set/cleared via `context.setContext()` for paste menu visibility
-12. **Relative Path Calculations**: Attachment links use `path.relative()` from markdown file location—handle edge cases with nested folders
-13. **Orphan Detection**: `fixAttachmentLinks` tracks referenced hashes during project-wide markdown scan—must extract hash from ALL links (broken or not) to accurately identify orphans
+8. **Filter Panel Persistence**: Only the "cancel" message handler calls `this.panel.dispose()` to close the panel. The "apply" and "clear" handlers do NOT dispose the panel, allowing it to stay open for multiple filter adjustments
+9. **Hash Filename Pattern**: TIMEX attachment filenames MUST follow `name.TIMEX-{hash}.ext` pattern (not `name-TIMEX-{hash}.ext` or other variations)
+10. **Clipboard Platform Dependencies**: `insertImageFromClipboard` requires external tools (xclip/pngpaste)—graceful error handling needed
+11. **Pure vs VS Code Functions**: Keep `utils.ts` free of `import * as vscode` to maintain unit testability
+12. **Ordinal File State**: `timex.hasOrdinalCutItem` context value must be set/cleared via `context.setContext()` for paste menu visibility
+13. **Relative Path Calculations**: Attachment links use `path.relative()` from markdown file location—handle edge cases with nested folders
+14. **Orphan Detection**: `fixAttachmentLinks` tracks referenced hashes during project-wide markdown scan—must extract hash from ALL links (broken or not) to accurately identify orphans
+15. **Search Field Location**: Search functionality is integrated into the filter panel webview itself, not a separate icon/menu on the task panel. All search input happens within the filter panel UI
 
 ## Example Task Files
 
