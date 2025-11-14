@@ -120,34 +120,26 @@ export class TimexFilterPanel {
         }
     }
 
-    private loadCss(extensionPath: string): string {
+    private loadFile(extensionPath: string, filename: string, fallbackContent: string): string {
         try {
-            const cssPath = path.join(extensionPath, 'out', 'filter-panel', 'filterPanel.css');
-            return fs.readFileSync(cssPath, 'utf8');
+            const filePath = path.join(extensionPath, 'out', 'filter-panel', filename);
+            return fs.readFileSync(filePath, 'utf8');
         } catch (error) {
-            console.error('Failed to load filterPanel.css:', error);
-            return '/* CSS file not found */';
+            console.error(`Failed to load ${filename}:`, error);
+            return fallbackContent;
         }
+    }
+
+    private loadCss(extensionPath: string): string {
+        return this.loadFile(extensionPath, 'filterPanel.css', '/* CSS file not found */');
     }
 
     private loadJs(extensionPath: string): string {
-        try {
-            const jsPath = path.join(extensionPath, 'out', 'filter-panel', 'filterPanelWebview.js');
-            return fs.readFileSync(jsPath, 'utf8');
-        } catch (error) {
-            console.error('Failed to load filterPanelWebview.js:', error);
-            return '/* JS file not found */';
-        }
+        return this.loadFile(extensionPath, 'filterPanelWebview.js', '/* JS file not found */');
     }
 
     private loadHtml(extensionPath: string): string {
-        try {
-            const htmlPath = path.join(extensionPath, 'out', 'filter-panel', 'filterPanel.html');
-            return fs.readFileSync(htmlPath, 'utf8');
-        } catch (error) {
-            console.error('Failed to load filterPanel.html:', error);
-            return '<!DOCTYPE html><html><body>HTML template not found</body></html>';
-        }
+        return this.loadFile(extensionPath, 'filterPanel.html', '<!DOCTYPE html><html><body>HTML template not found</body></html>');
     }
 
     private getPriorityFilterRadioGroup(): string {
