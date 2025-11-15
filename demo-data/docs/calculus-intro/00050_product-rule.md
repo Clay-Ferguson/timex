@@ -22,7 +22,9 @@ For example, let $f(x) = x$ and $g(x) = x$. Then $f(x)g(x) = x^2$.
 - Correct answer: $\frac{d}{dx}(x^2) = 2x$
 
 The product rule gives us the right answer:
-$$\frac{d}{dx}[x \cdot x] = 1 \cdot x + x \cdot 1 = 2x$$ ✓
+$$\frac{d}{dx}[x \cdot x] = 1 \cdot x + x \cdot 1 = 2x$$
+
+✓
 
 ## Example 1: Simple Product
 
