@@ -98,9 +98,20 @@ async function generateMarkdownForDirectory(directory: string): Promise<string> 
 				sections.push(`![${altText}](${imageUri})`);
 				addedContent = true;
 			} else if (extension === '.md') {
-				// For markdown files, include their content
+				// For markdown files, include their content with a clickable link to open in editor
 				try {
 					const contents = await fs.promises.readFile(item.fullPath, 'utf8');
+					const strippedName = stripOrdinalPrefix(item.originalName) || item.originalName;
+					
+					// Create a clickable link that opens the file in the editor
+					// Use vscode://file/ URI scheme which is recognized by markdown preview
+					// The 🔗 emoji provides a visual link icon
+					const fileUri = vscode.Uri.file(item.fullPath);
+					const vscodeUri = `vscode://file${fileUri.path}`;
+					const fileLink = `*🔗 [${strippedName}](${vscodeUri})*`;
+					
+					sections.push(fileLink);
+					sections.push('');
 					sections.push(contents.trimEnd());
 					sections.push('---');
 					addedContent = true;
