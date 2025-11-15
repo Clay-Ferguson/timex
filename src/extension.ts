@@ -1545,11 +1545,9 @@ export function activate(context: vscode.ExtensionContext) {
 				path: folderPath
 			});
 
-			// Open the virtual document
-			const doc = await vscode.workspace.openTextDocument(previewUri);
-			
-			// Show it in markdown preview mode
-			await vscode.commands.executeCommand('markdown.showPreview', doc.uri);
+			// Show directly in markdown preview mode without opening as text document first
+			// This avoids the flicker of a tab opening and closing
+			await vscode.commands.executeCommand('markdown.showPreview', previewUri);
 
 		} catch (error: any) {
 			const message = error instanceof Error ? error.message : String(error);

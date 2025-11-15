@@ -812,8 +812,22 @@ The test suite covers pure utility functions (date/time operations, parsing logi
 **Relative days feel off?**
 - Calculations are calendar-day based (midnight boundaries), not 24h rolling windows.
 
-**Primary hashtag title didn’t update after settings edit?**
+**Primary hashtag title didn't update after settings edit?**
 - Use the tag icon to re-select, or reload window (command: Reload Window).
+
+**Experiencing flickering or "bouncing" tree selection when clicking markdown files?**
+- This is a known VS Code behavior (not a Timex bug) where the Explorer tree briefly highlights the previously opened file before settling on the newly clicked file
+- **Solution**: Add this setting to your VS Code settings.json:
+  ```json
+  "explorer.autoReveal": false
+  ```
+- **What it does**: Prevents VS Code from automatically revealing/highlighting the active file in the Explorer tree, eliminating the bouncing selection behavior
+- **Side effect**: The Explorer will no longer automatically scroll to and highlight files you open in the editor
+- **How to add**: 
+  1. Press `Ctrl+,` (or `Cmd+,` on Mac) to open Settings
+  2. Search for "auto reveal"
+  3. Uncheck "Explorer: Auto Reveal"
+  4. Or manually add the setting to your `~/.config/Code/User/settings.json`
 
 **Still stuck?**
 - Open Developer Tools (Help → Toggle Developer Tools) and check console for errors.
