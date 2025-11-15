@@ -1512,20 +1512,6 @@ export function activate(context: vscode.ExtensionContext) {
 		});
 	});
 
-	// Command to open a file from markdown preview links
-	// NOTE: AI Agent may have hung while generating code to use this. (need to check if this is used)
-	const openFileFromPreviewCommand = vscode.commands.registerCommand('timex.openFileFromPreview', async (filePath: string) => {
-		try {
-			const fileUri = vscode.Uri.file(filePath);
-			const doc = await vscode.workspace.openTextDocument(fileUri);
-			await vscode.window.showTextDocument(doc);
-		} catch (error: any) {
-			const message = error instanceof Error ? error.message : String(error);
-			vscode.window.showErrorMessage(`Failed to open file: ${message}`);
-			console.error('Open file error:', error);
-		}
-	});
-
 	const previewFolderAsMarkdownCommand = vscode.commands.registerCommand('timex.previewFolderAsMarkdown', async (uri: vscode.Uri) => {
 		if (!uri) {
 			vscode.window.showErrorMessage('No file or folder selected');
@@ -1598,7 +1584,6 @@ export function activate(context: vscode.ExtensionContext) {
 	context.subscriptions.push(moveOrdinalUpCommand);
 	context.subscriptions.push(moveOrdinalDownCommand);
 	context.subscriptions.push(fixAttachmentLinksCommand);
-	context.subscriptions.push(openFileFromPreviewCommand);
 	context.subscriptions.push(previewFolderAsMarkdownCommand);
 }
 
