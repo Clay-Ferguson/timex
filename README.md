@@ -222,6 +222,52 @@ The **Generate Markdown** command (Explorer → Timex submenu) assembles a conso
 
 Tip: re-run the command whenever you add, reorder, or update ordinal files to refresh every `_index.md` in one shot.
 
+### Preview Folder as Markdown
+
+The **Preview Folder as Markdown** command provides an instant, no-clutter way to view your ordinal content as a rendered document without creating any physical `_index.md` files on disk.
+
+**How to use:**
+1. Right-click any folder in the VS Code Explorer
+2. Select **Timex** → **"Preview Folder as Markdown"**
+3. A rendered markdown preview opens in a full editor tab showing the assembled content
+
+**What it does:**
+- Scans the folder recursively for ordinal files and subfolders
+- Concatenates markdown files in ordinal sequence
+- Embeds images inline automatically
+- Displays child folders as heading links
+- Shows everything in VS Code's native markdown preview
+- **Never writes files to disk** - everything is virtual
+
+**Key differences from "Generate Markdown":**
+- No physical `_index.md` files created
+- Opens in preview tab, not editor
+- Manual refresh (re-run command to update)
+- Clean workspace - no generated files in search results
+
+**Perfect for:**
+- Quick review of ordinal documentation hierarchies
+- Generating printable/exportable documents
+- Previewing assembled content before committing
+- Reading sequential content as a single flow
+
+**Example use cases:**
+
+This extension includes demo data that demonstrates the power of ordinal-based document organization:
+
+- `demo-data/docs/calculus-intro/` - A calculus tutorial organized in 8 ordinal files covering introduction through applications
+- `demo-data/docs/git-guide/` - A Git learning guide with 8 ordinal sections from basics to advanced tips
+
+These folders showcase exactly why ordinal numbering exists: to transform a collection of ordered markdown files into readable, sequential documents. Try right-clicking on either folder and selecting "Preview Folder as Markdown" to see how individual topic files are assembled into a cohesive document flow.
+
+The ordinal system ensures proper sequencing (00010, 00020, 00030...), making it trivial to:
+- Insert new sections between existing ones
+- Reorder topics as content evolves
+- Maintain logical document structure
+- Generate clean combined views on demand
+
+**Note:** To manually refresh the preview after making changes to files, simply re-run the "Preview Folder as Markdown" command on the same folder.
+
 #### Minimal Filename-Driven Items
 
 If the file has only a single non-empty line (starting with `#` or `[`), the filename (sans extension and numeric/underscore prefix) becomes the display label.
