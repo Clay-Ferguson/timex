@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
-import { renumberItems, scanForNumberedItems, verifyNamesAreUnique } from './utils';
+import { generateNextOrdinalFilename, renumberItems, scanForNumberedItems, verifyNamesAreUnique } from './utils';
 
 /**
  * Recursively finds all directories in a given path
@@ -166,3 +166,50 @@ export async function renumberFiles() {
         console.error('Renumber files error:', error);
     }
 }
+
+export async function insertOrdinalFile (uri: vscode.Uri) {
+        if (!uri) {
+            vscode.window.showErrorMessage('No file selected');
+            return;
+        }
+
+        const selectedFilePath = uri.fsPath;
+
+        try {
+            // Generate the next ordinal filename
+            const nextOrdinalInfo = generateNextOrdinalFilename(selectedFilePath);
+
+            if (!nextOrdinalInfo) {
+                vscode.window.showErrorMessage('Selected file does not have an ordinal prefix (e.g., "001_filename.md")');
+                return;
+            }
+
+            // Check if the new file already exists
+            if (fs.existsSync(nextOrdinalInfo.fullPath)) {
+                const overwrite = await vscode.window.showWarningMessage(
+                    `File "${nextOrdinalInfo.filename}" already exists. Do you want to overwrite it?`,
+                    { modal: true },
+                    'Overwrite',
+                    'Cancel'
+                );
+
+                if (overwrite !== 'Overwrite') {
+                    return;
+                }
+            }
+
+            // Create the new empty file
+            fs.writeFileSync(nextOrdinalInfo.fullPath, '', 'utf8');
+
+            // Open the file in the editor
+            const fileUri = vscode.Uri.file(nextOrdinalInfo.fullPath);
+            const document = await vscode.workspace.openTextDocument(fileUri);
+            await vscode.window.showTextDocument(document);
+
+            vscode.window.showInformationMessage(`Created and opened: ${nextOrdinalInfo.filename}`);
+
+        } catch (error) {
+            vscode.window.showErrorMessage(`Failed to create ordinal file: ${error}`);
+            console.error('Insert ordinal file error:', error);
+        }
+    }
