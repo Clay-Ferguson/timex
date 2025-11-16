@@ -1,7 +1,112 @@
 import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
-import { buildAttachmentIndex, extractHashFromTimexFilename, TIMEX_LINK_REGEX } from './utils';
+import { buildAttachmentIndex, extractHashFromTimexFilename, generateFileHash, isImageFileName, TIMEX_LINK_REGEX } from './utils';
+
+export async function insertAttachment() {
+    const editor = vscode.window.activeTextEditor;
+    if (!editor) {
+        vscode.window.showErrorMessage('No active editor found');
+        return;
+    }
+
+    // Check if we're in a markdown file
+    if (editor.document.languageId !== 'markdown') {
+        vscode.window.showErrorMessage('This command only works in markdown files');
+        return;
+    }
+
+    // Get the workspace folder
+    if (!vscode.workspace.workspaceFolders || vscode.workspace.workspaceFolders.length === 0) {
+        vscode.window.showErrorMessage('No workspace folder found');
+        return;
+    }
+
+    const workspaceFolder = vscode.workspace.workspaceFolders[0];
+
+    // Show file picker dialog
+    const fileUris = await vscode.window.showOpenDialog({
+        canSelectFiles: true,
+        canSelectFolders: false,
+        canSelectMany: false,
+        openLabel: 'Select Attachment',
+        title: 'Select File to Attach'
+    });
+
+    if (!fileUris || fileUris.length === 0) {
+        // User cancelled
+        return;
+    }
+
+    const selectedFileUri = fileUris[0];
+    const selectedFilePath = selectedFileUri.fsPath;
+
+    try {
+        // Get the current markdown file's directory
+        const markdownFilePath = editor.document.uri.fsPath;
+        const markdownDir = path.dirname(markdownFilePath);
+
+        // Get the filename
+        const fileName = path.basename(selectedFilePath);
+        const fileNameWithoutExt = path.parse(fileName).name;
+        const fileExt = path.parse(fileName).ext;
+
+        // Check if the file already has the TIMEX- pattern (name.TIMEX-hash.ext)
+        let finalFilePath: string;
+        let finalFileName: string;
+        let displayName: string;
+
+        // Check if filename matches pattern: *.TIMEX-{32 hex chars}.ext
+        const hasTimexPattern = /\.TIMEX-[a-f0-9]{32}$/i.test(fileNameWithoutExt);
+
+        if (hasTimexPattern) {
+            // File already has TIMEX- pattern, use it as-is (hash is already correct)
+            finalFilePath = selectedFilePath;
+            finalFileName = fileName;
+            // Remove .TIMEX-hash from display name
+            displayName = fileNameWithoutExt.replace(/\.TIMEX-[a-f0-9]{32}$/i, '');
+        } else {
+            // File doesn't have TIMEX- pattern, generate hash and rename it
+            const hash = await generateFileHash(selectedFilePath);
+            // New format: name.TIMEX-hash.ext
+            const newFileName = `${fileNameWithoutExt}.TIMEX-${hash}${fileExt}`;
+            const newFilePath = path.join(path.dirname(selectedFilePath), newFileName);
+
+            // Rename the file with the new naming convention
+            await fs.promises.rename(selectedFilePath, newFilePath);
+
+            finalFilePath = newFilePath;
+            finalFileName = newFileName;
+            displayName = fileNameWithoutExt;
+        }
+
+        // Calculate relative path from markdown file to attachment
+        const relativePath = path.relative(markdownDir, finalFilePath);
+        const relativePathMarkdown = relativePath.split(path.sep).join('/');
+
+        // URL-encode the path to handle spaces and special characters
+        // Split by '/' to encode each segment separately, then rejoin
+        const encodedPath = relativePathMarkdown.split('/').map(segment => encodeURIComponent(segment)).join('/');
+
+        // Check if this is an image file to use inline image syntax
+        const isImage = isImageFileName(finalFileName);
+        const linkPrefix = isImage ? '!' : '';
+
+        // Create markdown link with encoded URL (add ! prefix for images)
+        const markdownLink = `${linkPrefix}[${displayName}](${encodedPath})`;
+
+        // Insert link at cursor position
+        const position = editor.selection.active;
+        await editor.edit(editBuilder => {
+            editBuilder.insert(position, markdownLink);
+        });
+
+        vscode.window.showInformationMessage(`Attachment inserted: ${finalFileName}`);
+
+    } catch (error) {
+        vscode.window.showErrorMessage(`Failed to insert attachment: ${error}`);
+    }
+}
 
 export async function fixAttachmentLinks(uri: vscode.Uri) {
     if (!uri) {
