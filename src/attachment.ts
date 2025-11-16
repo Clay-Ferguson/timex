@@ -1,0 +1,182 @@
+import * as vscode from 'vscode';
+import * as fs from 'fs';
+import * as path from 'path';
+import { buildAttachmentIndex, extractHashFromTimexFilename, TIMEX_LINK_REGEX } from './utils';
+
+export async function fixAttachmentLinks(uri: vscode.Uri) {
+    if (!uri) {
+        vscode.window.showErrorMessage('No file or folder selected');
+        return;
+    }
+
+    if (!vscode.workspace.workspaceFolders || vscode.workspace.workspaceFolders.length === 0) {
+        vscode.window.showErrorMessage('No workspace folder found');
+        return;
+    }
+    let folderPath = vscode.workspace.workspaceFolders[0].uri.fsPath;
+
+    await vscode.window.withProgress({
+        location: vscode.ProgressLocation.Notification,
+        title: 'Fixing Attachment Links',
+        cancellable: false
+    }, async (progress) => {
+        try {
+            progress.report({ increment: 0, message: 'Building attachment index...' });
+
+            // Build index of all TIMEX- pattern files in the folder
+            const config = vscode.workspace.getConfiguration('timex');
+            const excludeGlobsArray = config.get<string[]>('excludeGlobs', []);
+            const excludePattern = excludeGlobsArray.length > 0 ? `{${excludeGlobsArray.join(',')}}` : undefined;
+
+            const attachmentIndex = await buildAttachmentIndex(folderPath, excludePattern);
+
+            progress.report({ increment: 20, message: `Found ${attachmentIndex.size} attachments. Scanning markdown files...` });
+
+            // Find all markdown files in the folder
+            const pattern = new vscode.RelativePattern(folderPath, '**/*.md');
+            const mdFiles = await vscode.workspace.findFiles(pattern, excludePattern);
+
+            progress.report({ increment: 10, message: `Processing ${mdFiles.length} markdown files...` });
+
+            let totalLinksFixed = 0;
+            let totalFilesModified = 0;
+            const missingAttachments: string[] = [];
+            const referencedHashes = new Set<string>(); // Track which attachments are referenced
+            const progressIncrement = mdFiles.length > 0 ? 60 / mdFiles.length : 60;
+
+            // Process each markdown file
+            for (const mdFileUri of mdFiles) {
+                const mdFilePath = mdFileUri.fsPath;
+                const mdFileDir = path.dirname(mdFilePath);
+
+                let content = await fs.promises.readFile(mdFilePath, 'utf8');
+                let modified = false;
+                let linksFixedInFile = 0;
+
+                // Find all TIMEX- pattern links in the file
+                const newContent = content.replace(TIMEX_LINK_REGEX, (fullMatch, _fullLink, linkText, linkUrl) => {
+                    // Decode URL in case it's encoded
+                    const decodedUrl = decodeURIComponent(linkUrl);
+
+                    // Extract hash to track referenced attachments
+                    const hash = extractHashFromTimexFilename(decodedUrl);
+                    if (hash) {
+                        referencedHashes.add(hash.toLowerCase());
+                    }
+
+                    // Resolve the link relative to the markdown file
+                    const absoluteLinkPath = path.resolve(mdFileDir, decodedUrl);
+
+                    // Check if file exists
+                    if (fs.existsSync(absoluteLinkPath)) {
+                        // Link is not broken, leave it as-is
+                        return fullMatch;
+                    }
+
+                    // Link is broken - try to fix it using hash
+                    if (!hash) {
+                        // Can't extract hash, skip
+                        console.warn(`Could not extract hash from link: ${linkUrl}`);
+                        return fullMatch;
+                    }
+
+                    // Look up the hash in our attachment index
+                    const attachmentInfo = attachmentIndex.get(hash.toLowerCase());
+                    if (!attachmentInfo) {
+                        // Attachment not found anywhere in the folder
+                        if (!missingAttachments.includes(decodedUrl)) {
+                            missingAttachments.push(decodedUrl);
+                            console.warn(`Missing attachment: ${decodedUrl} (hash: ${hash})`);
+                        }
+                        return fullMatch;
+                    }
+
+                    // Calculate new relative path
+                    const newRelativePath = path.relative(mdFileDir, attachmentInfo.fullPath);
+                    const newRelativePathMarkdown = newRelativePath.split(path.sep).join('/');
+
+                    // URL-encode the path
+                    const encodedPath = newRelativePathMarkdown.split('/').map(segment => encodeURIComponent(segment)).join('/');
+
+                    // Preserve the ! prefix if it's an image
+                    const isImage = fullMatch.startsWith('!');
+                    const prefix = isImage ? '!' : '';
+
+                    // Build the new link
+                    const newLink = `${prefix}[](${encodedPath})`;
+
+                    modified = true;
+                    linksFixedInFile++;
+
+                    return newLink;
+                });
+
+                // Write back if modified
+                if (modified) {
+                    await fs.promises.writeFile(mdFilePath, newContent, 'utf8');
+                    totalLinksFixed += linksFixedInFile;
+                    totalFilesModified++;
+                    console.log(`Fixed ${linksFixedInFile} link(s) in ${path.basename(mdFilePath)}`);
+                }
+
+                progress.report({ increment: progressIncrement });
+            }
+
+            progress.report({ increment: 10, message: 'Detecting orphaned attachments...' });
+
+            // Identify and rename orphaned attachments
+            let orphansFound = 0;
+            for (const [hash, attachmentInfo] of attachmentIndex.entries()) {
+                // If this hash was not referenced in any markdown file, it's an orphan
+                if (!referencedHashes.has(hash)) {
+                    const fileName = path.basename(attachmentInfo.fullPath);
+
+                    // Check if file is already marked as orphan
+                    if (!fileName.startsWith('ORPHAN-')) {
+                        // Rename to add ORPHAN- prefix
+                        const dirPath = path.dirname(attachmentInfo.fullPath);
+                        const newFileName = `ORPHAN-${fileName}`;
+                        const newFilePath = path.join(dirPath, newFileName);
+
+                        try {
+                            await fs.promises.rename(attachmentInfo.fullPath, newFilePath);
+                            orphansFound++;
+                            console.log(`Marked as orphan: ${fileName} -> ${newFileName}`);
+                        } catch (error) {
+                            console.error(`Failed to rename orphan ${fileName}:`, error);
+                        }
+                    } else {
+                        // Already marked as orphan, just count it
+                        orphansFound++;
+                    }
+                }
+            }
+
+            progress.report({ increment: 10, message: 'Complete!' });
+
+            // Show results to user
+            let message = `Fixed ${totalLinksFixed} attachment link(s) in ${totalFilesModified} file(s)`;
+            if (orphansFound > 0) {
+                message += `\nFound ${orphansFound} orphaned attachment(s)`;
+            }
+
+            if (missingAttachments.length > 0) {
+                message += `\n\nWarning: ${missingAttachments.length} attachment(s) could not be found:`;
+                missingAttachments.forEach(att => {
+                    message += `\n  - ${att}`;
+                    console.warn(`Missing attachment: ${att}`);
+                });
+                vscode.window.showWarningMessage(message, { modal: false });
+            } else if (totalLinksFixed > 0) {
+                vscode.window.showInformationMessage(message);
+            } else {
+                vscode.window.showInformationMessage('No broken attachment links found');
+            }
+
+        } catch (error: any) {
+            const message = error instanceof Error ? error.message : String(error);
+            vscode.window.showErrorMessage(`Failed to fix attachment links: ${message}`);
+            console.error('Fix attachment links error:', error);
+        }
+    });
+}
