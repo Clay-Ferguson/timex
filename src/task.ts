@@ -135,7 +135,6 @@ export async function newTask(taskProvider: TaskProvider) {
     }
 }
 
-// todo-0: we have a bug where if you rename a file, and then delete that file you get an error, but the delete itself will have worked ok.
 export async function deleteTask(item: any, taskProvider: TaskProvider) {
     if (!item || !item.resourceUri) {
         vscode.window.showErrorMessage('No task selected');
