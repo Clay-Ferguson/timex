@@ -998,9 +998,32 @@ export function activate(context: vscode.ExtensionContext) {
 		}
 
 		const candidateUri = Array.isArray(resource) ? resource[0] : resource;
-		const workspace = candidateUri ? vscode.workspace.getWorkspaceFolder(candidateUri) ?? workspaceFolders[0] : workspaceFolders[0];
-		const targetDirectory = workspace.uri.fsPath;
-		const owningWorkspace = workspace;
+		
+		// Determine the target directory based on what was selected
+		let targetDirectory: string;
+		let owningWorkspace: vscode.WorkspaceFolder;
+		
+		if (candidateUri) {
+			// User right-clicked on a folder or file - determine target folder
+			try {
+				const stat = await fs.promises.stat(candidateUri.fsPath);
+				if (stat.isDirectory()) {
+					// Selected a folder - use it as target
+					targetDirectory = candidateUri.fsPath;
+				} else {
+					// Selected a file - use workspace root
+					targetDirectory = workspaceFolders[0].uri.fsPath;
+				}
+			} catch {
+				// Error accessing path - fall back to workspace root
+				targetDirectory = workspaceFolders[0].uri.fsPath;
+			}
+			owningWorkspace = vscode.workspace.getWorkspaceFolder(candidateUri) ?? workspaceFolders[0];
+		} else {
+			// No selection - use workspace root
+			targetDirectory = workspaceFolders[0].uri.fsPath;
+			owningWorkspace = workspaceFolders[0];
+		}
 
 		const createdIndexes: string[] = [];
 
