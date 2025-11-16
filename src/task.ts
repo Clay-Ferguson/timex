@@ -134,3 +134,98 @@ export async function newTask(taskProvider: TaskProvider) {
         vscode.window.showErrorMessage(`Failed to create task file: ${error}`);
     }
 }
+
+// todo-0: we have a bug where if you rename a file, and then delete that file you get an error, but the delete itself will have worked ok.
+export async function deleteTask(item: any, taskProvider: TaskProvider) {
+    if (!item || !item.resourceUri) {
+        vscode.window.showErrorMessage('No task selected');
+        return;
+    }
+
+    const filePath = item.resourceUri.fsPath;
+    const fileName = path.basename(filePath);
+
+    // Show confirmation dialog
+    const answer = await vscode.window.showWarningMessage(
+        `Are you sure you want to delete the task file "${fileName}"?`,
+        { modal: true },
+        'Delete',
+        'Cancel'
+    );
+
+    if (answer === 'Delete') {
+        try {
+            // Delete the file
+            await fs.promises.unlink(filePath);
+
+            // Refresh the task view to remove the deleted item
+            taskProvider.refresh();
+
+            vscode.window.showInformationMessage(`Task file "${fileName}" has been deleted.`);
+        } catch (error) {
+            vscode.window.showErrorMessage(`Failed to delete task file: ${error}`);
+        }
+    }
+}
+
+export async function renameTask(item: any, taskProvider: TaskProvider) {
+    if (!item || !item.resourceUri) {
+        vscode.window.showErrorMessage('No task selected');
+        return;
+    }
+
+    const fileUri = item.resourceUri;
+    const filePath = fileUri.fsPath;
+    const parentDir = path.dirname(filePath);
+    const oldFileName = path.basename(filePath);
+    const oldExtension = path.extname(oldFileName);
+
+    const newName = await vscode.window.showInputBox({
+        title: 'Rename Task File',
+        prompt: 'Enter a new filename for the task',
+        value: oldFileName,
+        validateInput: (input) => {
+            const trimmed = input.trim();
+            if (!trimmed) {
+                return 'Filename cannot be empty';
+            }
+            if (/[/\\?%*:|"<>]/.test(trimmed)) {
+                return 'Filename contains invalid characters';
+            }
+            return null;
+        }
+    });
+
+    if (!newName) {
+        return;
+    }
+
+    const trimmedName = newName.trim();
+    // Ensure a markdown extension is preserved if none supplied
+    let finalName = trimmedName;
+    if (path.extname(trimmedName) === '') {
+        finalName = `${trimmedName}${oldExtension || '.md'}`;
+    }
+
+    if (finalName === oldFileName) {
+        return;
+    }
+
+    const targetPath = path.join(parentDir, finalName);
+    const targetUri = vscode.Uri.file(targetPath);
+
+    try {
+        await vscode.workspace.fs.rename(fileUri, targetUri, { overwrite: false });
+        taskProvider.queueReveal(targetPath);
+        taskProvider.refresh();
+        vscode.window.showInformationMessage(`Renamed task to "${finalName}".`);
+    } catch (error: any) {
+        const message = error instanceof Error ? error.message : String(error);
+        if (/Exists/i.test(message)) {
+            vscode.window.showErrorMessage(`A file named "${finalName}" already exists.`);
+        } else {
+            console.error('Failed to rename task file:', error);
+            vscode.window.showErrorMessage(`Failed to rename task file: ${message}`);
+        }
+    }
+}
