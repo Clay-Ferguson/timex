@@ -9,11 +9,6 @@ import {
 	containsAnyConfiguredHashtag,
 	getIncludeGlobPattern,
 	scanForNumberedItems,
-	renumberItems,
-	verifyNamesAreUnique,
-	generateNextOrdinalFilename,
-	extractOrdinalFromFilename,
-	generateNumberPrefix,
 	stripOrdinalPrefix,
 	NumberedItem,
 	isImageFileName,
@@ -29,7 +24,7 @@ import { parseTimestamp } from './utils';
 import { ViewFilter, PriorityTag } from './constants';
 import { TimexFilterPanel } from './filter-panel/filterPanel';
 import { MarkdownFolderPreviewProvider } from './markdownFolderPreviewProvider';
-import { renumberFiles, insertOrdinalFile, cutByOrdinal, pasteByOrdinal, OrdinalClipboardItem } from './ordinals';
+import { renumberFiles, insertOrdinalFile, cutByOrdinal, pasteByOrdinal, OrdinalClipboardItem, moveOrdinal } from './ordinals';
 
 const IMAGE_EXTENSIONS = new Set<string>([
 	'.png',
@@ -1007,106 +1002,12 @@ export function activate(context: vscode.ExtensionContext) {
 		)
 	);
 
-	const moveOrdinal = async (uri: vscode.Uri | undefined, direction: 'up' | 'down') => {
-		if (!uri) {
-			vscode.window.showErrorMessage('No file or folder selected');
-			return;
-		}
-
-		const selectedPath = uri.fsPath;
-		const selectedName = path.basename(selectedPath);
-		const selectedOrdinal = extractOrdinalFromFilename(selectedName);
-		if (selectedOrdinal === null) {
-			vscode.window.showErrorMessage('Selected item does not have an ordinal prefix (e.g., "00010_file.md").');
-			return;
-		}
-
-		const directory = path.dirname(selectedPath);
-		let numberedItems: NumberedItem[];
-		try {
-			numberedItems = scanForNumberedItems(directory);
-		} catch (error: any) {
-			const message = error instanceof Error ? error.message : String(error);
-			vscode.window.showErrorMessage(`Failed to scan directory: ${message}`);
-			return;
-		}
-
-		if (numberedItems.length === 0) {
-			vscode.window.showInformationMessage('No ordinal items found to reorder.');
-			return;
-		}
-
-		const currentIndex = numberedItems.findIndex(item => item.originalName === selectedName);
-		if (currentIndex === -1) {
-			vscode.window.showErrorMessage('Could not locate selected ordinal item in its directory.');
-			return;
-		}
-
-		const neighborIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1;
-		if (neighborIndex < 0 || neighborIndex >= numberedItems.length) {
-			const positionText = direction === 'up' ? 'first' : 'last';
-			vscode.window.showInformationMessage(`"${selectedName}" is already the ${positionText} item.`);
-			return;
-		}
-
-		const neighbor = numberedItems[neighborIndex];
-		const neighborOrdinal = extractOrdinalFromFilename(neighbor.originalName);
-		if (neighborOrdinal === null) {
-			vscode.window.showErrorMessage('Neighboring item lacks a valid ordinal prefix.');
-			return;
-		}
-
-		const selectedSuffix = stripOrdinalPrefix(selectedName);
-		const neighborSuffix = stripOrdinalPrefix(neighbor.originalName);
-		const selectedNewName = generateNumberPrefix(neighborOrdinal) + selectedSuffix;
-		const neighborNewName = generateNumberPrefix(selectedOrdinal) + neighborSuffix;
-
-		const neighborPath = path.join(directory, neighbor.originalName);
-		const neighborNewPath = path.join(directory, neighborNewName);
-		const selectedNewPath = path.join(directory, selectedNewName);
-		const tempName = `_timex_swap_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-		const tempPath = path.join(directory, tempName);
-
-		const performedRenames: Array<{ from: string; to: string }> = [];
-
-		try {
-			await fs.promises.rename(selectedPath, tempPath);
-			performedRenames.push({ from: tempPath, to: selectedPath });
-
-			await fs.promises.rename(neighborPath, neighborNewPath);
-			performedRenames.push({ from: neighborNewPath, to: neighborPath });
-
-			await fs.promises.rename(tempPath, selectedNewPath);
-		} catch (error: any) {
-			for (const operation of performedRenames.reverse()) {
-				try {
-					if (fs.existsSync(operation.from)) {
-						await fs.promises.rename(operation.from, operation.to);
-					}
-				} catch (revertError) {
-					console.error('Failed to revert ordinal move:', revertError);
-				}
-			}
-
-			const message = error instanceof Error ? error.message : String(error);
-			vscode.window.showErrorMessage(`Failed to move ordinal item: ${message}`);
-			return;
-		}
-
-		taskProvider.refresh();
-
-		const directionLabel = direction === 'up' ? 'up' : 'down';
-		const newOrdinalDisplay = String(neighborOrdinal).padStart(5, '0');
-		const displayName = selectedSuffix || selectedName;
-		vscode.window.showInformationMessage(`Moved "${displayName}" ${directionLabel}. New ordinal: ${newOrdinalDisplay}`);
-	};
-
 	const moveOrdinalUpCommand = vscode.commands.registerCommand('timex.moveOrdinalUp', async (uri: vscode.Uri) => {
-		await moveOrdinal(uri, 'up');
+		await moveOrdinal(uri, 'up', taskProvider);
 	});
 
 	const moveOrdinalDownCommand = vscode.commands.registerCommand('timex.moveOrdinalDown', async (uri: vscode.Uri) => {
-		await moveOrdinal(uri, 'down');
+		await moveOrdinal(uri, 'down', taskProvider);
 	});
 
 	const fixAttachmentLinksCommand = vscode.commands.registerCommand('timex.fixAttachmentLinks', async (uri: vscode.Uri) => {
