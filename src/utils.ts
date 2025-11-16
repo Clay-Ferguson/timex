@@ -5,6 +5,38 @@ import * as crypto from 'crypto';
 import { PriorityTag } from './constants';
 
 /**
+ * Extracts the first meaningful line from a file to use as a title
+ */
+export async function getTitleFromFile(filePath: string): Promise<string | null> {
+	try {
+		const data = await fs.promises.readFile(filePath, 'utf8');
+		const lines = data.split(/\r?\n/);
+		for (const rawLine of lines) {
+			const line = rawLine.trim();
+			if (!line) {
+				continue;
+			}
+			// Strip a leading UTF-8 BOM so headings render correctly
+			let title = line.replace(/^\uFEFF/, '');
+			// Normalize markdown headings by stripping "#" prefixes before using as title
+			if (/^#+\s/.test(title)) {
+				title = title.replace(/^#+\s+/, '').trim();
+			}
+			if (!title) {
+				continue;
+			}
+			if (title.length > 60) {
+				title = title.slice(0, 60).trimEnd() + '...';
+			}
+			return title;
+		}
+	} catch (error) {
+		console.error(`Failed to extract title from ${filePath}:`, error);
+	}
+	return null;
+}
+
+/**
  * Regular expression to match timestamp strings in the format [MM/DD/YYYY] or [MM/DD/YYYY HH:MM:SS AM/PM]
  */
 export const TIMESTAMP_REGEX = /\[[0-9]{2}\/[0-9]{2}\/20[0-9]{2}(?:\s[0-9]{2}:[0-9]{2}:[0-9]{2}\s(?:AM|PM))?\]/;

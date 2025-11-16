@@ -21,7 +21,8 @@ import {
 	buildAttachmentIndex,
 	extractHashFromTimexFilename,
 	TIMEX_LINK_REGEX,
-	TIMESTAMP_REGEX
+	TIMESTAMP_REGEX,
+	getTitleFromFile
 } from './utils';
 import { formatTimestamp } from './utils';
 import { parseTimestamp } from './utils';
@@ -41,35 +42,6 @@ const IMAGE_EXTENSIONS = new Set<string>([
 	'.tiff',
 	'.avif'
 ]);
-
-async function getTitleFromFile(filePath: string): Promise<string | null> {
-	try {
-		const data = await fs.promises.readFile(filePath, 'utf8');
-		const lines = data.split(/\r?\n/);
-		for (const rawLine of lines) {
-			const line = rawLine.trim();
-			if (!line) {
-				continue;
-			}
-			// Strip a leading UTF-8 BOM so headings render correctly
-			let title = line.replace(/^\uFEFF/, '');
-			// Normalize markdown headings by stripping "#" prefixes before using as title
-			if (/^#+\s/.test(title)) {
-				title = title.replace(/^#+\s+/, '').trim();
-			}
-			if (!title) {
-				continue;
-			}
-			if (title.length > 60) {
-				title = title.slice(0, 60).trimEnd() + '...';
-			}
-			return title;
-		}
-	} catch (error) {
-		console.error(`Failed to extract title from ${filePath}:`, error);
-	}
-	return null;
-}
 
 /**
  * Sets up file system watcher for markdown files to automatically update task view

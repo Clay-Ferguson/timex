@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
-import { scanForNumberedItems, stripOrdinalPrefix, NumberedItem } from './utils';
+import { scanForNumberedItems, stripOrdinalPrefix, NumberedItem, getTitleFromFile } from './utils';
 
 const IMAGE_EXTENSIONS = new Set<string>([
 	'.png',
@@ -15,38 +15,6 @@ const IMAGE_EXTENSIONS = new Set<string>([
 	'.tiff',
 	'.avif'
 ]);
-
-/**
- * Extracts the first meaningful line from a file to use as a title
- */
-async function getTitleFromFile(filePath: string): Promise<string | null> {
-	try {
-		const data = await fs.promises.readFile(filePath, 'utf8');
-		const lines = data.split(/\r?\n/);
-		for (const rawLine of lines) {
-			const line = rawLine.trim();
-			if (!line) {
-				continue;
-			}
-			// Strip a leading UTF-8 BOM so headings render correctly
-			let title = line.replace(/^\uFEFF/, '');
-			// Normalize markdown headings by stripping "#" prefixes before using as title
-			if (/^#+\s/.test(title)) {
-				title = title.replace(/^#+\s+/, '').trim();
-			}
-			if (!title) {
-				continue;
-			}
-			if (title.length > 60) {
-				title = title.slice(0, 60).trimEnd() + '...';
-			}
-			return title;
-		}
-	} catch (error) {
-		console.error(`Failed to extract title from ${filePath}:`, error);
-	}
-	return null;
-}
 
 /**
  * Generates markdown content for a directory by concatenating all ordinal items
