@@ -29,7 +29,7 @@ import { parseTimestamp } from './utils';
 import { ViewFilter, PriorityTag } from './constants';
 import { TimexFilterPanel } from './filter-panel/filterPanel';
 import { MarkdownFolderPreviewProvider } from './markdownFolderPreviewProvider';
-import { renumberFiles, insertOrdinalFile, cutByOrdinal, OrdinalClipboardItem } from './ordinals';
+import { renumberFiles, insertOrdinalFile, cutByOrdinal, pasteByOrdinal, OrdinalClipboardItem } from './ordinals';
 
 const IMAGE_EXTENSIONS = new Set<string>([
 	'.png',
@@ -997,114 +997,15 @@ export function activate(context: vscode.ExtensionContext) {
 		)
 	);
 
-	const pasteByOrdinalCommand = vscode.commands.registerCommand('timex.pasteByOrdinal', async (uri: vscode.Uri) => {
-		if (!ordinalClipboard) {
-			vscode.window.showErrorMessage('Cut an ordinal item before pasting.');
-			return;
-		}
-
-		if (!uri) {
-			vscode.window.showErrorMessage('No destination selected');
-			return;
-		}
-
-		const targetPath = uri.fsPath;
-		const targetBaseName = path.basename(targetPath);
-		const targetOrdinal = extractOrdinalFromFilename(targetBaseName);
-
-		if (targetOrdinal === null) {
-			vscode.window.showErrorMessage('Select a target that includes an ordinal prefix (e.g., "00020_filename").');
-			return;
-		}
-
-		const clipboardItem = ordinalClipboard;
-		const targetDirectory = path.dirname(targetPath);
-
-		try {
-			await fs.promises.lstat(clipboardItem.sourcePath);
-		} catch {
-			vscode.window.showErrorMessage('The original item can no longer be found.');
-			resetOrdinalClipboard();
-			return;
-		}
-
-		try {
-			await vscode.window.withProgress({
-				location: vscode.ProgressLocation.Notification,
-				title: 'Moving ordinal item',
-				cancellable: false
-			}, async (progress) => {
-				progress.report({ message: 'Preparing...' });
-
-				const performedRenames: Array<{ from: string; to: string }> = [];
-				const sourceDirectory = path.dirname(clipboardItem.sourcePath);
-				const uniqueSuffix = Math.random().toString(36).slice(2, 8);
-				const extension = clipboardItem.isDirectory ? '' : path.extname(clipboardItem.nameWithoutPrefix);
-				const tempName = `_timex_cut_${Date.now()}_${uniqueSuffix}${extension}`;
-				const tempPath = path.join(sourceDirectory, tempName);
-
-				let success = false;
-
-				try {
-					// Move the cut item to a temporary name so we can freely shift ordinals
-					await fs.promises.rename(clipboardItem.sourcePath, tempPath);
-					performedRenames.push({ from: tempPath, to: clipboardItem.sourcePath });
-
-					progress.report({ message: 'Shifting existing ordinals...' });
-					const numberedItems = scanForNumberedItems(targetDirectory);
-					const itemsToShift = numberedItems
-						.filter(item => {
-							const ordinal = extractOrdinalFromFilename(item.originalName);
-							return ordinal !== null && ordinal >= targetOrdinal;
-						})
-						.sort((a, b) => {
-							const aOrdinal = extractOrdinalFromFilename(a.originalName) ?? 0;
-							const bOrdinal = extractOrdinalFromFilename(b.originalName) ?? 0;
-							return bOrdinal - aOrdinal; // Rename from the bottom up to avoid collisions
-						});
-
-					for (const item of itemsToShift) {
-						const currentOrdinal = extractOrdinalFromFilename(item.originalName)!;
-						const newOrdinal = currentOrdinal + 10;
-						const newName = generateNumberPrefix(newOrdinal) + item.nameWithoutPrefix;
-						const newPath = path.join(targetDirectory, newName);
-
-						await fs.promises.rename(item.fullPath, newPath);
-						performedRenames.push({ from: newPath, to: item.fullPath });
-					}
-
-					progress.report({ message: 'Placing cut item...' });
-					const finalName = generateNumberPrefix(targetOrdinal) + clipboardItem.nameWithoutPrefix;
-					const finalPath = path.join(targetDirectory, finalName);
-
-					await fs.promises.rename(tempPath, finalPath);
-					success = true;
-				} catch (innerError) {
-					for (const op of performedRenames.reverse()) {
-						try {
-							await fs.promises.rename(op.from, op.to);
-						} catch (revertError) {
-							console.error('Failed to revert ordinal rename:', revertError);
-						}
-					}
-					throw innerError;
-				}
-
-				if (!success) {
-					throw new Error('Unable to finalize ordinal move.');
-				}
-			});
-
-			const destinationOrdinal = generateNumberPrefix(targetOrdinal).slice(0, -1);
-			const destinationName = `${generateNumberPrefix(targetOrdinal)}${clipboardItem.nameWithoutPrefix}`;
-			resetOrdinalClipboard();
-			taskProvider.refresh();
-			vscode.window.showInformationMessage(`Moved to ordinal ${destinationOrdinal}: ${destinationName}`);
-		} catch (error: any) {
-			const message = error instanceof Error ? error.message : String(error);
-			vscode.window.showErrorMessage(`Failed to paste ordinal item: ${message}`);
-		}
-	});
+	const pasteByOrdinalCommand = vscode.commands.registerCommand(
+		'timex.pasteByOrdinal',
+		(uri: vscode.Uri) => pasteByOrdinal(
+			uri,
+			() => ordinalClipboard,
+			resetOrdinalClipboard,
+			taskProvider
+		)
+	);
 
 	const moveOrdinal = async (uri: vscode.Uri | undefined, direction: 'up' | 'down') => {
 		if (!uri) {
