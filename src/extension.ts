@@ -10,7 +10,6 @@ import {
 	TIMESTAMP_REGEX,
 } from './utils';
 import { formatTimestamp } from './utils';
-import { parseTimestamp } from './utils';
 import { ViewFilter, PriorityTag } from './constants';
 import { TimexFilterPanel } from './filter-panel/filterPanel';
 import { MarkdownFolderPreviewProvider } from './markdownFolderPreviewProvider';
@@ -18,6 +17,7 @@ import { renumberFiles, insertOrdinalFile, cutByOrdinal, pasteByOrdinal, Ordinal
 import { fixAttachmentLinks, insertAttachment, insertImageFromClipboard } from './attachment';
 import { generateMarkdown, previewFolderAsMarkdown } from './gen-markdown';
 import { deleteTask, newTask, renameTask } from './task';
+import { addTimeToTask, insertDate, insertTimestamp } from './date-time';
 
 /**
  * Sets up file system watcher for markdown files to automatically update task view
@@ -65,82 +65,6 @@ function setupFileWatcher(context: vscode.ExtensionContext, taskProvider: TaskPr
 
 	// Add to subscriptions for proper cleanup
 	context.subscriptions.push(watcher, onChangeDisposable);
-}
-
-/**
- * Adds time to a task's timestamp
- * @param item The tree item containing the task
- * @param amount The amount to add (e.g., 1)
- * @param unit The unit of time ('day', 'week', 'month', 'year')
- * @param taskProvider The task provider instance to refresh after update
- */
-async function addTimeToTask(item: any, amount: number, unit: 'day' | 'week' | 'month' | 'year', taskProvider: TaskProvider): Promise<void> {
-	if (!item || !item.resourceUri) {
-		vscode.window.showErrorMessage('No task selected');
-		return;
-	}
-
-	const filePath = item.resourceUri.fsPath;
-
-	try {
-		// Read the file content
-		const content = fs.readFileSync(filePath, 'utf8');
-
-		// Find existing timestamp
-		const timestampMatch = content.match(TIMESTAMP_REGEX);
-
-		if (!timestampMatch) {
-			vscode.window.showErrorMessage('No timestamp found in task file');
-			return;
-		}
-
-		const currentTimestampString = timestampMatch[0];
-
-		// Detect if the original timestamp was in long format (with time) or short format (date-only)
-		const cleanTimestamp = currentTimestampString.replace(/[\[\]]/g, '');
-		const isLongFormat = cleanTimestamp.includes(' ') && cleanTimestamp.includes(':');
-
-		// Parse the current timestamp
-		const parsedDate = parseTimestamp(currentTimestampString);
-		if (!parsedDate) {
-			vscode.window.showErrorMessage('Unable to parse timestamp');
-			return;
-		}
-
-		// Add the specified amount of time
-		const newDate = new Date(parsedDate);
-		switch (unit) {
-			case 'day':
-				newDate.setDate(newDate.getDate() + amount);
-				break;
-			case 'week':
-				newDate.setDate(newDate.getDate() + (amount * 7));
-				break;
-			case 'month':
-				newDate.setMonth(newDate.getMonth() + amount);
-				break;
-			case 'year':
-				newDate.setFullYear(newDate.getFullYear() + amount);
-				break;
-		}
-
-		// Format the new timestamp based on original format
-		const newTimestampString = formatTimestamp(newDate, isLongFormat);
-
-		// Replace the timestamp in the file content
-		const newContent = content.replace(currentTimestampString, newTimestampString);
-
-		// Write the updated content back to the file
-		fs.writeFileSync(filePath, newContent, 'utf8');
-
-		// Update just this single task instead of refreshing the entire view
-		await taskProvider.updateSingleTask(filePath, newTimestampString);
-
-		vscode.window.showInformationMessage(`Added ${amount} ${unit}${amount > 1 ? 's' : ''} to task due date`);
-
-	} catch (error) {
-		vscode.window.showErrorMessage(`Failed to update task: ${error}`);
-	}
 }
 
 // This method is called when your extension is activated
@@ -200,45 +124,9 @@ export function activate(context: vscode.ExtensionContext) {
 
 	// Register commands
 
-	const insertTimestampCommand = vscode.commands.registerCommand('timex.insertTimestamp', () => {
-		const editor = vscode.window.activeTextEditor;
-		if (!editor) {
-			vscode.window.showErrorMessage('No active editor found');
-			return;
-		}
+	const insertTimestampCommand = vscode.commands.registerCommand('timex.insertTimestamp', insertTimestamp);
 
-		// Generate current timestamp in the required format
-		const now = new Date();
-		const timestamp = formatTimestamp(now);
-
-		// Insert timestamp at cursor position
-		const position = editor.selection.active;
-		editor.edit(editBuilder => {
-			editBuilder.insert(position, timestamp);
-		});
-
-		vscode.window.showInformationMessage(`Timestamp inserted: ${timestamp}`);
-	});
-
-	const insertDateCommand = vscode.commands.registerCommand('timex.insertDate', () => {
-		const editor = vscode.window.activeTextEditor;
-		if (!editor) {
-			vscode.window.showErrorMessage('No active editor found');
-			return;
-		}
-
-		// Generate current date (date-only format, no time)
-		const now = new Date();
-		const dateOnly = formatTimestamp(now, false); // false = short format (date only)
-
-		// Insert date at cursor position
-		const position = editor.selection.active;
-		editor.edit(editBuilder => {
-			editBuilder.insert(position, dateOnly);
-		});
-
-		vscode.window.showInformationMessage(`Date inserted: ${dateOnly}`);
-	});
+	const insertDateCommand = vscode.commands.registerCommand('timex.insertDate', insertDate);
 
 	const insertAttachmentCommand = vscode.commands.registerCommand('timex.insertAttachment', insertAttachment);
 
