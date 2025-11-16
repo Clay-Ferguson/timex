@@ -7,11 +7,7 @@ import { TaskProvider } from './model';
 import {
 	containsAnyConfiguredHashtag,
 	getIncludeGlobPattern,
-	scanForNumberedItems,
-	stripOrdinalPrefix,
-	NumberedItem,
 	TIMESTAMP_REGEX,
-	getTitleFromFile
 } from './utils';
 import { formatTimestamp } from './utils';
 import { parseTimestamp } from './utils';
@@ -20,19 +16,8 @@ import { TimexFilterPanel } from './filter-panel/filterPanel';
 import { MarkdownFolderPreviewProvider } from './markdownFolderPreviewProvider';
 import { renumberFiles, insertOrdinalFile, cutByOrdinal, pasteByOrdinal, OrdinalClipboardItem, moveOrdinal } from './ordinals';
 import { fixAttachmentLinks, insertAttachment, insertImageFromClipboard } from './attachment';
-
-const IMAGE_EXTENSIONS = new Set<string>([
-	'.png',
-	'.jpg',
-	'.jpeg',
-	'.gif',
-	'.bmp',
-	'.svg',
-	'.webp',
-	'.tif',
-	'.tiff',
-	'.avif'
-]);
+import { generateMarkdown, previewFolderAsMarkdown } from './gen-markdown';
+import { newTask } from './task';
 
 /**
  * Sets up file system watcher for markdown files to automatically update task view
@@ -348,133 +333,7 @@ export function activate(context: vscode.ExtensionContext) {
 	});
 
 	const newTaskCommand = vscode.commands.registerCommand('timex.newTask', async () => {
-		// Get the workspace folder
-		if (!vscode.workspace.workspaceFolders || vscode.workspace.workspaceFolders.length === 0) {
-			vscode.window.showErrorMessage('No workspace folder found');
-			return;
-		}
-
-		const workspaceFolder = vscode.workspace.workspaceFolders[0];
-		const rootPath = workspaceFolder.uri.fsPath;
-
-		// Get configured task folder
-		const config = vscode.workspace.getConfiguration('timex');
-		const taskFolderSetting = config.get<string>('newTaskFolder', '');
-
-		// Determine the target folder
-		let targetPath = rootPath;
-		if (taskFolderSetting && taskFolderSetting.trim() !== '') {
-			const folderPath = taskFolderSetting.trim();
-
-			// Check if it's an absolute path
-			if (path.isAbsolute(folderPath)) {
-				targetPath = folderPath;
-			} else {
-				// If relative path, join with workspace root (backward compatibility)
-				targetPath = path.join(rootPath, folderPath);
-			}
-
-			// Create the folder if it doesn't exist
-			if (!fs.existsSync(targetPath)) {
-				try {
-					fs.mkdirSync(targetPath, { recursive: true });
-				} catch (error) {
-					vscode.window.showErrorMessage(`Failed to create task folder: ${error}`);
-					return;
-				}
-			}
-		}
-
-		// Prompt user for filename
-		const userFileName = await vscode.window.showInputBox({
-			placeHolder: 'Enter filename for new task',
-			prompt: 'Filename (extension .md will be added automatically if not provided)',
-			value: '',
-			validateInput: (value) => {
-				if (!value || value.trim() === '') {
-					return 'Filename cannot be empty';
-				}
-				// Check for invalid filename characters (basic check)
-				const invalidChars = /[<>:"/\\|?*]/g;
-				if (invalidChars.test(value)) {
-					return 'Filename contains invalid characters';
-				}
-				return null;
-			}
-		});
-
-		if (!userFileName) {
-			// User cancelled the input
-			return;
-		}
-
-		// Process the filename
-		let fileName = userFileName.trim();
-		// Add .md extension if not already present (case insensitive)
-		if (!fileName.toLowerCase().endsWith('.md')) {
-			fileName += '.md';
-		}
-
-		let filePath = path.join(targetPath, fileName);
-
-		// Check if file already exists
-		if (fs.existsSync(filePath)) {
-			const overwrite = await vscode.window.showWarningMessage(
-				`File "${fileName}" already exists. Do you want to overwrite it?`,
-				{ modal: true },
-				'Overwrite',
-				'Cancel'
-			);
-
-			if (overwrite !== 'Overwrite') {
-				return;
-			}
-		}
-
-		// Generate timestamp
-		const now = new Date();
-		const timestamp = formatTimestamp(now);
-
-		// Create task content, with two blank lines because user will want to start editing at beginning of file.
-		const primaryHashtag = taskProvider.getPrimaryHashtag();
-		// If in "all-tags" mode, use the first configured hashtag instead of "all-tags"
-		let hashtagToUse = primaryHashtag;
-		if (primaryHashtag === 'all-tags') {
-			const config = vscode.workspace.getConfiguration('timex');
-			const hashtagsConfig = config.get('hashtags', ['#todo', '#note']);
-			
-			// Handle both old string format and new array format for backward compatibility
-			let hashtags: string[];
-			if (Array.isArray(hashtagsConfig)) {
-				hashtags = hashtagsConfig;
-			} else if (typeof hashtagsConfig === 'string') {
-				// Legacy format: comma-delimited string
-				hashtags = (hashtagsConfig as string).split(',').map((tag: string) => tag.trim()).filter((tag: string) => tag.length > 0);
-			} else {
-				hashtags = ['#todo', '#note'];
-			}
-			hashtags = hashtags.map(tag => tag.trim()).filter(tag => tag.length > 0);
-			
-			hashtagToUse = hashtags.length > 0 ? hashtags[0] : '#todo'; // fallback to #todo if no hashtags configured
-		}
-		const taskContent = `\n\n${hashtagToUse} ${timestamp} #${PriorityTag.Low}`;
-
-		try {
-			// Write the file
-			fs.writeFileSync(filePath, taskContent, 'utf8');
-
-			// Open the file in the editor
-			const fileUri = vscode.Uri.file(filePath);
-			const document = await vscode.workspace.openTextDocument(fileUri);
-			await vscode.window.showTextDocument(document);
-
-			// Refresh the task view
-			taskProvider.refresh();
-
-			vscode.window.showInformationMessage(`New task created: ${fileName}`);
-		} catch (error) {
-			vscode.window.showErrorMessage(`Failed to create task file: ${error}`);
-		}
+		await newTask(taskProvider);
 	});
 
 	const aboutCommand = vscode.commands.registerCommand('timex.about', async () => {
@@ -643,131 +502,7 @@ export function activate(context: vscode.ExtensionContext) {
 
 	const insertOrdinalFileCommand = vscode.commands.registerCommand('timex.insertOrdinalFile', insertOrdinalFile);
 
-	const generateMarkdownCommand = vscode.commands.registerCommand('timex.generateMarkdown', async (resource?: vscode.Uri | vscode.Uri[]) => {
-		const workspaceFolders = vscode.workspace.workspaceFolders;
-		if (!workspaceFolders || workspaceFolders.length === 0) {
-			vscode.window.showErrorMessage('No workspace folder found');
-			return;
-		}
-
-		const candidateUri = Array.isArray(resource) ? resource[0] : resource;
-		
-		// Determine the target directory based on what was selected
-		let targetDirectory: string;
-		let owningWorkspace: vscode.WorkspaceFolder;
-		
-		if (candidateUri) {
-			// User right-clicked on a folder or file - determine target folder
-			try {
-				const stat = await fs.promises.stat(candidateUri.fsPath);
-				if (stat.isDirectory()) {
-					// Selected a folder - use it as target
-					targetDirectory = candidateUri.fsPath;
-				} else {
-					// Selected a file - use workspace root
-					targetDirectory = workspaceFolders[0].uri.fsPath;
-				}
-			} catch {
-				// Error accessing path - fall back to workspace root
-				targetDirectory = workspaceFolders[0].uri.fsPath;
-			}
-			owningWorkspace = vscode.workspace.getWorkspaceFolder(candidateUri) ?? workspaceFolders[0];
-		} else {
-			// No selection - use workspace root
-			targetDirectory = workspaceFolders[0].uri.fsPath;
-			owningWorkspace = workspaceFolders[0];
-		}
-
-		const createdIndexes: string[] = [];
-
-		const generateMarkdownForDirectory = async (directory: string, progress: vscode.Progress<{ message?: string }>): Promise<boolean> => {
-			const relativePath = path.relative(owningWorkspace.uri.fsPath, directory) || path.basename(directory) || '.';
-			progress.report({ message: `Scanning ${relativePath}` });
-
-			let numberedItems: NumberedItem[];
-			try {
-				numberedItems = scanForNumberedItems(directory);
-			} catch (error: any) {
-				throw new Error(`Failed to scan ${relativePath}: ${error instanceof Error ? error.message : String(error)}`);
-			}
-
-			if (numberedItems.length === 0) {
-				return false;
-			}
-
-			const sections: string[] = [];
-			let addedContent = false;
-
-			for (const item of numberedItems) {
-				if (item.isDirectory) {
-					const childCreated = await generateMarkdownForDirectory(item.fullPath, progress);
-					if (childCreated) {
-						const childIndexPath = path.join(item.fullPath, '_index.md');
-						const derivedTitle = await getTitleFromFile(childIndexPath);
-						const folderLabel = derivedTitle ?? (stripOrdinalPrefix(item.originalName) || item.originalName);
-						const linkTarget = encodeURI(path.posix.join(item.originalName, '_index.md'));
-						sections.push(`# [${folderLabel}](${linkTarget})`);
-						addedContent = true;
-					}
-				} else {
-					const extension = path.extname(item.originalName).toLowerCase();
-					if (IMAGE_EXTENSIONS.has(extension)) {
-						const strippedName = stripOrdinalPrefix(item.originalName) || item.originalName;
-						const altText = path.basename(strippedName, extension);
-						const encodedSource = encodeURI(item.originalName);
-						sections.push(`![${altText}](${encodedSource})`);
-						addedContent = true;
-					} else if (extension === '.md') {
-						const contents = await fs.promises.readFile(item.fullPath, 'utf8');
-						sections.push(contents.trimEnd());
-						sections.push('---');
-						addedContent = true;
-					}
-				}
-			}
-
-			if (!addedContent) {
-				return false;
-			}
-
-			if (sections.length > 0 && sections[sections.length - 1] === '---') {
-				sections.pop();
-			}
-
-			const indexPath = path.join(directory, '_index.md');
-			const compiled = sections.join('\n\n').trimEnd() + '\n';
-			await fs.promises.writeFile(indexPath, compiled, 'utf8');
-			createdIndexes.push(indexPath);
-			return true;
-		};
-
-		let rootCreated = false;
-
-		try {
-			await vscode.window.withProgress({
-				location: vscode.ProgressLocation.Notification,
-				title: 'Generating Markdown Indexes',
-				cancellable: false
-			}, async (progress) => {
-				rootCreated = await generateMarkdownForDirectory(targetDirectory, progress);
-			});
-
-			if (createdIndexes.length === 0) {
-				return;
-			}
-
-			const previewTarget = rootCreated
-				? vscode.Uri.file(path.join(targetDirectory, '_index.md'))
-				: vscode.Uri.file(createdIndexes[0]);
-			await vscode.commands.executeCommand('markdown.showPreview', previewTarget);
-
-			const relativeDir = path.relative(owningWorkspace.uri.fsPath, targetDirectory) || owningWorkspace.name;
-			vscode.window.showInformationMessage(`Generated ${createdIndexes.length} index file(s) starting at ${relativeDir}`);
-		} catch (error: any) {
-			const message = error instanceof Error ? error.message : String(error);
-			vscode.window.showErrorMessage(`Failed to generate markdown index: ${message}`);
-		}
-	});
+	const generateMarkdownCommand = vscode.commands.registerCommand('timex.generateMarkdown', generateMarkdown);
 
 	const cutByOrdinalCommand = vscode.commands.registerCommand(
 		'timex.cutByOrdinal',
@@ -799,49 +534,7 @@ export function activate(context: vscode.ExtensionContext) {
 
 	const fixAttachmentLinksCommand = vscode.commands.registerCommand('timex.fixAttachmentLinks', fixAttachmentLinks);
 
-	const previewFolderAsMarkdownCommand = vscode.commands.registerCommand('timex.previewFolderAsMarkdown', async (uri: vscode.Uri) => {
-		if (!uri) {
-			vscode.window.showErrorMessage('No file or folder selected');
-			return;
-		}
-
-		try {
-			// Determine the folder to preview
-			let folderPath: string;
-			const stat = await fs.promises.stat(uri.fsPath);
-			
-			if (stat.isDirectory()) {
-				// User clicked a folder - use it directly
-				folderPath = uri.fsPath;
-			} else {
-				// User clicked a file - use workspace root instead
-				// This allows previewing the root folder (which can't be directly selected in VS Code)
-				const workspaceFolders = vscode.workspace.workspaceFolders;
-				if (!workspaceFolders || workspaceFolders.length === 0) {
-					vscode.window.showErrorMessage('No workspace folder found');
-					return;
-				}
-				folderPath = workspaceFolders[0].uri.fsPath;
-			}
-
-			// Create a virtual URI using our custom scheme
-			// Format: timex-preview:/path/to/folder
-			const folderName = path.basename(folderPath);
-			const previewUri = vscode.Uri.parse(`timex-preview:${folderPath}`).with({
-				scheme: 'timex-preview',
-				path: folderPath
-			});
-
-			// Show directly in markdown preview mode without opening as text document first
-			// This avoids the flicker of a tab opening and closing
-			await vscode.commands.executeCommand('markdown.showPreview', previewUri);
-
-		} catch (error: any) {
-			const message = error instanceof Error ? error.message : String(error);
-			vscode.window.showErrorMessage(`Failed to preview folder: ${message}`);
-			console.error('Preview folder error:', error);
-		}
-	});
+	const previewFolderAsMarkdownCommand = vscode.commands.registerCommand('timex.previewFolderAsMarkdown', previewFolderAsMarkdown);
 
 	// Add to subscriptions
 	context.subscriptions.push(treeView);

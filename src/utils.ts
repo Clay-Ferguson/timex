@@ -4,6 +4,19 @@ import * as vscode from 'vscode';
 import * as crypto from 'crypto';
 import { PriorityTag } from './constants';
 
+export const IMAGE_EXTENSIONS = new Set<string>([
+	'.png',
+	'.jpg',
+	'.jpeg',
+	'.gif',
+	'.bmp',
+	'.svg',
+	'.webp',
+	'.tif',
+	'.tiff',
+	'.avif'
+]);
+
 /**
  * Extracts the first meaningful line from a file to use as a title
  */
@@ -366,22 +379,6 @@ export function stripOrdinalPrefix(fileName: string): string {
 	const match = fileName.match(NUMBERED_ITEM_REGEX);
 	return match ? match[2] : fileName;
 }
-
-/**
- * Set of common image file extensions
- */
-const IMAGE_EXTENSIONS = new Set<string>([
-	'.png',
-	'.jpg',
-	'.jpeg',
-	'.gif',
-	'.bmp',
-	'.svg',
-	'.webp',
-	'.tif',
-	'.tiff',
-	'.avif'
-]);
 
 /**
  * Checks if a filename has an image extension
