@@ -29,7 +29,7 @@ import { parseTimestamp } from './utils';
 import { ViewFilter, PriorityTag } from './constants';
 import { TimexFilterPanel } from './filter-panel/filterPanel';
 import { MarkdownFolderPreviewProvider } from './markdownFolderPreviewProvider';
-import { insertOrdinalFile, renumberFiles } from './ordinals';
+import { renumberFiles, insertOrdinalFile, cutByOrdinal, OrdinalClipboardItem } from './ordinals';
 
 const IMAGE_EXTENSIONS = new Set<string>([
 	'.png',
@@ -192,13 +192,6 @@ export function activate(context: vscode.ExtensionContext) {
 		markdownFolderPreviewProvider
 	);
 	context.subscriptions.push(previewProviderDisposable);
-
-	interface OrdinalClipboardItem {
-		sourcePath: string;
-		originalName: string;
-		nameWithoutPrefix: string;
-		isDirectory: boolean;
-	}
 
 	let ordinalClipboard: OrdinalClipboardItem | null = null;
 
@@ -994,35 +987,15 @@ export function activate(context: vscode.ExtensionContext) {
 		}
 	});
 
-	const cutByOrdinalCommand = vscode.commands.registerCommand('timex.cutByOrdinal', async (uri: vscode.Uri) => {
-		if (!uri) {
-			vscode.window.showErrorMessage('No file or folder selected');
-			return;
-		}
-
-		const filePath = uri.fsPath;
-
-		try {
-			const stats = await fs.promises.lstat(filePath);
-			const baseName = path.basename(filePath);
-			const nameWithoutPrefix = stripOrdinalPrefix(baseName);
-
-			ordinalClipboard = {
-				sourcePath: filePath,
-				originalName: baseName,
-				nameWithoutPrefix,
-				isDirectory: stats.isDirectory()
-			};
-
-			taskProvider.setCutIndicator(baseName);
-			void vscode.commands.executeCommand('setContext', 'timex.hasOrdinalCutItem', true);
-			vscode.window.showInformationMessage(`Cut ready: ${baseName}`);
-		} catch (error: any) {
-			const message = error instanceof Error ? error.message : String(error);
-			vscode.window.showErrorMessage(`Failed to cut item: ${message}`);
-			resetOrdinalClipboard();
-		}
-	});
+	const cutByOrdinalCommand = vscode.commands.registerCommand(
+		'timex.cutByOrdinal',
+		(uri: vscode.Uri) => cutByOrdinal(
+			uri,
+			taskProvider,
+			(item) => { ordinalClipboard = item; },
+			resetOrdinalClipboard
+		)
+	);
 
 	const pasteByOrdinalCommand = vscode.commands.registerCommand('timex.pasteByOrdinal', async (uri: vscode.Uri) => {
 		if (!ordinalClipboard) {

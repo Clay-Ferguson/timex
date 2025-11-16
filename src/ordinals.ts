@@ -1,7 +1,15 @@
 import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
-import { generateNextOrdinalFilename, renumberItems, scanForNumberedItems, verifyNamesAreUnique } from './utils';
+import { generateNextOrdinalFilename, renumberItems, scanForNumberedItems, verifyNamesAreUnique, stripOrdinalPrefix } from './utils';
+import { TaskProvider } from './model';
+
+export interface OrdinalClipboardItem {
+	sourcePath: string;
+	originalName: string;
+	nameWithoutPrefix: string;
+	isDirectory: boolean;
+}
 
 /**
  * Recursively finds all directories in a given path
@@ -213,3 +221,39 @@ export async function insertOrdinalFile (uri: vscode.Uri) {
             console.error('Insert ordinal file error:', error);
         }
     }
+
+export async function cutByOrdinal(
+	uri: vscode.Uri | undefined,
+	taskProvider: TaskProvider,
+	setClipboard: (item: OrdinalClipboardItem) => void,
+	resetClipboard: () => void
+): Promise<void> {
+	if (!uri) {
+		vscode.window.showErrorMessage('No file or folder selected');
+		return;
+	}
+
+	const filePath = uri.fsPath;
+
+	try {
+		const stats = await fs.promises.lstat(filePath);
+		const baseName = path.basename(filePath);
+		const nameWithoutPrefix = stripOrdinalPrefix(baseName);
+
+		const clipboardItem: OrdinalClipboardItem = {
+			sourcePath: filePath,
+			originalName: baseName,
+			nameWithoutPrefix,
+			isDirectory: stats.isDirectory()
+		};
+
+		setClipboard(clipboardItem);
+		taskProvider.setCutIndicator(baseName);
+		void vscode.commands.executeCommand('setContext', 'timex.hasOrdinalCutItem', true);
+		vscode.window.showInformationMessage(`Cut ready: ${baseName}`);
+	} catch (error: any) {
+		const message = error instanceof Error ? error.message : String(error);
+		vscode.window.showErrorMessage(`Failed to cut item: ${message}`);
+		resetClipboard();
+	}
+}
