@@ -385,7 +385,20 @@ Fastest capture path—click +, enter a descriptive filename, and start typing.
 - **Options**:
   - **Insert Date+Time**: Inserts current date and time in full timestamp format `[MM/DD/YYYY HH:MM:SS AM/PM]`
   - **Insert Date**: Inserts current date only in short format `[MM/DD/YYYY]`
-- **Function**: Both commands insert at cursor position in the required bracket format
+  - **Merge Sentences** (when text is selected): Fixes incorrectly split sentences from speech-to-text by removing periods and lowercasing letters at sentence breaks
+- **Function**: Both timestamp commands insert at cursor position in the required bracket format
+
+**Merge Sentences Feature:**
+- **Keybinding**: `Alt+M` (works on all platforms)
+- **Purpose**: Fixes text dictated via speech-to-text that incorrectly adds periods at pause points
+- **Example**: 
+  - Before: `"I like to. Shop at. The mall for. Shoes."`
+  - After: `"I like to shop at the mall for shoes."`
+- **How it works**: Finds patterns of period + space + capital letter and removes the period while lowercasing the letter
+- **Usage**: 
+  1. Highlight the text with incorrectly split sentences
+  2. Press `Alt+M` (or right-click → Timex → Merge Sentences)
+  3. Status bar shows how many sentence breaks were merged
 
 **In Panel:**
 - **Location**: Right-click on any item in the panel

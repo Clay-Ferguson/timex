@@ -18,6 +18,7 @@ import { fixAttachmentLinks, insertAttachment, insertImageFromClipboard } from '
 import { generateMarkdown, previewFolderAsMarkdown } from './gen-markdown';
 import { deleteTask, newTask, renameTask } from './task';
 import { addTimeToTask, insertDate, insertTimestamp } from './date-time';
+import { mergeSentences } from './text-merge';
 
 /**
  * Sets up file system watcher for markdown files to automatically update task view
@@ -338,6 +339,8 @@ export function activate(context: vscode.ExtensionContext) {
 
 	const previewFolderAsMarkdownCommand = vscode.commands.registerCommand('timex.previewFolderAsMarkdown', previewFolderAsMarkdown);
 
+	const mergeSentencesCommand = vscode.commands.registerCommand('timex.mergeSentences', mergeSentences);
+
 	// Add to subscriptions
 	context.subscriptions.push(treeView);
 	context.subscriptions.push(insertTimestampCommand);
@@ -365,6 +368,7 @@ export function activate(context: vscode.ExtensionContext) {
 	context.subscriptions.push(moveOrdinalDownCommand);
 	context.subscriptions.push(fixAttachmentLinksCommand);
 	context.subscriptions.push(previewFolderAsMarkdownCommand);
+	context.subscriptions.push(mergeSentencesCommand);
 }
 
 // This method is called when your extension is deactivated

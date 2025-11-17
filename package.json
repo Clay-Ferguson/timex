@@ -201,6 +201,19 @@
         "command": "timex.previewFolderAsMarkdown",
         "title": "Preview Folder as Markdown",
         "icon": "$(open-preview)"
+      },
+      {
+        "command": "timex.mergeSentences",
+        "title": "Merge Sentences",
+        "icon": "$(merge)"
+      }
+    ],
+    "keybindings": [
+      {
+        "command": "timex.mergeSentences",
+        "key": "alt+m",
+        "mac": "alt+m",
+        "when": "editorTextFocus && editorHasSelection"
       }
     ],
     "submenus": [
@@ -364,6 +377,9 @@
         },
         {
           "command": "timex.openSettings"
+        },
+        {
+          "command": "timex.mergeSentences"
         }
       ],
       "editor/context": [
@@ -390,6 +406,11 @@
           "command": "timex.insertImageFromClipboard",
           "group": "2_attachment@2",
           "when": "editorLangId == markdown"
+        },
+        {
+          "command": "timex.mergeSentences",
+          "group": "3_text@1",
+          "when": "editorHasSelection"
         }
       ],
       "explorer/context": [
