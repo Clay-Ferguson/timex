@@ -1,10 +1,12 @@
 import * as vscode from 'vscode';
 
 /**
- * Merges incorrectly split sentences that have periods followed by spaces and capital letters.
+ * Merges incorrectly split sentences that have periods, question marks, or exclamation points 
+ * followed by spaces and capital letters.
  * This is useful for fixing text from speech-to-text that incorrectly splits single sentences.
  * 
  * Example: "I like to. Shop at. The mall." becomes "I like to shop at the mall."
+ * Example: "Why did you? Go there?" becomes "Why did you go there?"
  * 
  * @returns Promise that resolves when the operation is complete
  */
@@ -26,10 +28,10 @@ export async function mergeSentences(): Promise<void> {
 
 	const selectedText = editor.document.getText(selection);
 	
-	// Pattern: period followed by space followed by capital letter
-	// We'll replace ". A" with " a", ". B" with " b", etc.
-	const mergedText = selectedText.replace(/\.\s+([A-Z])/g, (match, capitalLetter) => {
-		// Remove the period, keep the space, lowercase the capital letter
+	// Pattern: period, question mark, or exclamation point followed by space followed by capital letter
+	// We'll replace ". A", "? A", or "! A" with " a", etc.
+	const mergedText = selectedText.replace(/[.?!]\s+([A-Z])/g, (match, capitalLetter) => {
+		// Remove the punctuation, keep the space, lowercase the capital letter
 		return ' ' + capitalLetter.toLowerCase();
 	});
 
@@ -40,7 +42,7 @@ export async function mergeSentences(): Promise<void> {
 		});
 		
 		// Show a subtle confirmation
-		const changeCount = (selectedText.match(/\.\s+[A-Z]/g) || []).length;
+		const changeCount = (selectedText.match(/[.?!]\s+[A-Z]/g) || []).length;
 		vscode.window.setStatusBarMessage(
 			`✓ Merged ${changeCount} sentence break${changeCount !== 1 ? 's' : ''}`,
 			3000
