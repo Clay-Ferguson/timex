@@ -390,11 +390,13 @@ Fastest capture path—click +, enter a descriptive filename, and start typing.
 
 **Merge Sentences Feature:**
 - **Keybinding**: `Alt+M` (works on all platforms)
-- **Purpose**: Fixes text dictated via speech-to-text that incorrectly adds periods at pause points
+- **Purpose**: Fixes text dictated via speech-to-text that incorrectly adds periods, question marks, or exclamation points at pause points
+- **Motivation**: The VS Code Speech extension (and similar speech-to-text tools) often insert sentence-ending punctuation whenever you pause briefly while speaking, breaking what should be a single sentence into multiple fragments. So this Feature lets you be able to dictate a lot of text and then select it all and convert it into a single sentence after the speech engine has finished entering it into your text file. 
 - **Example**: 
   - Before: `"I like to. Shop at. The mall for. Shoes."`
   - After: `"I like to shop at the mall for shoes."`
-- **How it works**: Finds patterns of period + space + capital letter and removes the period while lowercasing the letter
+  - Also works with: `"Why did you? Go there?"` → `"Why did you go there?"`
+- **How it works**: Finds patterns of punctuation (`.`, `?`, `!`) + space + capital letter and removes the punctuation while lowercasing the letter
 - **Usage**: 
   1. Highlight the text with incorrectly split sentences
   2. Press `Alt+M` (or right-click → Timex → Merge Sentences)
