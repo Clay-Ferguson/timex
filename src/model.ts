@@ -21,7 +21,8 @@ export class TaskFile {
 		public readonly timestampString: string,
 		public readonly priority: PriorityTag.High | PriorityTag.Medium | PriorityTag.Low | '',
 		public readonly tagsInFile: Set<string> = new Set<string>(),
-		public readonly multiDate: boolean = false
+		public readonly multiDate: boolean = false,
+		public readonly multiPriority: boolean = false
 	) { }
 }
 
@@ -60,7 +61,7 @@ export class TaskProvider implements vscode.TreeDataProvider<TaskFileItem> {
 	 * @param multiDate Whether the file contains multiple dates
 	 * @returns A MarkdownString tooltip
 	 */
-	private createTaskTooltip(label: string, timestampString: string, filePath: string, multiDate: boolean = false): vscode.MarkdownString {
+	private createTaskTooltip(label: string, timestampString: string, filePath: string, multiDate: boolean = false, multiPriority: boolean = false): vscode.MarkdownString {
 		const timestampLine = timestampString.replace(/[\[\]]/g, '');
 		const cleaned = label.replace(/^([\p{Emoji_Presentation}\p{Extended_Pictographic}]|\S)+\s*(⚠️)?\s*\([^)]*\)\s*/u, '').trim();
 
@@ -102,6 +103,9 @@ export class TaskProvider implements vscode.TreeDataProvider<TaskFileItem> {
 
 		if (multiDate) {
 			md.appendMarkdown(`\n\n🚫 **Warning**: Multiple dates detected in this file. This is not recommended.`);
+		}
+		if (multiPriority) {
+			md.appendMarkdown(`\n\n🚫 **Warning**: Multiple priority tags detected in this file. This is not recommended.`);
 		}
 
 		return md;
@@ -161,14 +165,24 @@ export class TaskProvider implements vscode.TreeDataProvider<TaskFileItem> {
 	/**
 	 * Detects the priority level from file content
 	 * @param content The file content to analyze
-	 * @returns The priority level (PriorityTag.High/Medium/Low, or '' for no priority tag)
+	 * @returns The priority level (PriorityTag.High/Medium/Low, or '' for no priority tag, or null for multiple priorities)
 	 */
-	private detectPriorityFromContent(content: string): PriorityTag.High | PriorityTag.Medium | PriorityTag.Low | '' {
-		if (content.includes(`#${PriorityTag.High}`)) {
+	private detectPriorityFromContent(content: string): PriorityTag.High | PriorityTag.Medium | PriorityTag.Low | '' | null {
+		const hasHigh = content.includes(`#${PriorityTag.High}`);
+		const hasMedium = content.includes(`#${PriorityTag.Medium}`);
+		const hasLow = content.includes(`#${PriorityTag.Low}`);
+
+		const count = (hasHigh ? 1 : 0) + (hasMedium ? 1 : 0) + (hasLow ? 1 : 0);
+
+		if (count > 1) {
+			return null;
+		}
+
+		if (hasHigh) {
 			return PriorityTag.High;
-		} else if (content.includes(`#${PriorityTag.Medium}`)) {
+		} else if (hasMedium) {
 			return PriorityTag.Medium;
-		} else if (content.includes(`#${PriorityTag.Low}`)) {
+		} else if (hasLow) {
 			return PriorityTag.Low;
 		}
 		// No priority tag found - return empty string so white circle is shown
@@ -280,7 +294,12 @@ export class TaskProvider implements vscode.TreeDataProvider<TaskFileItem> {
 
 			// Re-read the file to get updated priority and content
 			const content = fs.readFileSync(filePath, 'utf8');
-			const priority = this.detectPriorityFromContent(content);
+			let priority = this.detectPriorityFromContent(content);
+			let multiPriority = false;
+			if (priority === null) {
+				multiPriority = true;
+				priority = '';
+			}
 
 			// Check for multiple dates
 			const globalTimestampRegex = new RegExp(TIMESTAMP_REGEX.source, 'g');
@@ -300,7 +319,8 @@ export class TaskProvider implements vscode.TreeDataProvider<TaskFileItem> {
 				newTimestampString,
 				priority,
 				tagsInFile,
-				multiDate
+				multiDate,
+				multiPriority
 			);
 			this.taskFileData[taskIndex] = updatedTask;
 
@@ -680,7 +700,7 @@ export class TaskProvider implements vscode.TreeDataProvider<TaskFileItem> {
 			if (isOverdue && isTodo) {
 				labelPrefix += '⚠️';
 			}
-			if (taskFile.multiDate) {
+			if (taskFile.multiDate || taskFile.multiPriority) {
 				labelPrefix += '🚫';
 			}
 
@@ -698,7 +718,7 @@ export class TaskProvider implements vscode.TreeDataProvider<TaskFileItem> {
 			);
 
 			// Create markdown tooltip
-			treeItem.tooltip = this.createTaskTooltip(label, taskFile.timestampString, taskFile.filePath, taskFile.multiDate);
+			treeItem.tooltip = this.createTaskTooltip(label, taskFile.timestampString, taskFile.filePath, taskFile.multiDate, taskFile.multiPriority);
 
 			// Set context value based on timestamp presence and far future status
 			// Check if task has a real timestamp (not the default 2050 one)
@@ -856,7 +876,7 @@ export class TaskProvider implements vscode.TreeDataProvider<TaskFileItem> {
 			if (isOverdue && isTodo) {
 				labelPrefix += '⚠️';
 			}
-			if (taskFile.multiDate) {
+			if (taskFile.multiDate || taskFile.multiPriority) {
 				labelPrefix += '🚫';
 			}
 
@@ -874,7 +894,7 @@ export class TaskProvider implements vscode.TreeDataProvider<TaskFileItem> {
 			);
 
 			// Create markdown tooltip
-			treeItem.tooltip = this.createTaskTooltip(label, taskFile.timestampString, taskFile.filePath, taskFile.multiDate);
+			treeItem.tooltip = this.createTaskTooltip(label, taskFile.timestampString, taskFile.filePath, taskFile.multiDate, taskFile.multiPriority);
 
 			// Set context value based on timestamp presence and far future status
 			// Check if task has a real timestamp (not the default 2050 one)
@@ -992,43 +1012,26 @@ export class TaskProvider implements vscode.TreeDataProvider<TaskFileItem> {
 			}
 			this.scannedFiles.add(filePath);
 
-			// Quick hashtag check first - read only first 1KB to check for hashtags
-			// This avoids reading large files that don't contain task hashtags
-			const quickHashtag = this.getPrimaryHashtag();
-			let foundQuickHashtag = false;
+			// Read the full file content
+			const content = await fs.promises.readFile(filePath, 'utf8');
 
-			if (quickHashtag === 'all-tags') {
-				// Need to check for any configured hashtag
+			// Check for hashtags in the full content
+			const primaryHashtag = this.getPrimaryHashtag();
+			let hasRequiredHashtag = false;
+
+			if (primaryHashtag === 'all-tags') {
+				// Check if any configured hashtag is present
 				const allHashtags = getAllConfiguredHashtags();
-				const quickBuffer = Buffer.alloc(1024);
-				const fd = await fs.promises.open(filePath, 'r');
-				try {
-					const { bytesRead } = await fd.read(quickBuffer, 0, 1024, 0);
-					const quickContent = quickBuffer.slice(0, bytesRead).toString('utf8');
-					foundQuickHashtag = allHashtags.some((hashtag: string) => quickContent.includes(hashtag));
-				} finally {
-					await fd.close();
-				}
+				hasRequiredHashtag = allHashtags.some((hashtag: string) => content.includes(hashtag));
 			} else {
-				// Just check for the primary hashtag
-				const quickBuffer = Buffer.alloc(1024);
-				const fd = await fs.promises.open(filePath, 'r');
-				try {
-					const { bytesRead } = await fd.read(quickBuffer, 0, 1024, 0);
-					const quickContent = quickBuffer.slice(0, bytesRead).toString('utf8');
-					foundQuickHashtag = quickContent.includes(quickHashtag);
-				} finally {
-					await fd.close();
-				}
+				// Check for specific primary hashtag
+				hasRequiredHashtag = content.includes(primaryHashtag);
 			}
 
-			// If no hashtag found in first 1KB, skip this file entirely
-			if (!foundQuickHashtag) {
+			// If no required hashtag found, skip this file
+			if (!hasRequiredHashtag) {
 				return;
 			}
-
-			// Only read the full file if we found a hashtag in the preview
-			const content = await fs.promises.readFile(filePath, 'utf8');
 
 			// Look for timestamp, but it's optional now
 			// Only support the format: [MM/DD/YYYY] or [MM/DD/YYYY HH:MM:SS AM/PM]
@@ -1058,7 +1061,12 @@ export class TaskProvider implements vscode.TreeDataProvider<TaskFileItem> {
 			}
 
 			// Detect priority
-			const priority = this.detectPriorityFromContent(content);
+			let priority = this.detectPriorityFromContent(content);
+			let multiPriority = false;
+			if (priority === null) {
+				multiPriority = true;
+				priority = '';
+			}
 
 			const fileName = path.basename(filePath);
 			const fileUri = vscode.Uri.file(filePath);
@@ -1074,7 +1082,8 @@ export class TaskProvider implements vscode.TreeDataProvider<TaskFileItem> {
 				timestampString,
 				priority,
 				tagsInFile,
-				multiDate
+				multiDate,
+				multiPriority
 			);
 			this.taskFileData.push(taskFile);
 
