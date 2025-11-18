@@ -1005,17 +1005,9 @@ export class TaskProvider implements vscode.TreeDataProvider<TaskFileItem> {
 			// Only read the full file if we found a hashtag in the preview
 			const content = await fs.promises.readFile(filePath, 'utf8');
 
-			// Check for primary hashtag or any hashtag if in 'all-tags' mode
-			const primaryHashtag = this.getPrimaryHashtag();
-			const hasTaskHashtag = primaryHashtag === 'all-tags'
-				? containsAnyConfiguredHashtag(content)
-				: content.includes(primaryHashtag);
-
-
 			// Look for timestamp, but it's optional now
-			// Only support the new standard format: [MM/DD/YYYY] or [MM/DD/YYYY HH:MM:SS AM/PM]
-			const timestampRegex = TIMESTAMP_REGEX;
-			const timestampMatch = content.match(timestampRegex);
+			// Only support the format: [MM/DD/YYYY] or [MM/DD/YYYY HH:MM:SS AM/PM]
+			const timestampMatch = content.match(TIMESTAMP_REGEX);
 
 			let parsedTimestamp: Date;
 			let timestampString: string;
@@ -1035,9 +1027,6 @@ export class TaskProvider implements vscode.TreeDataProvider<TaskFileItem> {
 			// Detect priority
 			const priority = this.detectPriorityFromContent(content);
 
-			// Check if task is completed
-			//const isCompleted = isDoneTask;
-
 			const fileName = path.basename(filePath);
 			const fileUri = vscode.Uri.file(filePath);
 
@@ -1051,7 +1040,6 @@ export class TaskProvider implements vscode.TreeDataProvider<TaskFileItem> {
 				parsedTimestamp,
 				timestampString,
 				priority,
-				// isCompleted,
 				tagsInFile
 			);
 			this.taskFileData.push(taskFile);
