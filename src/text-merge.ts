@@ -3,9 +3,9 @@ import * as vscode from 'vscode';
 /**
  * Merges sentences using double-period delimiters (.. or . . or .  . or .   .).
  * Splits text on double periods, capitalizes first letter of each sentence,
- * lowercases other words, removes internal periods, and adds single period at end.
+ * lowercases other words, removes internal periods/question marks/exclamation points, and adds single period at end.
  * 
- * Example: "I like to. shop at. the mall.. This is. another. sentence.."
+ * Example: "I like to. shop at! the mall.. This is. another? sentence.."
  *          becomes "I like to shop at the mall. This is another sentence."
  * 
  * @returns Promise that resolves when the operation is complete
@@ -38,8 +38,12 @@ export async function mergeSentences(): Promise<void> {
 	// Process each sentence
 	const processedSentences = sentences
 		.map(sentence => {
-			// Remove all periods from the sentence
-			let cleaned = sentence.replace(/\./g, '');
+			// Remove all periods, question marks, and exclamation points from the sentence
+			let cleaned = sentence.replace(/[.?!]/g, '');
+			
+			// Remove spaces before commas. Spaces before commas are just a common sequence that pops up during 
+			// the use of narration so we simply want to remove those spaces.
+			cleaned = cleaned.replace(/\s+,/g, ',');
 			
 			// Trim whitespace
 			cleaned = cleaned.trim();
@@ -49,22 +53,27 @@ export async function mergeSentences(): Promise<void> {
 				return '';
 			}
 			
-			// Split into words
-			const words = cleaned.split(/\s+/);
+			// Split by words but preserve the whitespace (including newlines) between them
+			const tokens = cleaned.split(/(\s+)/);
 			
-			// Capitalize first word, lowercase the rest
-			const processedWords = words.map((word, index) => {
-				if (index === 0) {
-					// Capitalize first letter of first word
-					return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+			let isFirstWord = true;
+			const processedTokens = tokens.map(token => {
+				// If it's whitespace (including newlines), preserve it as-is
+				if (/^\s+$/.test(token)) {
+					return token;
+				}
+				
+				// It's a word - capitalize first word, lowercase the rest
+				if (isFirstWord) {
+					isFirstWord = false;
+					return token.charAt(0).toUpperCase() + token.slice(1).toLowerCase();
 				} else {
-					// Lowercase all other words
-					return word.toLowerCase();
+					return token.toLowerCase();
 				}
 			});
 			
-			// Join words and add period at end
-			return processedWords.join(' ');
+			// Join tokens (words and whitespace are already interleaved) and add period at end
+			return processedTokens.join('');
 		})
 		.filter(s => s.length > 0); // Remove empty sentences
 	
