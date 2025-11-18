@@ -385,22 +385,32 @@ Fastest capture path—click +, enter a descriptive filename, and start typing.
 - **Options**:
   - **Insert Date+Time**: Inserts current date and time in full timestamp format `[MM/DD/YYYY HH:MM:SS AM/PM]`
   - **Insert Date**: Inserts current date only in short format `[MM/DD/YYYY]`
-  - **Merge Sentences** (when text is selected): Fixes incorrectly split sentences from speech-to-text by removing periods and lowercasing letters at sentence breaks
+  - **Merge Sentences** (when text is selected): Merges sentence fragments using double-period delimiters - splits on `..` or `. .` patterns, capitalizes first letter of each sentence, lowercases other words, removes single periods, and joins with proper punctuation
 - **Function**: Both timestamp commands insert at cursor position in the required bracket format
 
 **Merge Sentences Feature:**
 - **Keybinding**: `Alt+M` (works on all platforms)
-- **Purpose**: Fixes text dictated via speech-to-text that incorrectly adds periods, question marks, or exclamation points at pause points
-- **Motivation**: The VS Code Speech extension (and similar speech-to-text tools) often insert sentence-ending punctuation whenever you pause briefly while speaking, breaking what should be a single sentence into multiple fragments. So this Feature lets you be able to dictate a lot of text and then select it all and convert it into a single sentence after the speech engine has finished entering it into your text file. 
+- **Purpose**: Fixes text dictated via speech-to-text by merging sentence fragments using double-period delimiters
+- **Motivation**: The VS Code Speech extension (and similar speech-to-text tools) often insert periods at pause points within sentences. This feature lets you mark true sentence boundaries with double periods (e.g., `..` or `. .` or `.  .`) and automatically merge everything else into properly formatted sentences.
+- **How it works**: 
+  1. Splits text on double-period patterns (two periods with 0-3 spaces between them)
+  2. Within each sentence fragment, removes all single periods
+  3. Capitalizes the first letter of each sentence
+  4. Lowercases all other words
+  5. Joins sentences with proper punctuation (single period + space)
+- **Double-Period Delimiters**: Use any of these patterns to mark sentence boundaries:
+  - `..` (no space)
+  - `. .` (one space)
+  - `.  .` (two spaces)
+  - `.   .` (three spaces)
 - **Example**: 
-  - Before: `"I like to. Shop at. The mall for. Shoes."`
-  - After: `"I like to shop at the mall for shoes."`
-  - Also works with: `"Why did you? Go there?"` → `"Why did you go there?"`
-- **How it works**: Finds patterns of punctuation (`.`, `?`, `!`) + space + capital letter and removes the punctuation while lowercasing the letter
+  - Before: `"I like to. shop at. the mall.. This is. another. sentence.."`
+  - After: `"I like to shop at the mall. This is another sentence."`
 - **Usage**: 
-  1. Highlight the text with incorrectly split sentences
-  2. Press `Alt+M` (or right-click → Timex → Merge Sentences)
-  3. Status bar shows how many sentence breaks were merged
+  1. Dictate your text, using double periods (`..`) to mark true sentence boundaries
+  2. Select the text with sentence fragments
+  3. Press `Alt+M` (or right-click → Timex → Merge Sentences)
+  4. Status bar shows how many sentences were processed
 
 **In Panel:**
 - **Location**: Right-click on any item in the panel
