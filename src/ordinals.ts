@@ -467,3 +467,56 @@ export async function moveOrdinal(uri: vscode.Uri | undefined, direction: 'up' |
     const displayName = selectedSuffix || selectedName;
     vscode.window.showInformationMessage(`Moved "${displayName}" ${directionLabel}. New ordinal: ${newOrdinalDisplay}`);
 };
+
+export async function moveFileToFolder(uri: vscode.Uri | undefined): Promise<void> {
+    if (!uri) {
+        vscode.window.showErrorMessage('No file selected');
+        return;
+    }
+
+    const filePath = uri.fsPath;
+    const dirName = path.dirname(filePath);
+    const fileName = path.basename(filePath);
+    const ext = path.extname(fileName);
+    
+    // Determine folder name (strip extension)
+    // If file is "00030_my-test-file.md", folder will be "00030_my-test-file"
+    const folderName = path.basename(fileName, ext);
+    const newFolderPath = path.join(dirName, folderName);
+
+    try {
+        // Check if folder already exists
+        if (fs.existsSync(newFolderPath)) {
+            const stats = await fs.promises.stat(newFolderPath);
+            if (stats.isDirectory()) {
+                vscode.window.showErrorMessage(`Folder "${folderName}" already exists.`);
+                return;
+            }
+        }
+
+        // Create the new folder
+        await fs.promises.mkdir(newFolderPath);
+
+        // Determine new file name
+        // If file has ordinal prefix, rename to start with 00010_
+        let newFileName = fileName;
+        const ordinal = extractOrdinalFromFilename(fileName);
+        if (ordinal !== null) {
+            const nameWithoutPrefix = stripOrdinalPrefix(fileName);
+            newFileName = generateNumberPrefix(10) + nameWithoutPrefix;
+        }
+
+        // Move the file into the new folder
+        const newFilePath = path.join(newFolderPath, newFileName);
+        await fs.promises.rename(filePath, newFilePath);
+
+        // No need to refresh task provider explicitly as the file watcher should pick it up,
+        // but if we want to be sure we can. However, TaskProvider isn't passed here.
+        // The file watcher in extension.ts watches **/*.md, so it should handle the move (delete + create).
+
+    } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        vscode.window.showErrorMessage(`Failed to move file to folder: ${message}`);
+        console.error('Move to folder error:', error);
+    }
+}

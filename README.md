@@ -205,6 +205,29 @@ Need to tweak the order without renumbering everything? Use the **Move Up** and 
 
 These commands work for both files and folders that follow the ordinal pattern (`00010_name`). They are safe to use at the edges: if there is no item above or below, a friendly message lets you know nothing changed.
 
+### Move to Folder
+
+The **Move to Folder** command (Explorer → Timex submenu) helps you organize your markdown files by wrapping them in a dedicated folder. This is perfect when you realize a single file needs to grow into a folder containing attachments or related resources.
+
+**How to use:**
+1. Right-click any markdown file in the Explorer
+2. Select **Timex** → **"Move to Folder"**
+
+**What it does:**
+- Creates a new folder with the same name as your file (minus the `.md` extension)
+- Moves your markdown file into that new folder
+- **Smart Ordinal Handling**: If your file has an ordinal prefix (e.g., `00030_my-file.md`), the command:
+  - Creates the folder with the full ordinal name (`00030_my-file`)
+  - Renames the moved file to start the sequence inside the folder (`00010_my-file.md`)
+  - This ensures your file becomes the first item in the new folder's sequence
+
+**Example:**
+- **Input**: `00030_vacation-plans.md`
+- **Action**: Run "Move to Folder"
+- **Result**:
+  - Folder created: `00030_vacation-plans/`
+  - File moved & renamed: `00030_vacation-plans/00010_vacation-plans.md`
+
 This system gives you the benefits of ordered organization while maintaining the flexibility to reorganize as your project evolves.
 
 ### Generate Markdown Indexes

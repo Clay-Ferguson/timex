@@ -193,6 +193,11 @@
         "icon": "$(arrow-down)"
       },
       {
+        "command": "timex.moveFileToFolder",
+        "title": "Move to Folder",
+        "icon": "$(new-folder)"
+      },
+      {
         "command": "timex.fixAttachmentLinks",
         "title": "Fix Attachment Links",
         "icon": "$(link)"
@@ -472,6 +477,12 @@
           "group": "3_move@2",
           "when": "resourceScheme == 'file' && resourceFilename =~ /^\\d+_.+/",
           "icon": "$(arrow-down)"
+        },
+        {
+          "command": "timex.moveFileToFolder",
+          "group": "3_move@3",
+          "when": "resourceScheme == 'file' && resourceFilename =~ /\\.md$/",
+          "icon": "$(new-folder)"
         }
       ]
     }
