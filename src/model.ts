@@ -20,7 +20,8 @@ export class TaskFile {
 		public readonly timestamp: Date,
 		public readonly timestampString: string,
 		public readonly priority: PriorityTag.High | PriorityTag.Medium | PriorityTag.Low | '',
-		public readonly tagsInFile: Set<string> = new Set<string>()
+		public readonly tagsInFile: Set<string> = new Set<string>(),
+		public readonly multiDate: boolean = false
 	) { }
 }
 
@@ -56,9 +57,10 @@ export class TaskProvider implements vscode.TreeDataProvider<TaskFileItem> {
 	 * @param label The task label with icons and formatting
 	 * @param timestampString The raw timestamp string from the file
 	 * @param filePath The absolute path to the task file
+	 * @param multiDate Whether the file contains multiple dates
 	 * @returns A MarkdownString tooltip
 	 */
-	private createTaskTooltip(label: string, timestampString: string, filePath: string): vscode.MarkdownString {
+	private createTaskTooltip(label: string, timestampString: string, filePath: string, multiDate: boolean = false): vscode.MarkdownString {
 		const timestampLine = timestampString.replace(/[\[\]]/g, '');
 		const cleaned = label.replace(/^([\p{Emoji_Presentation}\p{Extended_Pictographic}]|\S)+\s*(⚠️)?\s*\([^)]*\)\s*/u, '').trim();
 
@@ -97,6 +99,11 @@ export class TaskProvider implements vscode.TreeDataProvider<TaskFileItem> {
 		// If no day available, show just the timestamp
 		const codeContent = dayOfWeek ? `${timestampLine} -- ${dayOfWeek}` : timestampLine;
 		md.appendMarkdown(`*\n**${relativeDirectory}**\n\n\`${codeContent}\``);
+
+		if (multiDate) {
+			md.appendMarkdown(`\n\n🚫 **Warning**: Multiple dates detected in this file. This is not recommended.`);
+		}
+
 		return md;
 	}
 
@@ -275,6 +282,11 @@ export class TaskProvider implements vscode.TreeDataProvider<TaskFileItem> {
 			const content = fs.readFileSync(filePath, 'utf8');
 			const priority = this.detectPriorityFromContent(content);
 
+			// Check for multiple dates
+			const globalTimestampRegex = new RegExp(TIMESTAMP_REGEX.source, 'g');
+			const allMatches = content.match(globalTimestampRegex);
+			const multiDate = !!(allMatches && allMatches.length > 1);
+
 			// Update the task data
 			const oldTask = this.taskFileData[taskIndex];
 			const isCompleted = content.includes('#done');
@@ -287,7 +299,8 @@ export class TaskProvider implements vscode.TreeDataProvider<TaskFileItem> {
 				newTimestamp,
 				newTimestampString,
 				priority,
-				tagsInFile
+				tagsInFile,
+				multiDate
 			);
 			this.taskFileData[taskIndex] = updatedTask;
 
@@ -663,9 +676,15 @@ export class TaskProvider implements vscode.TreeDataProvider<TaskFileItem> {
 			const displayText = taskFile.fileName;
 			// Show days difference in parentheses at the beginning of the task description
 			// For overdue items, show warning icon immediately after priority icon
-			let label = isOverdue && isTodo
-				? `${icon}⚠️ (${daysDiff}) ${displayText}`
-				: `${icon} (${daysDiff}) ${displayText}`;
+			let labelPrefix = icon;
+			if (isOverdue && isTodo) {
+				labelPrefix += '⚠️';
+			}
+			if (taskFile.multiDate) {
+				labelPrefix += '🚫';
+			}
+
+			let label = `${labelPrefix} (${daysDiff}) ${displayText}`;
 
 			const treeItem = new TaskFileItem(
 				label,
@@ -679,7 +698,7 @@ export class TaskProvider implements vscode.TreeDataProvider<TaskFileItem> {
 			);
 
 			// Create markdown tooltip
-			treeItem.tooltip = this.createTaskTooltip(label, taskFile.timestampString, taskFile.filePath);
+			treeItem.tooltip = this.createTaskTooltip(label, taskFile.timestampString, taskFile.filePath, taskFile.multiDate);
 
 			// Set context value based on timestamp presence and far future status
 			// Check if task has a real timestamp (not the default 2050 one)
@@ -833,9 +852,15 @@ export class TaskProvider implements vscode.TreeDataProvider<TaskFileItem> {
 			const displayText = taskFile.fileName;
 			// Show days difference in parentheses at the beginning of the task description
 			// For overdue items, show warning icon immediately after priority icon
-			let label = isOverdue && isTodo
-				? `${icon}⚠️ (${daysDiff}) ${displayText}`
-				: `${icon} (${daysDiff}) ${displayText}`;
+			let labelPrefix = icon;
+			if (isOverdue && isTodo) {
+				labelPrefix += '⚠️';
+			}
+			if (taskFile.multiDate) {
+				labelPrefix += '🚫';
+			}
+
+			let label = `${labelPrefix} (${daysDiff}) ${displayText}`;
 
 			const treeItem = new TaskFileItem(
 				label,
@@ -849,7 +874,7 @@ export class TaskProvider implements vscode.TreeDataProvider<TaskFileItem> {
 			);
 
 			// Create markdown tooltip
-			treeItem.tooltip = this.createTaskTooltip(label, taskFile.timestampString, taskFile.filePath);
+			treeItem.tooltip = this.createTaskTooltip(label, taskFile.timestampString, taskFile.filePath, taskFile.multiDate);
 
 			// Set context value based on timestamp presence and far future status
 			// Check if task has a real timestamp (not the default 2050 one)
@@ -1011,8 +1036,16 @@ export class TaskProvider implements vscode.TreeDataProvider<TaskFileItem> {
 
 			let parsedTimestamp: Date;
 			let timestampString: string;
+			let multiDate = false;
 
 			if (timestampMatch) {
+				// Check for multiple dates
+				const globalTimestampRegex = new RegExp(TIMESTAMP_REGEX.source, 'g');
+				const allMatches = content.match(globalTimestampRegex);
+				if (allMatches && allMatches.length > 1) {
+					multiDate = true;
+				}
+
 				// Use existing timestamp if found (keep original string for display)
 				timestampString = timestampMatch[0];
 				const parsed = parseTimestamp(timestampString);
@@ -1040,7 +1073,8 @@ export class TaskProvider implements vscode.TreeDataProvider<TaskFileItem> {
 				parsedTimestamp,
 				timestampString,
 				priority,
-				tagsInFile
+				tagsInFile,
+				multiDate
 			);
 			this.taskFileData.push(taskFile);
 
