@@ -140,7 +140,6 @@ export async function deleteTask(item: any, taskProvider: TaskProvider) {
         vscode.window.showErrorMessage('No task selected');
         return;
     }
-
     const filePath = item.resourceUri.fsPath;
     const fileName = path.basename(filePath);
 

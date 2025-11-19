@@ -102,38 +102,6 @@ export function getExcludeGlobPattern(): string | undefined {
 }
 
 /**
- * DEPRECATED: Finds a folder in the workspace root that matches a wildcard pattern.
- * This function is no longer used since newTaskFolder now supports absolute paths.
- * The wildcard is assumed to be a leading asterisk representing a numeric prefix.
- * @param workspaceRoot The workspace root path
- * @param wildcardPattern The pattern like "*My Tasks"
- * @returns The actual folder name if found, or null if not found
- */
-/* Commented out - no longer used with absolute path support
-export function findFolderByWildcard(workspaceRoot: string, wildcardPattern: string): string | null {
-	if (!wildcardPattern.startsWith('*')) {
-		return wildcardPattern; // No wildcard, return as-is
-	}
-
-	const suffix = wildcardPattern.substring(1); // Remove the leading asterisk
-
-	try {
-		const entries = fs.readdirSync(workspaceRoot, { withFileTypes: true });
-
-		for (const entry of entries) {
-			if (entry.isDirectory() && entry.name.endsWith(suffix)) {
-				return entry.name;
-			}
-		}
-	} catch (error) {
-		console.error('Error scanning workspace root for wildcard folder:', error);
-	}
-
-	return null; // No matching folder found
-}
-*/
-
-/**
  * Reads all configured task hashtags from workspace settings.
  */
 export function getAllConfiguredHashtags(): string[] {
@@ -444,7 +412,7 @@ export function extractHashFromTimexFilename(filename: string): string | null {
 /**
  * Interface for attachment file information
  */
-export interface AttachmentInfo {
+export interface AttachmentInfo { // #todo-0: move to model.ts?
 	hash: string;
 	fullPath: string;
 	filename: string;
@@ -479,13 +447,14 @@ export async function buildAttachmentIndex(rootPath: string, excludePattern?: st
 	}
 	
 	return attachmentMap;
-}/**
+}
+
+/**
  * Parses a timestamp string into a Date object.
  * Supports formats: [MM/DD/YYYY] and [MM/DD/YYYY HH:MM:SS AM/PM]
  * @param timestampString The timestamp string to parse
  * @returns Date object or null if parsing failed
  */
-
 export function parseTimestamp(timestampString: string): Date | null {
 	try {
 		// Validate that the timestamp is properly wrapped in brackets
@@ -554,10 +523,10 @@ export function formatTimestamp(date: Date, includeTime: boolean = true): string
 	const ampm = date.getHours() >= 12 ? 'PM' : 'AM';
 	return `[${month}/${day}/${year} ${String(hours12).padStart(2, '0')}:${minutes}:${seconds} ${ampm}]`;
 }
+
 /**
  * Returns a friendly relative date description for a task due date.
  */
-
 export function getRelativeDateString(taskDate: Date): string {
 	const now = new Date();
 	const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -579,11 +548,11 @@ export function getRelativeDateString(taskDate: Date): string {
 
 	return `Due in ${diffDays} days`;
 }
+
 /**
  * Calculates the number of days between today and the task date.
  * Returns '?' for sentinel far future dates.
  */
-
 export function getDaysDifference(taskDate: Date): number | string {
 	if (taskDate.getFullYear() >= 2050) {
 		return '?';
@@ -596,10 +565,10 @@ export function getDaysDifference(taskDate: Date): number | string {
 	const diffMs = taskDay.getTime() - today.getTime();
 	return Math.round(diffMs / (1000 * 60 * 60 * 24));
 }
+
 /**
  * Determines whether a task date is more than a year in the future.
  */
-
 export function isFarFuture(taskDate: Date): boolean {
 	const now = new Date();
 	const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -610,10 +579,10 @@ export function isFarFuture(taskDate: Date): boolean {
 
 	return diffDays > 365;
 }
+
 /**
  * Determines the emoji icon to display for a task file based on its properties.
  */
-
 export function getIconForTaskFile(taskFile: {
 	priority: PriorityTag.High | PriorityTag.Medium | PriorityTag.Low | '';
 	tagsInFile: Set<string>;

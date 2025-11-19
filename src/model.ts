@@ -308,7 +308,6 @@ export class TaskProvider implements vscode.TreeDataProvider<TaskFileItem> {
 
 			// Update the task data
 			const oldTask = this.taskFileData[taskIndex];
-			const isCompleted = content.includes('#done');
 			// Find hashtags in the updated content
 			const tagsInFile = findHashtagsInContent(content);
 			const updatedTask = new TaskFile(
@@ -690,7 +689,6 @@ export class TaskProvider implements vscode.TreeDataProvider<TaskFileItem> {
 			const isOverdue = taskFile.timestamp < today;
 			const isFarFuture = isFarFutureDate(taskFile.timestamp);
 			const isTodo = taskFile.tagsInFile.has('#todo');
-
 			const icon = getIconForTaskFile(taskFile);
 
 			const displayText = taskFile.fileName;

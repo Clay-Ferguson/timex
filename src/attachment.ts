@@ -23,8 +23,6 @@ export async function insertAttachment() {
         return;
     }
 
-    const workspaceFolder = vscode.workspace.workspaceFolders[0];
-
     // Show file picker dialog
     const fileUris = await vscode.window.showOpenDialog({
         canSelectFiles: true,
@@ -123,9 +121,6 @@ export async function insertImageFromClipboard() {
     }
 
     try {
-        // Read image data from clipboard
-        const clipboardData = await vscode.env.clipboard.readText();
-
         // Try to read image from clipboard using VS Code's built-in API
         // Note: VS Code API doesn't directly support reading binary image data from clipboard
         // We need to use a workaround by executing a paste command and detecting the result

@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
-import { scanForNumberedItems, stripOrdinalPrefix, NumberedItem, getTitleFromFile } from './utils';
+import { scanForNumberedItems, stripOrdinalPrefix, NumberedItem } from './utils';
 
 const IMAGE_EXTENSIONS = new Set<string>([
 	'.png',
@@ -136,7 +136,6 @@ export class MarkdownFolderPreviewProvider implements vscode.TextDocumentContent
 			}
 
 			// Generate the markdown content
-			const folderName = path.basename(folderPath);
 			const markdown = await generateMarkdownForDirectory(folderPath);
 			
 			// Add a header with the folder name

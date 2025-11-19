@@ -232,7 +232,6 @@ export async function cutByOrdinal(
         vscode.window.showErrorMessage('No file or folder selected');
         return;
     }
-
     const filePath = uri.fsPath;
 
     try {
@@ -461,7 +460,6 @@ export async function moveOrdinal(uri: vscode.Uri | undefined, direction: 'up' |
     }
 
     taskProvider.refresh();
-
     const directionLabel = direction === 'up' ? 'up' : 'down';
     const newOrdinalDisplay = String(neighborOrdinal).padStart(5, '0');
     const displayName = selectedSuffix || selectedName;

@@ -1,15 +1,11 @@
-// The module 'vscode' contains the VS Code extensibility API 
-// Import the module and reference it with the alias vscode in your code below
 import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
 import { TaskProvider } from './model';
 import {
-	containsAnyConfiguredHashtag,
 	getIncludeGlobPattern,
 	TIMESTAMP_REGEX,
 } from './utils';
-import { formatTimestamp } from './utils';
 import { ViewFilter, PriorityTag } from './constants';
 import { TimexFilterPanel } from './filter-panel/filterPanel';
 import { MarkdownFolderPreviewProvider } from './markdownFolderPreviewProvider';
@@ -37,14 +33,6 @@ function setupFileWatcher(context: vscode.ExtensionContext, taskProvider: TaskPr
 			const filePath = uri.fsPath;
 			const content = await vscode.workspace.fs.readFile(uri);
 			const contentString = Buffer.from(content).toString('utf8');
-
-			// Check if it's a task file
-			const primaryHashtag = taskProvider.getPrimaryHashtag();
-			const hasTaskHashtag = primaryHashtag === 'all-tags'
-				? containsAnyConfiguredHashtag(contentString)
-				: contentString.includes(primaryHashtag);
-			const isDoneTask = contentString.includes('#done');
-
 
 			// Look for timestamp in the file
 			// Only support new standard [MM/DD/YYYY] or [MM/DD/YYYY HH:MM:SS AM/PM]
