@@ -1,7 +1,6 @@
 import * as vscode from 'vscode';
-import * as fs from 'fs';
 import * as path from 'path';
-import { formatTimestamp, ws_rename } from './utils';
+import { formatTimestamp, ws_rename, ws_exists, ws_mkdir, ws_write_file, ws_delete } from './utils';
 import { PriorityTag } from './constants';
 import { TaskProvider } from './model';
 
@@ -33,9 +32,9 @@ export async function newTask(taskProvider: TaskProvider) {
         }
 
         // Create the folder if it doesn't exist
-        if (!fs.existsSync(targetPath)) {
+        if (!(await ws_exists(targetPath))) {
             try {
-                fs.mkdirSync(targetPath, { recursive: true });
+                await ws_mkdir(targetPath);
             } catch (error) {
                 vscode.window.showErrorMessage(`Failed to create task folder: ${error}`);
                 return;
@@ -76,7 +75,7 @@ export async function newTask(taskProvider: TaskProvider) {
     let filePath = path.join(targetPath, fileName);
 
     // Check if file already exists
-    if (fs.existsSync(filePath)) {
+    if (await ws_exists(filePath)) {
         const overwrite = await vscode.window.showWarningMessage(
             `File "${fileName}" already exists. Do you want to overwrite it?`,
             { modal: true },
@@ -119,7 +118,7 @@ export async function newTask(taskProvider: TaskProvider) {
 
     try {
         // Write the file
-        fs.writeFileSync(filePath, taskContent, 'utf8');
+        await ws_write_file(filePath, taskContent);
 
         // Open the file in the editor
         const fileUri = vscode.Uri.file(filePath);
@@ -154,7 +153,7 @@ export async function deleteTask(item: any, taskProvider: TaskProvider) {
     if (answer === 'Delete') {
         try {
             // Delete the file
-            await fs.promises.unlink(filePath);
+            await ws_delete(filePath);
 
             // Refresh the task view to remove the deleted item
             taskProvider.refresh();

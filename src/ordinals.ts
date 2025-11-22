@@ -1,7 +1,6 @@
 import * as vscode from 'vscode';
-import * as fs from 'fs';
 import * as path from 'path';
-import { generateNextOrdinalFilename, renumberItems, scanForNumberedItems, verifyNamesAreUnique, stripOrdinalPrefix, extractOrdinalFromFilename, generateNumberPrefix, NumberedItem, ws_rename } from './utils';
+import { generateNextOrdinalFilename, renumberItems, scanForNumberedItems, verifyNamesAreUnique, stripOrdinalPrefix, extractOrdinalFromFilename, generateNumberPrefix, NumberedItem, ws_rename, ws_read_directory, ws_stat, ws_write_file, ws_exists, ws_mkdir } from './utils';
 import { TaskProvider } from './model';
 
 export interface OrdinalClipboardItem {
@@ -32,23 +31,23 @@ async function findAllDirectories(rootPath: string, excludePatterns: string[] = 
 
     async function scanDirectory(dirPath: string): Promise<void> {
         try {
-            const entries = await fs.promises.readdir(dirPath, { withFileTypes: true });
+            const entries = await ws_read_directory(dirPath);
 
-            for (const entry of entries) {
-                if (!entry.isDirectory()) {
+            for (const [name, type] of entries) {
+                if (type !== vscode.FileType.Directory) {
                     continue;
                 }
 
                 // Skip hidden directories and excluded directories
-                if (entry.name.startsWith('.') || entry.name.startsWith('_')) {
+                if (name.startsWith('.') || name.startsWith('_')) {
                     continue;
                 }
 
-                if (allExcludes.includes(entry.name)) {
+                if (allExcludes.includes(name)) {
                     continue;
                 }
 
-                const subDirPath = path.join(dirPath, entry.name);
+                const subDirPath = path.join(dirPath, name);
                 directories.push(subDirPath);
 
                 // Recursively scan subdirectories
@@ -100,20 +99,20 @@ export async function renumberFiles() {
                     // Check if directory exists and is accessible
                     let dirStats;
                     try {
-                        dirStats = await fs.promises.stat(directory);
+                        dirStats = await ws_stat(directory);
                     } catch (statError) {
                         // Directory doesn't exist or isn't accessible - skip silently
                         console.log(`Skipping inaccessible directory: ${directory}`);
                         continue;
                     }
 
-                    if (!dirStats.isDirectory()) {
+                    if ((dirStats.type & vscode.FileType.Directory) === 0) {
                         // Not a directory - skip silently
                         continue;
                     }
 
                     // Scan for numbered items in this directory
-                    const numberedItems = scanForNumberedItems(directory);
+                    const numberedItems = await scanForNumberedItems(directory);
 
                     // Skip directories without ordinal files (silently) - this includes empty directories
                     if (numberedItems.length === 0) {
@@ -193,7 +192,7 @@ export async function insertOrdinalFile(uri: vscode.Uri) {
         }
 
         // Check if the new file already exists
-        if (fs.existsSync(nextOrdinalInfo.fullPath)) {
+        if (await ws_exists(nextOrdinalInfo.fullPath)) {
             const overwrite = await vscode.window.showWarningMessage(
                 `File "${nextOrdinalInfo.filename}" already exists. Do you want to overwrite it?`,
                 { modal: true },
@@ -207,7 +206,7 @@ export async function insertOrdinalFile(uri: vscode.Uri) {
         }
 
         // Create the new empty file
-        fs.writeFileSync(nextOrdinalInfo.fullPath, '', 'utf8');
+        await ws_write_file(nextOrdinalInfo.fullPath, '');
 
         // Open the file in the editor
         const fileUri = vscode.Uri.file(nextOrdinalInfo.fullPath);
@@ -235,7 +234,7 @@ export async function cutByOrdinal(
     const filePath = uri.fsPath;
 
     try {
-        const stats = await fs.promises.lstat(filePath);
+        const stats = await ws_stat(filePath);
         const baseName = path.basename(filePath);
         const nameWithoutPrefix = stripOrdinalPrefix(baseName);
 
@@ -243,7 +242,7 @@ export async function cutByOrdinal(
             sourcePath: filePath,
             originalName: baseName,
             nameWithoutPrefix,
-            isDirectory: stats.isDirectory()
+            isDirectory: (stats.type & vscode.FileType.Directory) !== 0
         };
 
         setClipboard(clipboardItem);
@@ -288,7 +287,7 @@ export async function pasteByOrdinal(
     const targetDirectory = path.dirname(targetPath);
 
     try {
-        await fs.promises.lstat(clipboardItem.sourcePath);
+        await ws_stat(clipboardItem.sourcePath);
     } catch {
         vscode.window.showErrorMessage('The original item can no longer be found.');
         resetClipboard();
@@ -318,7 +317,7 @@ export async function pasteByOrdinal(
                 performedRenames.push({ from: tempPath, to: clipboardItem.sourcePath });
 
                 progress.report({ message: 'Shifting existing ordinals...' });
-                const numberedItems = scanForNumberedItems(targetDirectory);
+                const numberedItems = await scanForNumberedItems(targetDirectory);
                 const itemsToShift = numberedItems
                     .filter(item => {
                         const ordinal = extractOrdinalFromFilename(item.originalName);
@@ -390,7 +389,7 @@ export async function moveOrdinal(uri: vscode.Uri | undefined, direction: 'up' |
     const directory = path.dirname(selectedPath);
     let numberedItems: NumberedItem[];
     try {
-        numberedItems = scanForNumberedItems(directory);
+        numberedItems = await scanForNumberedItems(directory);
     } catch (error: any) {
         const message = error instanceof Error ? error.message : String(error);
         vscode.window.showErrorMessage(`Failed to scan directory: ${message}`);
@@ -446,7 +445,7 @@ export async function moveOrdinal(uri: vscode.Uri | undefined, direction: 'up' |
     } catch (error: any) {
         for (const operation of performedRenames.reverse()) {
             try {
-                if (fs.existsSync(operation.from)) {
+                if (await ws_exists(operation.from)) {
                     await ws_rename(operation.from, operation.to);
                 }
             } catch (revertError) {
@@ -484,16 +483,16 @@ export async function moveFileToFolder(uri: vscode.Uri | undefined): Promise<voi
 
     try {
         // Check if folder already exists
-        if (fs.existsSync(newFolderPath)) {
-            const stats = await fs.promises.stat(newFolderPath);
-            if (stats.isDirectory()) {
+        if (await ws_exists(newFolderPath)) {
+            const stats = await ws_stat(newFolderPath);
+            if ((stats.type & vscode.FileType.Directory) !== 0) {
                 vscode.window.showErrorMessage(`Folder "${folderName}" already exists.`);
                 return;
             }
         }
 
         // Create the new folder
-        await fs.promises.mkdir(newFolderPath);
+        await ws_mkdir(newFolderPath);
 
         // Determine new file name
         // If file has ordinal prefix, rename to start with 00010_

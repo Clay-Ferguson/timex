@@ -1,7 +1,6 @@
 import * as vscode from 'vscode';
-import * as fs from 'fs';
 import * as path from 'path';
-import { containsAnyConfiguredHashtag, findHashtagsInContent, getAllConfiguredHashtags, getIncludeGlobPattern, getExcludeGlobPattern, TIMESTAMP_REGEX } from './utils';
+import { findHashtagsInContent, getAllConfiguredHashtags, getIncludeGlobPattern, getExcludeGlobPattern, TIMESTAMP_REGEX, ws_read_file, ws_read_directory } from './utils';
 import { getIconForTaskFile } from './utils';
 import { isFarFuture as isFarFutureDate } from './utils';
 import { getDaysDifference } from './utils';
@@ -293,7 +292,7 @@ export class TaskProvider implements vscode.TreeDataProvider<TaskFileItem> {
 			}
 
 			// Re-read the file to get updated priority and content
-			const content = fs.readFileSync(filePath, 'utf8');
+			const content = await ws_read_file(filePath);
 			let priority = this.detectPriorityFromContent(content);
 			let multiPriority = false;
 			if (priority === null) {
@@ -749,7 +748,7 @@ export class TaskProvider implements vscode.TreeDataProvider<TaskFileItem> {
 				const fileNameMatch = taskFile.fileName.toLowerCase().includes(searchQuery);
 
 				// Check if file content contains search query
-				const content = await fs.promises.readFile(taskFile.filePath, 'utf8');
+				const content = await ws_read_file(taskFile.filePath);
 				const contentMatch = content.toLowerCase().includes(searchQuery);
 
 				if (fileNameMatch || contentMatch) {
@@ -971,15 +970,15 @@ export class TaskProvider implements vscode.TreeDataProvider<TaskFileItem> {
 	// scanMarkdownFilesOptimized method.
 	private async scanDirectory(dirPath: string): Promise<void> {
 		try {
-			const entries = await fs.promises.readdir(dirPath, { withFileTypes: true });
+			const entries = await ws_read_directory(dirPath);
 
-			for (const entry of entries) {
-				const fullPath = path.join(dirPath, entry.name);
+			for (const [name, type] of entries) {
+				const fullPath = path.join(dirPath, name);
 
 				// Skip node_modules, .git, and other common directories we don't want to scan
-				if (entry.isDirectory() && !this.shouldSkipDirectory(entry.name)) {
+				if ((type & vscode.FileType.Directory) !== 0 && !this.shouldSkipDirectory(name)) {
 					await this.scanDirectory(fullPath);
-				} else if (entry.isFile() && this.isTaskFile(entry.name)) {
+				} else if ((type & vscode.FileType.File) !== 0 && this.isTaskFile(name)) {
 					await this.scanFile(fullPath);
 				}
 			}
@@ -1011,7 +1010,7 @@ export class TaskProvider implements vscode.TreeDataProvider<TaskFileItem> {
 			this.scannedFiles.add(filePath);
 
 			// Read the full file content
-			const content = await fs.promises.readFile(filePath, 'utf8');
+			const content = await ws_read_file(filePath);
 
 			// Check for hashtags in the full content
 			const primaryHashtag = this.getPrimaryHashtag();

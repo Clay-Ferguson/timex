@@ -1,7 +1,6 @@
 import * as vscode from 'vscode';
-import * as fs from 'fs';
 import * as path from 'path';
-import { formatTimestamp, parseTimestamp, TIMESTAMP_REGEX } from './utils';
+import { formatTimestamp, parseTimestamp, TIMESTAMP_REGEX, ws_read_file, ws_write_file } from './utils';
 import { TaskProvider } from './model';
 
 /**
@@ -21,7 +20,7 @@ export async function addTimeToTask(item: any, amount: number, unit: 'day' | 'we
 
     try {
         // Read the file content
-        const content = fs.readFileSync(filePath, 'utf8');
+        const content = await ws_read_file(filePath);
 
         // Find existing timestamp
         const timestampMatch = content.match(TIMESTAMP_REGEX);
@@ -68,7 +67,7 @@ export async function addTimeToTask(item: any, amount: number, unit: 'day' | 'we
         const newContent = content.replace(currentTimestampString, newTimestampString);
 
         // Write the updated content back to the file
-        fs.writeFileSync(filePath, newContent, 'utf8');
+        await ws_write_file(filePath, newContent);
 
         // Update just this single task instead of refreshing the entire view
         await taskProvider.updateSingleTask(filePath, newTimestampString);

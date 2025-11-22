@@ -1,7 +1,6 @@
 import * as vscode from 'vscode';
-import * as fs from 'fs';
 import * as path from 'path';
-import { scanForNumberedItems, stripOrdinalPrefix, NumberedItem } from './utils';
+import { scanForNumberedItems, stripOrdinalPrefix, NumberedItem, ws_read_file, ws_stat } from './utils';
 
 const IMAGE_EXTENSIONS = new Set<string>([
 	'.png',
@@ -22,7 +21,7 @@ const IMAGE_EXTENSIONS = new Set<string>([
 async function generateMarkdownForDirectory(directory: string): Promise<string> {
 	let numberedItems: NumberedItem[];
 	try {
-		numberedItems = scanForNumberedItems(directory);
+		numberedItems = await scanForNumberedItems(directory);
 	} catch (error: any) {
 		throw new Error(`Failed to scan directory: ${error instanceof Error ? error.message : String(error)}`);
 	}
@@ -68,7 +67,7 @@ async function generateMarkdownForDirectory(directory: string): Promise<string> 
 			} else if (extension === '.md') {
 				// For markdown files, include their content with a clickable link to open in editor
 				try {
-					const contents = await fs.promises.readFile(item.fullPath, 'utf8');
+					const contents = await ws_read_file(item.fullPath);
 					const strippedName = stripOrdinalPrefix(item.originalName) || item.originalName;
 					
 					// Create a clickable link that opens the file in the editor
@@ -127,8 +126,8 @@ export class MarkdownFolderPreviewProvider implements vscode.TextDocumentContent
 
 			// Verify the folder exists
 			try {
-				const stat = await fs.promises.stat(folderPath);
-				if (!stat.isDirectory()) {
+				const stat = await ws_stat(folderPath);
+				if ((stat.type & vscode.FileType.Directory) === 0) {
 					return `# Error\n\nThe path "${folderPath}" is not a directory.`;
 				}
 			} catch (error) {

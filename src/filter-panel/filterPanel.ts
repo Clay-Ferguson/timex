@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
-import * as fs from 'fs';
 import { PriorityTag, ViewFilter } from '../constants';
+import { ws_read_file } from '../utils';
 
 export class TimexFilterPanel {
     private static currentPanel: TimexFilterPanel | undefined;
@@ -22,21 +22,7 @@ export class TimexFilterPanel {
         this.panel = panel;
 
         try {
-            // Load CSS if not already cached
-            if (!TimexFilterPanel.cachedCss) {
-                TimexFilterPanel.cachedCss = this.loadCss(extensionPath);
-            }
-
-            // Load JS if not already cached
-            if (!TimexFilterPanel.cachedJs) {
-                TimexFilterPanel.cachedJs = this.loadJs(extensionPath);
-            }
-
-            // Load HTML if not already cached
-            if (!TimexFilterPanel.cachedHtml) {
-                TimexFilterPanel.cachedHtml = this.loadHtml(extensionPath);
-            }
-
+            // Resources are pre-loaded in show()
             this.panel.webview.html = this.getHtmlContent();
         } catch (error) {
             console.error('[TimexFilterPanel] Error during initialization:', error);
@@ -80,7 +66,7 @@ export class TimexFilterPanel {
         this.panel.onDidDispose(() => this.dispose(), null, this.disposables);
     }
 
-    public static show(
+    public static async show(
         extensionUri: vscode.Uri,
         onFilterApplied: (priority: PriorityTag, viewFilter: ViewFilter, searchQuery: string) => void,
         currentPriority: PriorityTag,
@@ -92,6 +78,17 @@ export class TimexFilterPanel {
             if (TimexFilterPanel.currentPanel) {
                 TimexFilterPanel.currentPanel.panel.reveal();
                 return;
+            }
+
+            // Load resources if not already cached
+            if (!TimexFilterPanel.cachedCss) {
+                TimexFilterPanel.cachedCss = await TimexFilterPanel.loadCss(extensionUri.fsPath);
+            }
+            if (!TimexFilterPanel.cachedJs) {
+                TimexFilterPanel.cachedJs = await TimexFilterPanel.loadJs(extensionUri.fsPath);
+            }
+            if (!TimexFilterPanel.cachedHtml) {
+                TimexFilterPanel.cachedHtml = await TimexFilterPanel.loadHtml(extensionUri.fsPath);
             }
 
             // Create a new panel
@@ -120,25 +117,25 @@ export class TimexFilterPanel {
         }
     }
 
-    private loadFile(extensionPath: string, filename: string, fallbackContent: string): string {
+    private static async loadFile(extensionPath: string, filename: string, fallbackContent: string): Promise<string> {
         try {
             const filePath = path.join(extensionPath, 'out', 'filter-panel', filename);
-            return fs.readFileSync(filePath, 'utf8');
+            return await ws_read_file(filePath);
         } catch (error) {
             console.error(`Failed to load ${filename}:`, error);
             return fallbackContent;
         }
     }
 
-    private loadCss(extensionPath: string): string {
+    private static async loadCss(extensionPath: string): Promise<string> {
         return this.loadFile(extensionPath, 'filterPanel.css', '/* CSS file not found */');
     }
 
-    private loadJs(extensionPath: string): string {
+    private static async loadJs(extensionPath: string): Promise<string> {
         return this.loadFile(extensionPath, 'filterPanelWebview.js', '/* JS file not found */');
     }
 
-    private loadHtml(extensionPath: string): string {
+    private static async loadHtml(extensionPath: string): Promise<string> {
         return this.loadFile(extensionPath, 'filterPanel.html', '<!DOCTYPE html><html><body>HTML template not found</body></html>');
     }
 

@@ -1,10 +1,11 @@
 import * as vscode from 'vscode';
-import * as fs from 'fs';
 import * as path from 'path';
 import { TaskProvider } from './model';
 import {
 	getIncludeGlobPattern,
 	TIMESTAMP_REGEX,
+	ws_exists,
+	ws_read_file,
 } from './utils';
 import { ViewFilter, PriorityTag } from './constants';
 import { TimexFilterPanel } from './filter-panel/filterPanel';
@@ -31,8 +32,7 @@ function setupFileWatcher(context: vscode.ExtensionContext, taskProvider: TaskPr
 			await new Promise(resolve => setTimeout(resolve, 100));
 
 			const filePath = uri.fsPath;
-			const content = await vscode.workspace.fs.readFile(uri);
-			const contentString = Buffer.from(content).toString('utf8');
+			const contentString = await ws_read_file(filePath);
 
 			// Look for timestamp in the file
 			// Only support new standard [MM/DD/YYYY] or [MM/DD/YYYY HH:MM:SS AM/PM]
@@ -187,13 +187,13 @@ export function activate(context: vscode.ExtensionContext) {
 		}
 	});
 
-	const openFilterPanelCommand = vscode.commands.registerCommand('timex.openFilterPanel', () => {
+	const openFilterPanelCommand = vscode.commands.registerCommand('timex.openFilterPanel', async () => {
 		try {
 			const currentPriority = taskProvider.getCurrentPriorityFilter();
 			const currentViewFilter = taskProvider.getCurrentViewFilter();
 			const currentSearchQuery = taskProvider.getCurrentSearchQuery();
 			
-			TimexFilterPanel.show(
+			await TimexFilterPanel.show(
 				context.extensionUri,
 				(priority: PriorityTag, viewFilter: ViewFilter, searchQuery: string) => {
 					// Apply all filters at once to avoid side effects of clearing other filters
@@ -220,12 +220,12 @@ export function activate(context: vscode.ExtensionContext) {
 			
 			// Try both uppercase and lowercase versions since vsce may lowercase the filename
 			let readmePath = path.join(extensionPath, 'README.md');
-			if (!fs.existsSync(readmePath)) {
+			if (!await ws_exists(readmePath)) {
 				readmePath = path.join(extensionPath, 'readme.md');
 			}
 			
 			// Verify the README file exists
-			if (!fs.existsSync(readmePath)) {
+			if (!await ws_exists(readmePath)) {
 				vscode.window.showErrorMessage(
 					`README.md not found in extension directory. ` +
 					`Checked: ${path.join(extensionPath, 'README.md')} and ${path.join(extensionPath, 'readme.md')}. ` +

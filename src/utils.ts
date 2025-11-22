@@ -1,4 +1,3 @@
-import * as fs from 'fs';
 import * as path from 'path';
 import * as vscode from 'vscode';
 import * as crypto from 'crypto';
@@ -27,11 +26,73 @@ export async function ws_rename(oldPath: string, newPath: string, options: { ove
 }
 
 /**
+ * Helper to read file content using VS Code API.
+ */
+export async function ws_read_file(filePath: string): Promise<string> {
+	const uri = vscode.Uri.file(filePath);
+	const uint8Array = await vscode.workspace.fs.readFile(uri);
+	return new TextDecoder().decode(uint8Array);
+}
+
+/**
+ * Helper to write file content using VS Code API.
+ */
+export async function ws_write_file(filePath: string, content: string | Uint8Array): Promise<void> {
+	const uri = vscode.Uri.file(filePath);
+	const data = typeof content === 'string' ? new TextEncoder().encode(content) : content;
+	await vscode.workspace.fs.writeFile(uri, data);
+}
+
+/**
+ * Helper to delete a file or directory using VS Code API.
+ */
+export async function ws_delete(filePath: string, options: { recursive: boolean; useTrash: boolean } = { recursive: false, useTrash: false }): Promise<void> {
+	const uri = vscode.Uri.file(filePath);
+	await vscode.workspace.fs.delete(uri, options);
+}
+
+/**
+ * Helper to create a directory using VS Code API.
+ */
+export async function ws_mkdir(dirPath: string): Promise<void> {
+	const uri = vscode.Uri.file(dirPath);
+	await vscode.workspace.fs.createDirectory(uri);
+}
+
+/**
+ * Helper to get file stats using VS Code API.
+ */
+export async function ws_stat(filePath: string): Promise<vscode.FileStat> {
+	const uri = vscode.Uri.file(filePath);
+	return await vscode.workspace.fs.stat(uri);
+}
+
+/**
+ * Helper to check if a file exists using VS Code API.
+ */
+export async function ws_exists(filePath: string): Promise<boolean> {
+	try {
+		await ws_stat(filePath);
+		return true;
+	} catch {
+		return false;
+	}
+}
+
+/**
+ * Helper to read directory contents using VS Code API.
+ */
+export async function ws_read_directory(dirPath: string): Promise<[string, vscode.FileType][]> {
+	const uri = vscode.Uri.file(dirPath);
+	return await vscode.workspace.fs.readDirectory(uri);
+}
+
+/**
  * Extracts the first meaningful line from a file to use as a title
  */
 export async function getTitleFromFile(filePath: string): Promise<string | null> {
 	try {
-		const data = await fs.promises.readFile(filePath, 'utf8');
+		const data = await ws_read_file(filePath);
 		const lines = data.split(/\r?\n/);
 		for (const rawLine of lines) {
 			const line = rawLine.trim();
@@ -175,25 +236,25 @@ const NUMBERED_ITEM_REGEX = /^(\d+)_(.*)$/;
  * @param workspaceRoot The workspace root directory path
  * @returns Array of NumberedItem objects sorted by current numeric order (preserves existing sequence)
  */
-export function scanForNumberedItems(workspaceRoot: string): NumberedItem[] {
+export async function scanForNumberedItems(workspaceRoot: string): Promise<NumberedItem[]> {
 	try {
-		const entries = fs.readdirSync(workspaceRoot, { withFileTypes: true });
+		const entries = await ws_read_directory(workspaceRoot);
 		const numberedItems: NumberedItem[] = [];
 
-		for (const entry of entries) {
+		for (const [name, type] of entries) {
 			// Skip hidden files/folders (starting with . or _)
-			if (entry.name.startsWith('.') || entry.name.startsWith('_')) {
+			if (name.startsWith('.') || name.startsWith('_')) {
 				continue;
 			}
 
-			const match = entry.name.match(NUMBERED_ITEM_REGEX);
+			const match = name.match(NUMBERED_ITEM_REGEX);
 			if (match) {
 				const nameWithoutPrefix = match[2];
 				numberedItems.push({
-					originalName: entry.name,
+					originalName: name,
 					nameWithoutPrefix,
-					isDirectory: entry.isDirectory(),
-					fullPath: path.join(workspaceRoot, entry.name)
+					isDirectory: type === vscode.FileType.Directory,
+					fullPath: path.join(workspaceRoot, name)
 				});
 			}
 		}
@@ -373,29 +434,16 @@ export function isImageFileName(filename: string): boolean {
  * @returns A promise that resolves to the hash string in hexadecimal format
  */
 export async function generateFileHash(filePath: string): Promise<string> {
-	return new Promise((resolve, reject) => {
-		try {
-			const hash = crypto.createHash('sha256');
-			const stream = fs.createReadStream(filePath);
-
-			stream.on('data', (data) => {
-				hash.update(data);
-			});
-
-			stream.on('end', () => {
-				// Get full SHA-256 hash (64 hex chars) and truncate to 128 bits (32 hex chars)
-				const fullHash = hash.digest('hex');
-				const hash128 = fullHash.substring(0, 32);
-				resolve(hash128);
-			});
-
-			stream.on('error', (error) => {
-				reject(new Error(`Failed to read file for hashing: ${error.message}`));
-			});
-		} catch (error) {
-			reject(error);
-		}
-	});
+	try {
+		const uri = vscode.Uri.file(filePath);
+		const data = await vscode.workspace.fs.readFile(uri);
+		const hash = crypto.createHash('sha256');
+		hash.update(data);
+		const fullHash = hash.digest('hex');
+		return fullHash.substring(0, 32);
+	} catch (error: any) {
+		throw new Error(`Failed to read file for hashing: ${error.message}`);
+	}
 }
 
 /**

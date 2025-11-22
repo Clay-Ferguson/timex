@@ -1,8 +1,7 @@
 import * as vscode from 'vscode';
-import * as fs from 'fs';
 import * as path from 'path';
 import * as crypto from 'crypto';
-import { buildAttachmentIndex, extractHashFromTimexFilename, generateFileHash, isImageFileName, TIMEX_LINK_REGEX, ws_rename } from './utils';
+import { buildAttachmentIndex, extractHashFromTimexFilename, generateFileHash, isImageFileName, TIMEX_LINK_REGEX, ws_rename, ws_read_file, ws_write_file, ws_exists } from './utils';
 
 export async function insertAttachment() {
     const editor = vscode.window.activeTextEditor;
@@ -186,7 +185,7 @@ export async function insertImageFromClipboard() {
         const filePath = path.join(markdownDir, fileName);
 
         // Save the image file
-        await fs.promises.writeFile(filePath, imageBuffer);
+        await ws_write_file(filePath, imageBuffer);
 
         // Calculate relative path (in this case, it's just the filename since it's in the same directory)
         const relativePath = fileName;
@@ -257,12 +256,18 @@ export async function fixAttachmentLinks(uri: vscode.Uri) {
                 const mdFilePath = mdFileUri.fsPath;
                 const mdFileDir = path.dirname(mdFilePath);
 
-                let content = await fs.promises.readFile(mdFilePath, 'utf8');
+                let content = await ws_read_file(mdFilePath);
                 let modified = false;
                 let linksFixedInFile = 0;
 
                 // Find all TIMEX- pattern links in the file
-                const newContent = content.replace(TIMEX_LINK_REGEX, (fullMatch, _fullLink, linkText, linkUrl) => {
+                const replacements: { start: number, end: number, newText: string }[] = [];
+                const matches = Array.from(content.matchAll(TIMEX_LINK_REGEX));
+
+                for (const match of matches) {
+                    const fullMatch = match[0];
+                    const linkUrl = match[3]; // Group 3 is the URL part in TIMEX_LINK_REGEX
+                    
                     // Decode URL in case it's encoded
                     const decodedUrl = decodeURIComponent(linkUrl);
 
@@ -276,16 +281,16 @@ export async function fixAttachmentLinks(uri: vscode.Uri) {
                     const absoluteLinkPath = path.resolve(mdFileDir, decodedUrl);
 
                     // Check if file exists
-                    if (fs.existsSync(absoluteLinkPath)) {
+                    if (await ws_exists(absoluteLinkPath)) {
                         // Link is not broken, leave it as-is
-                        return fullMatch;
+                        continue;
                     }
 
                     // Link is broken - try to fix it using hash
                     if (!hash) {
                         // Can't extract hash, skip
                         console.warn(`Could not extract hash from link: ${linkUrl}`);
-                        return fullMatch;
+                        continue;
                     }
 
                     // Look up the hash in our attachment index
@@ -296,7 +301,7 @@ export async function fixAttachmentLinks(uri: vscode.Uri) {
                             missingAttachments.push(decodedUrl);
                             console.warn(`Missing attachment: ${decodedUrl} (hash: ${hash})`);
                         }
-                        return fullMatch;
+                        continue;
                     }
 
                     // Calculate new relative path
@@ -313,15 +318,28 @@ export async function fixAttachmentLinks(uri: vscode.Uri) {
                     // Build the new link
                     const newLink = `${prefix}[](${encodedPath})`;
 
-                    modified = true;
-                    linksFixedInFile++;
+                    replacements.push({
+                        start: match.index!,
+                        end: match.index! + fullMatch.length,
+                        newText: newLink
+                    });
+                }
 
-                    return newLink;
-                });
+                // Apply replacements from end to start to avoid index shifting
+                if (replacements.length > 0) {
+                    replacements.sort((a, b) => b.start - a.start);
+                    
+                    for (const rep of replacements) {
+                        content = content.substring(0, rep.start) + rep.newText + content.substring(rep.end);
+                    }
+                    
+                    modified = true;
+                    linksFixedInFile = replacements.length;
+                }
 
                 // Write back if modified
                 if (modified) {
-                    await fs.promises.writeFile(mdFilePath, newContent, 'utf8');
+                    await ws_write_file(mdFilePath, content);
                     totalLinksFixed += linksFixedInFile;
                     totalFilesModified++;
                     console.log(`Fixed ${linksFixedInFile} link(s) in ${path.basename(mdFilePath)}`);

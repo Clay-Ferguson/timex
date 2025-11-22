@@ -1,7 +1,6 @@
 import * as vscode from 'vscode';
-import * as fs from 'fs';
 import * as path from 'path';
-import { getTitleFromFile, IMAGE_EXTENSIONS, NumberedItem, scanForNumberedItems, stripOrdinalPrefix } from './utils';
+import { getTitleFromFile, IMAGE_EXTENSIONS, NumberedItem, scanForNumberedItems, stripOrdinalPrefix, ws_stat, ws_read_file, ws_write_file } from './utils';
 
 export async function generateMarkdown(resource ?: vscode.Uri | vscode.Uri[]) {
     const workspaceFolders = vscode.workspace.workspaceFolders;
@@ -19,8 +18,8 @@ export async function generateMarkdown(resource ?: vscode.Uri | vscode.Uri[]) {
     if (candidateUri) {
         // User right-clicked on a folder or file - determine target folder
         try {
-            const stat = await fs.promises.stat(candidateUri.fsPath);
-            if (stat.isDirectory()) {
+            const stat = await ws_stat(candidateUri.fsPath);
+            if ((stat.type & vscode.FileType.Directory) !== 0) {
                 // Selected a folder - use it as target
                 targetDirectory = candidateUri.fsPath;
             } else {
@@ -46,7 +45,7 @@ export async function generateMarkdown(resource ?: vscode.Uri | vscode.Uri[]) {
 
         let numberedItems: NumberedItem[];
         try {
-            numberedItems = scanForNumberedItems(directory);
+            numberedItems = await scanForNumberedItems(directory);
         } catch (error: any) {
             throw new Error(`Failed to scan ${relativePath}: ${error instanceof Error ? error.message : String(error)}`);
         }
@@ -78,7 +77,7 @@ export async function generateMarkdown(resource ?: vscode.Uri | vscode.Uri[]) {
                     sections.push(`![${altText}](${encodedSource})`);
                     addedContent = true;
                 } else if (extension === '.md') {
-                    const contents = await fs.promises.readFile(item.fullPath, 'utf8');
+                    const contents = await ws_read_file(item.fullPath);
                     sections.push(contents.trimEnd());
                     sections.push('---');
                     addedContent = true;
@@ -96,7 +95,7 @@ export async function generateMarkdown(resource ?: vscode.Uri | vscode.Uri[]) {
 
         const indexPath = path.join(directory, '_index.md');
         const compiled = sections.join('\n\n').trimEnd() + '\n';
-        await fs.promises.writeFile(indexPath, compiled, 'utf8');
+        await ws_write_file(indexPath, compiled);
         createdIndexes.push(indexPath);
         return true;
     };
@@ -138,9 +137,9 @@ export async function previewFolderAsMarkdown(uri: vscode.Uri) {
     try {
         // Determine the folder to preview
         let folderPath: string;
-        const stat = await fs.promises.stat(uri.fsPath);
+        const stat = await ws_stat(uri.fsPath);
 
-        if (stat.isDirectory()) {
+        if ((stat.type & vscode.FileType.Directory) !== 0) {
             // User clicked a folder - use it directly
             folderPath = uri.fsPath;
         } else {
