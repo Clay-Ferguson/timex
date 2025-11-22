@@ -18,6 +18,15 @@ export const IMAGE_EXTENSIONS = new Set<string>([
 ]);
 
 /**
+ * Helper to rename files using VS Code API, accepting string paths.
+ */
+export async function ws_rename(oldPath: string, newPath: string, options: { overwrite: boolean } = { overwrite: false }): Promise<void> {
+	const oldUri = vscode.Uri.file(oldPath);
+	const newUri = vscode.Uri.file(newPath);
+	await vscode.workspace.fs.rename(oldUri, newUri, options);
+}
+
+/**
  * Extracts the first meaningful line from a file to use as a title
  */
 export async function getTitleFromFile(filePath: string): Promise<string | null> {
@@ -286,7 +295,7 @@ export async function renumberItems(numberedItems: NumberedItem[]): Promise<void
 	
 	for (const operation of renameOperations) {
 		try {
-			await fs.promises.rename(operation.oldPath, operation.newPath);
+			await ws_rename(operation.oldPath, operation.newPath);
 			console.log(`Renamed: ${operation.oldName} → ${operation.newName}`);
 		} catch (error) {
 			console.error(`Failed to rename ${operation.oldName}:`, error);

@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as crypto from 'crypto';
-import { buildAttachmentIndex, extractHashFromTimexFilename, generateFileHash, isImageFileName, TIMEX_LINK_REGEX } from './utils';
+import { buildAttachmentIndex, extractHashFromTimexFilename, generateFileHash, isImageFileName, TIMEX_LINK_REGEX, ws_rename } from './utils';
 
 export async function insertAttachment() {
     const editor = vscode.window.activeTextEditor;
@@ -72,7 +72,7 @@ export async function insertAttachment() {
             const newFilePath = path.join(path.dirname(selectedFilePath), newFileName);
 
             // Rename the file with the new naming convention
-            await fs.promises.rename(selectedFilePath, newFilePath);
+            await ws_rename(selectedFilePath, newFilePath);
 
             finalFilePath = newFilePath;
             finalFileName = newFileName;
@@ -347,7 +347,7 @@ export async function fixAttachmentLinks(uri: vscode.Uri) {
                         const newFilePath = path.join(dirPath, newFileName);
 
                         try {
-                            await fs.promises.rename(attachmentInfo.fullPath, newFilePath);
+                            await ws_rename(attachmentInfo.fullPath, newFilePath);
                             orphansFound++;
                             console.log(`Marked as orphan: ${fileName} -> ${newFileName}`);
                         } catch (error) {

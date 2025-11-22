@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
-import { formatTimestamp } from './utils';
+import { formatTimestamp, ws_rename } from './utils';
 import { PriorityTag } from './constants';
 import { TaskProvider } from './model';
 
@@ -210,10 +210,9 @@ export async function renameTask(item: any, taskProvider: TaskProvider) {
     }
 
     const targetPath = path.join(parentDir, finalName);
-    const targetUri = vscode.Uri.file(targetPath);
 
     try {
-        await vscode.workspace.fs.rename(fileUri, targetUri, { overwrite: false });
+        await ws_rename(filePath, targetPath);
         taskProvider.queueReveal(targetPath);
         taskProvider.refresh();
         vscode.window.showInformationMessage(`Renamed task to "${finalName}".`);

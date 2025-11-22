@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
-import { generateNextOrdinalFilename, renumberItems, scanForNumberedItems, verifyNamesAreUnique, stripOrdinalPrefix, extractOrdinalFromFilename, generateNumberPrefix, NumberedItem } from './utils';
+import { generateNextOrdinalFilename, renumberItems, scanForNumberedItems, verifyNamesAreUnique, stripOrdinalPrefix, extractOrdinalFromFilename, generateNumberPrefix, NumberedItem, ws_rename } from './utils';
 import { TaskProvider } from './model';
 
 export interface OrdinalClipboardItem {
@@ -314,7 +314,7 @@ export async function pasteByOrdinal(
 
             try {
                 // Move the cut item to a temporary name so we can freely shift ordinals
-                await fs.promises.rename(clipboardItem.sourcePath, tempPath);
+                await ws_rename(clipboardItem.sourcePath, tempPath);
                 performedRenames.push({ from: tempPath, to: clipboardItem.sourcePath });
 
                 progress.report({ message: 'Shifting existing ordinals...' });
@@ -336,7 +336,7 @@ export async function pasteByOrdinal(
                     const newName = generateNumberPrefix(newOrdinal) + item.nameWithoutPrefix;
                     const newPath = path.join(targetDirectory, newName);
 
-                    await fs.promises.rename(item.fullPath, newPath);
+                    await ws_rename(item.fullPath, newPath);
                     performedRenames.push({ from: newPath, to: item.fullPath });
                 }
 
@@ -344,12 +344,12 @@ export async function pasteByOrdinal(
                 const finalName = generateNumberPrefix(targetOrdinal) + clipboardItem.nameWithoutPrefix;
                 const finalPath = path.join(targetDirectory, finalName);
 
-                await fs.promises.rename(tempPath, finalPath);
+                await ws_rename(tempPath, finalPath);
                 success = true;
             } catch (innerError) {
                 for (const op of performedRenames.reverse()) {
                     try {
-                        await fs.promises.rename(op.from, op.to);
+                        await ws_rename(op.from, op.to);
                     } catch (revertError) {
                         console.error('Failed to revert ordinal rename:', revertError);
                     }
@@ -436,18 +436,18 @@ export async function moveOrdinal(uri: vscode.Uri | undefined, direction: 'up' |
     const performedRenames: Array<{ from: string; to: string }> = [];
 
     try {
-        await fs.promises.rename(selectedPath, tempPath);
+        await ws_rename(selectedPath, tempPath);
         performedRenames.push({ from: tempPath, to: selectedPath });
 
-        await fs.promises.rename(neighborPath, neighborNewPath);
+        await ws_rename(neighborPath, neighborNewPath);
         performedRenames.push({ from: neighborNewPath, to: neighborPath });
 
-        await fs.promises.rename(tempPath, selectedNewPath);
+        await ws_rename(tempPath, selectedNewPath);
     } catch (error: any) {
         for (const operation of performedRenames.reverse()) {
             try {
                 if (fs.existsSync(operation.from)) {
-                    await fs.promises.rename(operation.from, operation.to);
+                    await ws_rename(operation.from, operation.to);
                 }
             } catch (revertError) {
                 console.error('Failed to revert ordinal move:', revertError);
@@ -506,7 +506,7 @@ export async function moveFileToFolder(uri: vscode.Uri | undefined): Promise<voi
 
         // Move the file into the new folder
         const newFilePath = path.join(newFolderPath, newFileName);
-        await fs.promises.rename(filePath, newFilePath);
+        await ws_rename(filePath, newFilePath);
 
         // No need to refresh task provider explicitly as the file watcher should pick it up,
         // but if we want to be sure we can. However, TaskProvider isn't passed here.
