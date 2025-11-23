@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
-import { generateNextOrdinalFilename, renumberItems, scanForNumberedItems, verifyNamesAreUnique, stripOrdinalPrefix, extractOrdinalFromFilename, generateNumberPrefix, NumberedItem, ws_rename, ws_read_directory, ws_stat, ws_write_file, ws_exists, ws_mkdir } from './utils';
+import { renumberItems, scanForNumberedItems, verifyNamesAreUnique, stripOrdinalPrefix, extractOrdinalFromFilename, generateNumberPrefix, NumberedItem, ws_rename, ws_read_directory, ws_stat, ws_write_file, ws_exists, ws_mkdir } from './utils';
 import { TaskProvider } from './model';
 
 export interface OrdinalClipboardItem {
@@ -181,20 +181,39 @@ export async function insertOrdinalFile(uri: vscode.Uri) {
     }
 
     const selectedFilePath = uri.fsPath;
+    const filename = path.basename(selectedFilePath);
+    const currentOrdinal = extractOrdinalFromFilename(filename);
+
+    if (currentOrdinal === null) {
+        vscode.window.showErrorMessage('Selected file does not have an ordinal prefix (e.g., "001_filename.md")');
+        return;
+    }
+
+    const nextOrdinal = currentOrdinal + 1;
+    const nextPrefix = generateNumberPrefix(nextOrdinal);
+
+    // Ask user for the file name
+    const userInput = await vscode.window.showInputBox({
+        prompt: `Enter name for new file (will be prefixed with ${nextPrefix})`,
+        placeHolder: 'my-new-file',
+        value: 'new'
+    });
+
+    if (!userInput) {
+        return; // User cancelled
+    }
+
+    // Strip .md extension if user entered it
+    const cleanName = userInput.replace(/\.md$/i, '');
+    const newFilename = `${nextPrefix}${cleanName}.md`;
+    const directory = path.dirname(selectedFilePath);
+    const fullPath = path.join(directory, newFilename);
 
     try {
-        // Generate the next ordinal filename
-        const nextOrdinalInfo = generateNextOrdinalFilename(selectedFilePath);
-
-        if (!nextOrdinalInfo) {
-            vscode.window.showErrorMessage('Selected file does not have an ordinal prefix (e.g., "001_filename.md")');
-            return;
-        }
-
         // Check if the new file already exists
-        if (await ws_exists(nextOrdinalInfo.fullPath)) {
+        if (await ws_exists(fullPath)) {
             const overwrite = await vscode.window.showWarningMessage(
-                `File "${nextOrdinalInfo.filename}" already exists. Do you want to overwrite it?`,
+                `File "${newFilename}" already exists. Do you want to overwrite it?`,
                 { modal: true },
                 'Overwrite',
                 'Cancel'
@@ -206,14 +225,14 @@ export async function insertOrdinalFile(uri: vscode.Uri) {
         }
 
         // Create the new empty file
-        await ws_write_file(nextOrdinalInfo.fullPath, '');
+        await ws_write_file(fullPath, '');
 
         // Open the file in the editor
-        const fileUri = vscode.Uri.file(nextOrdinalInfo.fullPath);
+        const fileUri = vscode.Uri.file(fullPath);
         const document = await vscode.workspace.openTextDocument(fileUri);
         await vscode.window.showTextDocument(document);
 
-        vscode.window.showInformationMessage(`Created and opened: ${nextOrdinalInfo.filename}`);
+        vscode.window.showInformationMessage(`Created and opened: ${newFilename}`);
 
     } catch (error) {
         vscode.window.showErrorMessage(`Failed to create ordinal file: ${error}`);

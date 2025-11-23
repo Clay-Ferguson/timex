@@ -394,31 +394,6 @@ export function extractOrdinalFromFilename(filename: string): number | null {
 }
 
 /**
- * Generates the next ordinal filename after a given ordinal file
- * @param selectedFilePath The full path to the selected file with ordinal prefix
- * @returns Object containing the new filename and full path, or null if not an ordinal file
- */
-export function generateNextOrdinalFilename(selectedFilePath: string): { filename: string; fullPath: string } | null {
-	const filename = path.basename(selectedFilePath);
-	const directory = path.dirname(selectedFilePath);
-	
-	const currentOrdinal = extractOrdinalFromFilename(filename);
-	if (currentOrdinal === null) {
-		return null;
-	}
-	
-	const nextOrdinal = currentOrdinal + 1;
-	const nextPrefix = generateNumberPrefix(nextOrdinal);
-	const newFilename = `${nextPrefix}new.md`;
-	const newFullPath = path.join(directory, newFilename);
-	
-	return {
-		filename: newFilename,
-		fullPath: newFullPath
-	};
-}
-
-/**
  * Strips the ordinal prefix (e.g., "00010_") from a filename if present.
  * @param fileName The filename to process
  * @returns The filename without ordinal prefix
