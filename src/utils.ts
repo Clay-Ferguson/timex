@@ -18,11 +18,21 @@ export const IMAGE_EXTENSIONS = new Set<string>([
 
 /**
  * Helper to rename files using VS Code API, accepting string paths.
+ * 
+ * Uses WorkspaceEdit to ensure open editors are updated with the new filename. This is IMPORTANT to keep the open editors
+ * from getting confused about what file is being edited when a rename happens while the file is open in the editor.
  */
 export async function ws_rename(oldPath: string, newPath: string, options: { overwrite: boolean } = { overwrite: false }): Promise<void> {
 	const oldUri = vscode.Uri.file(oldPath);
 	const newUri = vscode.Uri.file(newPath);
-	await vscode.workspace.fs.rename(oldUri, newUri, options);
+	
+	const edit = new vscode.WorkspaceEdit();
+	edit.renameFile(oldUri, newUri, options);
+	
+	const success = await vscode.workspace.applyEdit(edit);
+	if (!success) {
+		throw new Error(`Failed to rename ${oldPath} to ${newPath}`);
+	}
 }
 
 /**
