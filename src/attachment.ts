@@ -308,7 +308,7 @@ export async function insertImageFromClipboard() {
     }
 }
 
-export async function fixAttachmentLinks(uri: vscode.Uri) {
+export async function fixLinks(uri: vscode.Uri) {
     if (!uri) {
         vscode.window.showErrorMessage('No file or folder selected');
         return;
@@ -322,7 +322,7 @@ export async function fixAttachmentLinks(uri: vscode.Uri) {
 
     await vscode.window.withProgress({
         location: vscode.ProgressLocation.Notification,
-        title: 'Fixing Attachment Links',
+        title: 'Fixing Links',
         cancellable: false
     }, async (progress) => {
         try {
@@ -335,7 +335,41 @@ export async function fixAttachmentLinks(uri: vscode.Uri) {
 
             const attachmentIndex = await buildAttachmentIndex(folderPath, excludePattern);
 
-            progress.report({ increment: 20, message: `Found ${attachmentIndex.size} attachments. Scanning markdown files...` });
+            progress.report({ increment: 10, message: 'Building file GUID index...' });
+            
+            // Build index of files with GUIDs
+            const fileGuidIndex = new Map<string, string>(); // GUID -> Full Path
+            // We need to scan all files (except excluded) for <!-- GUID:<guid> -->
+            // Since we can't easily use findTextInFiles with regex capture in API, we'll iterate files
+            // But iterating all files is slow. Let's try to use findFiles and read them.
+            // To be safe, we'll scan files that are likely to be targets. 
+            // Since the user can link ANY file, we should ideally scan everything not excluded.
+            // However, for performance, let's start with a broad pattern but respect excludes.
+            const allFiles = await vscode.workspace.findFiles('**/*', excludePattern);
+            
+            // We'll process files in chunks to avoid blocking too much
+            const chunkSize = 50;
+            for (let i = 0; i < allFiles.length; i += chunkSize) {
+                const chunk = allFiles.slice(i, i + chunkSize);
+                await Promise.all(chunk.map(async (fileUri) => {
+                    try {
+                        // Read first 1KB of file to check for GUID (it should be at the top)
+                        // We don't need to read the whole file if the GUID is at the top
+                        const fileData = await vscode.workspace.fs.readFile(fileUri);
+                        // Decode only the beginning
+                        const content = new TextDecoder().decode(fileData.slice(0, 1024));
+                        const guidMatch = content.match(/<!-- GUID:([a-f0-9]{32}) -->/i);
+                        if (guidMatch) {
+                            const guid = guidMatch[1].toLowerCase();
+                            fileGuidIndex.set(guid, fileUri.fsPath);
+                        }
+                    } catch (e) {
+                        // Ignore read errors (e.g. binary files that might fail decoding or permission issues)
+                    }
+                }));
+            }
+
+            progress.report({ increment: 20, message: `Found ${attachmentIndex.size} attachments and ${fileGuidIndex.size} linked files. Scanning markdown files...` });
 
             // Find all markdown files in the folder
             const pattern = new vscode.RelativePattern(folderPath, '**/*.md');
@@ -358,8 +392,9 @@ export async function fixAttachmentLinks(uri: vscode.Uri) {
                 let modified = false;
                 let linksFixedInFile = 0;
 
-                // Find all TIMEX- pattern links in the file
                 const replacements: { start: number, end: number, newText: string }[] = [];
+
+                // 1. Fix TIMEX- pattern links (Images/Attachments)
                 const matches = Array.from(content.matchAll(TIMEX_LINK_REGEX));
 
                 for (const match of matches) {
@@ -423,12 +458,76 @@ export async function fixAttachmentLinks(uri: vscode.Uri) {
                     });
                 }
 
+                // 2. Fix TARGET-GUID pattern links (File Links)
+                // Regex to find <!-- TARGET-GUID:<guid> --> followed by a link
+                // We look for the comment, optional whitespace/newlines, then the link
+                // Relaxed regex to allow spaces in comment
+                const targetGuidRegex = /<!--\s*TARGET-GUID:([a-f0-9]{32})\s*-->(\s*)\[([^\]]*)\]\(([^)]*)\)/g;
+                const guidMatches = Array.from(content.matchAll(targetGuidRegex));
+
+
+                // Debug: Check if we have the tag but missed the full match
+                if (guidMatches.length === 0 && content.includes('TARGET-GUID:')) {
+                    const tagIndex = content.indexOf('TARGET-GUID:');
+                    const start = Math.max(0, tagIndex - 20);
+                    const end = Math.min(content.length, tagIndex + 100);
+                }
+
+                for (const match of guidMatches) {
+                    const fullMatch = match[0];
+                    const guid = match[1];
+                    const whitespace = match[2];
+                    const linkText = match[3];
+                    const linkUrl = match[4];
+
+                    const decodedUrl = decodeURIComponent(linkUrl);
+                    const absoluteLinkPath = path.resolve(mdFileDir, decodedUrl);
+                    const exists = await ws_exists(absoluteLinkPath);
+
+                    // Check if file exists at current link path
+                    if (exists) {
+                        continue;
+                    }
+
+                    // Link is broken, look up GUID
+                    const targetPath = fileGuidIndex.get(guid.toLowerCase());
+                    
+                    if (!targetPath) {
+                        if (!missingAttachments.includes(decodedUrl)) {
+                            missingAttachments.push(decodedUrl);
+                            console.warn(`Missing target file for GUID: ${guid}`);
+                        }
+                        continue;
+                    }
+
+                    // Calculate new relative path
+                    const newRelativePath = path.relative(mdFileDir, targetPath);
+                    const newRelativePathMarkdown = newRelativePath.split(path.sep).join('/');
+                    const encodedPath = newRelativePathMarkdown.split('/').map(segment => encodeURIComponent(segment)).join('/');
+
+                    // Reconstruct the link
+                    const newLinkBlock = `<!-- TARGET-GUID:${guid} -->${whitespace}[${linkText}](${encodedPath})`;
+
+                    replacements.push({
+                        start: match.index!,
+                        end: match.index! + fullMatch.length,
+                        newText: newLinkBlock
+                    });
+                }
+
                 // Apply replacements from end to start to avoid index shifting
                 if (replacements.length > 0) {
+                    // Sort by start index descending
                     replacements.sort((a, b) => b.start - a.start);
                     
+                    // Check for overlaps (shouldn't happen if regexes are distinct, but good practice)
+                    let lastStart = content.length;
+                    
                     for (const rep of replacements) {
-                        content = content.substring(0, rep.start) + rep.newText + content.substring(rep.end);
+                        if (rep.end <= lastStart) {
+                            content = content.substring(0, rep.start) + rep.newText + content.substring(rep.end);
+                            lastStart = rep.start;
+                        }
                     }
                     
                     modified = true;
@@ -479,28 +578,28 @@ export async function fixAttachmentLinks(uri: vscode.Uri) {
             progress.report({ increment: 10, message: 'Complete!' });
 
             // Show results to user
-            let message = `Fixed ${totalLinksFixed} attachment link(s) in ${totalFilesModified} file(s)`;
+            let message = `Fixed ${totalLinksFixed} link(s) in ${totalFilesModified} file(s)`;
             if (orphansFound > 0) {
                 message += `\nFound ${orphansFound} orphaned attachment(s)`;
             }
 
             if (missingAttachments.length > 0) {
-                message += `\n\nWarning: ${missingAttachments.length} attachment(s) could not be found:`;
+                message += `\n\nWarning: ${missingAttachments.length} target(s) could not be found:`;
                 missingAttachments.forEach(att => {
                     message += `\n  - ${att}`;
-                    console.warn(`Missing attachment: ${att}`);
+                    console.warn(`Missing target: ${att}`);
                 });
                 vscode.window.showWarningMessage(message, { modal: false });
             } else if (totalLinksFixed > 0) {
                 vscode.window.showInformationMessage(message);
             } else {
-                vscode.window.showInformationMessage('No broken attachment links found');
+                vscode.window.showInformationMessage('No broken links found');
             }
 
         } catch (error: any) {
             const message = error instanceof Error ? error.message : String(error);
-            vscode.window.showErrorMessage(`Failed to fix attachment links: ${message}`);
-            console.error('Fix attachment links error:', error);
+            vscode.window.showErrorMessage(`Failed to fix links: ${message}`);
+            console.error('Fix links error:', error);
         }
     });
 }

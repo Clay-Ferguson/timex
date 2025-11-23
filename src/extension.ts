@@ -11,7 +11,7 @@ import { ViewFilter, PriorityTag } from './constants';
 import { TimexFilterPanel } from './filter-panel/filterPanel';
 import { MarkdownFolderPreviewProvider } from './markdownFolderPreviewProvider';
 import { renumberFiles, insertOrdinalFile, cutByOrdinal, pasteByOrdinal, OrdinalClipboardItem, moveOrdinal, moveFileToFolder } from './ordinals';
-import { fixAttachmentLinks, insertAttachment, insertImageFromClipboard, insertFileLink } from './attachment';
+import { fixLinks, insertAttachment, insertImageFromClipboard, insertFileLink } from './attachment';
 import { generateMarkdown, previewFolderAsMarkdown } from './gen-markdown';
 import { deleteTask, newTask, renameTask } from './task';
 import { addTimeToTask, insertDate, insertTimestamp } from './date-time';
@@ -327,7 +327,7 @@ export function activate(context: vscode.ExtensionContext) {
 
 	const moveFileToFolderCommand = vscode.commands.registerCommand('timex.moveFileToFolder', moveFileToFolder);
 
-	const fixAttachmentLinksCommand = vscode.commands.registerCommand('timex.fixAttachmentLinks', fixAttachmentLinks);
+	const fixLinksCommand = vscode.commands.registerCommand('timex.fixLinks', fixLinks);
 
 	const previewFolderAsMarkdownCommand = vscode.commands.registerCommand('timex.previewFolderAsMarkdown', previewFolderAsMarkdown);
 
@@ -360,7 +360,7 @@ export function activate(context: vscode.ExtensionContext) {
 	context.subscriptions.push(moveOrdinalUpCommand);
 	context.subscriptions.push(moveOrdinalDownCommand);
 	context.subscriptions.push(moveFileToFolderCommand);
-	context.subscriptions.push(fixAttachmentLinksCommand);
+	context.subscriptions.push(fixLinksCommand);
 	context.subscriptions.push(previewFolderAsMarkdownCommand);
 	context.subscriptions.push(mergeSentencesCommand);
 }

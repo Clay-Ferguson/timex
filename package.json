@@ -202,8 +202,8 @@
         "icon": "$(new-folder)"
       },
       {
-        "command": "timex.fixAttachmentLinks",
-        "title": "Fix Attachment Links",
+        "command": "timex.fixLinks",
+        "title": "Fix Links",
         "icon": "$(link)"
       },
       {
@@ -376,7 +376,7 @@
           "command": "timex.pasteByOrdinal"
         },
         {
-          "command": "timex.fixAttachmentLinks"
+          "command": "timex.fixLinks"
         },
         {
           "command": "timex.previewFolderAsMarkdown"
@@ -458,7 +458,7 @@
           "icon": "$(open-preview)"
         },
         {
-          "command": "timex.fixAttachmentLinks",
+          "command": "timex.fixLinks",
           "group": "1_main@5",
           "when": "resourceScheme == 'file'",
           "icon": "$(link)"
