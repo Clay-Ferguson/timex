@@ -628,6 +628,28 @@ The extension uses a content-based hashing system to uniquely identify attachmen
 [document](./files/report.TIMEX-b4c3d8e2f1a4b7c9.pdf)
 ```
 
+### Inserting File Links
+
+For linking to other markdown files (or any file type) with persistent tracking, use the **"Insert File Link"** feature.
+
+1. Open a markdown file
+2. Place cursor where you want the link
+3. Right-click → "Timex" submenu → "Insert File Link"
+4. Select the target file
+5. A link is inserted with a special GUID comment for tracking
+
+**How it works:**
+- Checks the target file for an existing `<!-- GUID:<guid> -->` comment
+- If missing, generates a new GUID and adds it to the top of the target file
+- Inserts a link in your current file with a matching `<!-- TARGET-GUID:<guid> -->` comment
+- This GUID pair allows the link to be repaired even if the target file is moved or renamed
+
+**Example inserted link:**
+```markdown
+<!-- TARGET-GUID:90e08s0f98a0sd0asf0as9f0asf -->
+[My Cool File](some/folder/my_cool_file.md)
+```
+
 ### Insert Image from Clipboard
 
 For rapid image insertion, use the **"Insert Image from Clipboard"** feature to paste screenshots and images directly into your markdown files.
@@ -656,31 +678,37 @@ For rapid image insertion, use the **"Insert Image from Clipboard"** feature to 
 
 This feature is perfect for quickly documenting UI issues, capturing error messages, or adding visual context to your notes without the overhead of manually saving and linking image files.
 
-### Fix Broken Attachment Links
+### Fix Broken Links
 
-When you move or reorganize files, attachment links may break. The "Fix Attachment Links" command automatically repairs them using the embedded hash codes.
+When you move or reorganize files, links may break. The **"Fix Links"** command automatically repairs them using embedded hash codes (for images) and GUIDs (for file links).
 
 **To use:**
 1. Right-click on any file or folder in the Explorer
-2. Select "Timex" submenu → "Fix Attachment Links"
+2. Select "Timex" submenu → "Fix Links"
 3. The extension will:
-   - Scan the entire project root and all subfolders for TIMEX-formatted attachments
-   - Find all markdown files with attachment links
+   - Scan the project for TIMEX-formatted attachments and files with GUID comments
+   - Find all markdown files with links
    - Detect broken links (files that have moved)
    - Automatically update links to the correct new location
 
 **Smart Behavior:**
 - **Comprehensive Scanning**: Processes the entire workspace root and all subdirectories
-- **Hash Matching**: Uses content hash to find moved files, even if renamed
+- **Dual Tracking**: Uses content hash for images and GUID comments for file links
 - **Progress Indicator**: Shows scanning and fixing progress
 - **Results Report**: Displays number of links fixed and files modified
-- **Missing Files Warning**: Lists any attachments that couldn't be found
+- **Missing Files Warning**: Lists any targets that couldn't be found
 
-**Example scenario:**
+**Example scenario (Image):**
 1. You move `screenshot.TIMEX-abc123.png` from `images/` to `assets/screenshots/`
 2. Markdown links break: `![screenshot](../images/screenshot.TIMEX-abc123.png)`
-3. Run "Fix Attachment Links"
+3. Run "Fix Links"
 4. Links automatically update: `![screenshot](../assets/screenshots/screenshot.TIMEX-abc123.png)`
+
+**Example scenario (File Link):**
+1. You move `docs/guide.md` (containing `<!-- GUID:xyz... -->`) to `archive/old-guide.md`
+2. Link breaks: `<!-- TARGET-GUID:xyz... --> [Guide](../docs/guide.md)`
+3. Run "Fix Links"
+4. Link updates: `<!-- TARGET-GUID:xyz... --> [Guide](../archive/old-guide.md)`
 
 ### Why Use Content Hashes?
 
@@ -701,7 +729,7 @@ The hash-based naming system provides:
 
 ### Orphan Detection and Management
 
-The "Fix Attachment Links" command includes automatic orphan detection. An orphaned attachment is a file with the TIMEX-hash naming convention that is no longer referenced in any markdown file within the project.
+The "Fix Links" command includes automatic orphan detection. An orphaned attachment is a file with the TIMEX-hash naming convention that is no longer referenced in any markdown file within the project.
 
 **What happens during orphan detection:**
 1. The system tracks all attachment references while scanning markdown files across the entire project
@@ -731,7 +759,7 @@ ORPHAN-my-image.TIMEX-7235fd3525f14bad.png
 - **Archive them** for potential future use
 - **Leave them marked** as orphans if you're unsure
 
-**Progress reporting:** The "Fix Attachment Links" command shows how many orphans were found in the completion message, making it easy to monitor unused attachments in your project.
+**Progress reporting:** The "Fix Links" command shows how many orphans were found in the completion message, making it easy to monitor unused attachments in your project.
 
 ## Prioritization
 

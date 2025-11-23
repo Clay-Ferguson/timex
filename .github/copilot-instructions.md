@@ -224,12 +224,16 @@ const watcher = vscode.workspace.createFileSystemWatcher(watcherPattern);
 4. Insert markdown link with relative path from current file
 5. Auto-detect images (IMAGE_EXTENSIONS set) → use "![...](...)" syntax
 
-// Link repair workflow (extension.ts:fixAttachmentLinks)
-1. Build index: scan entire workspace root and all subdirectories for TIMEX-{hash} files
-2. Parse all markdown files in the project for TIMEX_LINK_REGEX matches
+// Link repair workflow (extension.ts:fixLinks)
+1. Build index: 
+   - Scan for TIMEX-{hash} files (attachments)
+   - Scan for files containing <!-- GUID:{guid} --> (file links)
+2. Parse all markdown files in the project for:
+   - TIMEX_LINK_REGEX matches (images)
+   - TARGET-GUID matches (file links)
 3. Track referenced hashes in Set during markdown scanning
-4. Extract hash from broken link, lookup in index by hash
-5. Recalculate relative path from markdown file to found attachment
+4. For broken image links: Extract hash, lookup in attachment index, update path
+5. For broken file links: Extract GUID, lookup in file index, update path
 6. Update link inline (preserves alt text and link label)
 7. Detect orphans: compare attachment index against referenced hashes
 8. Rename unreferenced files: add "ORPHAN-" prefix if not already present
@@ -240,6 +244,12 @@ const watcher = vscode.workspace.createFileSystemWatcher(watcherPattern);
 ```typescript
 /(!?\[[^\]]*\])\(([^)]*TIMEX-[a-f0-9]+[^)]*)\)/g
 // Captures: [1] = link text with brackets, [2] = path with TIMEX-hash
+```
+
+**File Link Regex** (in `fixLinks`):
+```typescript
+/<!--\s*TARGET-GUID:([a-f0-9]{32})\s*-->(\s*)\[([^\]]*)\]\(([^)]*)\)/g
+// Captures: [1] = GUID, [2] = whitespace, [3] = link text, [4] = link URL
 ```
 
 **Clipboard Image Insertion** (`insertImageFromClipboard`):
@@ -388,7 +398,7 @@ Prefer `rebuildTaskDisplay()` pattern over full rescans for operations that only
 11. **Pure vs VS Code Functions**: Keep `utils.ts` free of `import * as vscode` to maintain unit testability
 12. **Ordinal File State**: `timex.hasOrdinalCutItem` context value must be set/cleared via `context.setContext()` for paste menu visibility
 13. **Relative Path Calculations**: Attachment links use `path.relative()` from markdown file location—handle edge cases with nested folders
-14. **Orphan Detection**: `fixAttachmentLinks` tracks referenced hashes during project-wide markdown scan—must extract hash from ALL links (broken or not) to accurately identify orphans
+14. **Orphan Detection**: `fixLinks` tracks referenced hashes during project-wide markdown scan—must extract hash from ALL links (broken or not) to accurately identify orphans
 15. **Search Field Location**: Search functionality is integrated into the filter panel webview itself, not a separate icon/menu on the task panel. All search input happens within the filter panel UI
 
 ## Markdown Folder Preview (NEW)
