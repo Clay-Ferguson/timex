@@ -102,7 +102,7 @@ export async function insertAttachment() {
         vscode.window.showInformationMessage(`Attachment inserted: ${finalFileName}`);
 
     } catch (error) {
-        vscode.window.showErrorMessage(`Failed to insert attachment: ${error}`);
+        vscode.window.showErrorMessage(`Failed to insert image attachment: ${error}`);
     }
 }
 

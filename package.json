@@ -97,7 +97,7 @@
       },
       {
         "command": "timex.insertAttachment",
-        "title": "Insert Attachment"
+        "title": "Insert Image Attachment"
       },
       {
         "command": "timex.insertImageFromClipboard",
