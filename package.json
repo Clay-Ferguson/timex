@@ -100,6 +100,10 @@
         "title": "Insert Image Attachment"
       },
       {
+        "command": "timex.insertFileLink",
+        "title": "Insert File Link"
+      },
+      {
         "command": "timex.insertImageFromClipboard",
         "title": "Insert Image from Clipboard"
       },
@@ -408,8 +412,13 @@
           "when": "editorLangId == markdown"
         },
         {
-          "command": "timex.insertImageFromClipboard",
+          "command": "timex.insertFileLink",
           "group": "2_attachment@2",
+          "when": "editorLangId == markdown"
+        },
+        {
+          "command": "timex.insertImageFromClipboard",
+          "group": "2_attachment@3",
           "when": "editorLangId == markdown"
         },
         {

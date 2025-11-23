@@ -11,7 +11,7 @@ import { ViewFilter, PriorityTag } from './constants';
 import { TimexFilterPanel } from './filter-panel/filterPanel';
 import { MarkdownFolderPreviewProvider } from './markdownFolderPreviewProvider';
 import { renumberFiles, insertOrdinalFile, cutByOrdinal, pasteByOrdinal, OrdinalClipboardItem, moveOrdinal, moveFileToFolder } from './ordinals';
-import { fixAttachmentLinks, insertAttachment, insertImageFromClipboard } from './attachment';
+import { fixAttachmentLinks, insertAttachment, insertImageFromClipboard, insertFileLink } from './attachment';
 import { generateMarkdown, previewFolderAsMarkdown } from './gen-markdown';
 import { deleteTask, newTask, renameTask } from './task';
 import { addTimeToTask, insertDate, insertTimestamp } from './date-time';
@@ -118,6 +118,8 @@ export function activate(context: vscode.ExtensionContext) {
 	const insertDateCommand = vscode.commands.registerCommand('timex.insertDate', insertDate);
 
 	const insertAttachmentCommand = vscode.commands.registerCommand('timex.insertAttachment', insertAttachment);
+
+	const insertFileLinkCommand = vscode.commands.registerCommand('timex.insertFileLink', insertFileLink);
 
 	const insertImageFromClipboardCommand = vscode.commands.registerCommand('timex.insertImageFromClipboard', insertImageFromClipboard);
 
@@ -336,6 +338,7 @@ export function activate(context: vscode.ExtensionContext) {
 	context.subscriptions.push(insertTimestampCommand);
 	context.subscriptions.push(insertDateCommand);
 	context.subscriptions.push(insertAttachmentCommand);
+	context.subscriptions.push(insertFileLinkCommand);
 	context.subscriptions.push(insertImageFromClipboardCommand);
 	context.subscriptions.push(selectPrimaryHashtagCommand);
 	context.subscriptions.push(openFilterPanelCommand);

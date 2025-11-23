@@ -106,6 +106,104 @@ export async function insertAttachment() {
     }
 }
 
+export async function insertFileLink() {
+    const editor = vscode.window.activeTextEditor;
+    if (!editor) {
+        vscode.window.showErrorMessage('No active editor found');
+        return;
+    }
+
+    // Check if we're in a markdown file
+    if (editor.document.languageId !== 'markdown') {
+        vscode.window.showErrorMessage('This command only works in markdown files');
+        return;
+    }
+
+    // Get the workspace folder
+    if (!vscode.workspace.workspaceFolders || vscode.workspace.workspaceFolders.length === 0) {
+        vscode.window.showErrorMessage('No workspace folder found');
+        return;
+    }
+
+    // Show file picker dialog
+    const fileUris = await vscode.window.showOpenDialog({
+        canSelectFiles: true,
+        canSelectFolders: false,
+        canSelectMany: false,
+        openLabel: 'Select File to Link',
+        title: 'Select File to Link'
+    });
+
+    if (!fileUris || fileUris.length === 0) {
+        // User cancelled
+        return;
+    }
+
+    const selectedFileUri = fileUris[0];
+    const selectedFilePath = selectedFileUri.fsPath;
+
+    try {
+        // Get the current markdown file's directory
+        const markdownFilePath = editor.document.uri.fsPath;
+        const markdownDir = path.dirname(markdownFilePath);
+
+        // Read the target file content
+        let targetFileContent = await ws_read_file(selectedFilePath);
+        
+        // Check if the file already has a GUID
+        // Format: <!-- GUID:<guid> -->
+        const guidRegex = /<!-- GUID:([a-f0-9]{32}) -->/i;
+        let match = targetFileContent.match(guidRegex);
+        let guid: string;
+
+        if (match) {
+            // Found existing GUID
+            guid = match[1];
+        } else {
+            // Generate new random GUID (32 hex chars)
+            guid = crypto.randomBytes(16).toString('hex');
+            
+            // Prepend GUID to the file content
+            const guidComment = `<!-- GUID:${guid} -->\n`;
+            targetFileContent = guidComment + targetFileContent;
+            
+            // Write the updated content back to the file
+            await ws_write_file(selectedFilePath, targetFileContent);
+        }
+
+        // Calculate relative path from markdown file to target file
+        const relativePath = path.relative(markdownDir, selectedFilePath);
+        const relativePathMarkdown = relativePath.split(path.sep).join('/');
+
+        // URL-encode the path to handle spaces and special characters
+        const encodedPath = relativePathMarkdown.split('/').map(segment => encodeURIComponent(segment)).join('/');
+
+        // Get display name (filename without extension)
+        const fileName = path.basename(selectedFilePath);
+        // const displayName = path.parse(fileName).name; // User might prefer full filename or just name. Let's use full filename for clarity or name? 
+        // The prompt example showed: [My Cool Markdown File](some/folder/my_cool_file.md)
+        // I'll use the filename as the default display text.
+        const displayName = fileName;
+
+        // Create the link text with the TARGET-GUID comment
+        // <!-- TARGET-GUID:<guid> -->
+        // [Display Name](path)
+        const linkText = `<!-- TARGET-GUID:${guid} -->\n[${displayName}](${encodedPath})`;
+
+        // Insert link at cursor position
+        const position = editor.selection.active;
+        await editor.edit(editBuilder => {
+            editBuilder.insert(position, linkText);
+        });
+
+        vscode.window.showInformationMessage(`File link inserted: ${fileName}`);
+
+    } catch (error) {
+        vscode.window.showErrorMessage(`Failed to insert file link: ${error}`);
+        console.error('Insert file link error:', error);
+    }
+}
+
 export async function insertImageFromClipboard() {
     const editor = vscode.window.activeTextEditor;
     if (!editor) {
