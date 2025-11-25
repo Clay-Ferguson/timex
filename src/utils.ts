@@ -3,6 +3,19 @@ import * as vscode from 'vscode';
 import * as crypto from 'crypto';
 import { PriorityTag } from './constants';
 
+/**
+ * Checks if the editor has any open files and shows a warning if so.
+ * @param featureName The name of the feature to display in the warning message
+ * @returns true if there are open files (blocked), false if safe to proceed
+ */
+export function editorHasOpenFiles(featureName: string): boolean {
+    if (vscode.window.tabGroups.all.some(group => group.tabs.length > 0)) {
+        vscode.window.showWarningMessage(`Please close all open files before running ${featureName} to avoid conflicts.`);
+        return true;
+    }
+    return false;
+}
+
 export const IMAGE_EXTENSIONS = new Set<string>([
 	'.png',
 	'.jpg',

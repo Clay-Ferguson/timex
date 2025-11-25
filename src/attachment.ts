@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
 import * as crypto from 'crypto';
-import { buildAttachmentIndex, extractHashFromTimexFilename, generateFileHash, isImageFileName, TIMEX_LINK_REGEX, ws_rename, ws_read_file, ws_write_file, ws_exists } from './utils';
+import { buildAttachmentIndex, editorHasOpenFiles, extractHashFromTimexFilename, generateFileHash, isImageFileName, TIMEX_LINK_REGEX, ws_rename, ws_read_file, ws_write_file, ws_exists } from './utils';
 
 export async function insertAttachment() {
     const editor = vscode.window.activeTextEditor;
@@ -308,9 +308,10 @@ export async function insertImageFromClipboard() {
     }
 }
 
-export async function fixLinks(uri: vscode.Uri) {
-    if (!uri) {
-        vscode.window.showErrorMessage('No file or folder selected');
+export async function fixLinks() {
+
+    // Check if user has any open files to avoid conflicts with auto-save
+    if (editorHasOpenFiles('Fix Links')) {
         return;
     }
 
