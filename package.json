@@ -97,7 +97,7 @@
       },
       {
         "command": "timex.insertAttachment",
-        "title": "Insert Image Attachment"
+        "title": "Insert Image"
       },
       {
         "command": "timex.insertFileLink",

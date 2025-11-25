@@ -612,7 +612,7 @@ The extension uses a content-based hashing system to uniquely identify attachmen
 
 1. Open a markdown file
 2. Place cursor where you want the attachment link
-3. Right-click → "Timex" submenu → "Insert Image Attachment"
+3. Right-click → "Timex" submenu → "Insert Image"
 4. Select the file from the file picker dialog
 5. The file is renamed (if needed) and a markdown link is inserted
 
@@ -720,7 +720,7 @@ The hash-based naming system provides:
 
 ### Best Practices
 
-1. **Always use "Insert Image Attachment"** instead of manually creating links - this ensures proper hash naming
+1. **Always use "Insert Image"** instead of manually creating links - this ensures proper hash naming
 2. **Run "Fix Attachment Links" after reorganization** - keeps all links working after moving files around
 3. **Keep the hash intact** - the `.TIMEX-{hash}` portion is critical for link repair
 4. **Rename the descriptive part freely** - you can change `screenshot` to `login-page` as long as `.TIMEX-{hash}` stays
