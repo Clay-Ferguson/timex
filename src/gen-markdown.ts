@@ -2,6 +2,74 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 import { getTitleFromFile, IMAGE_EXTENSIONS, NumberedItem, scanForNumberedItems, stripOrdinalPrefix, ws_stat, ws_read_file, ws_write_file } from './utils';
 
+interface GenerateContext {
+    owningWorkspace: vscode.WorkspaceFolder;
+    createdIndexes: string[];
+    progress: vscode.Progress<{ message?: string }>;
+}
+
+async function generateMarkdownForDirectory(directory: string, context: GenerateContext): Promise<boolean> {
+    const { owningWorkspace, createdIndexes, progress } = context;
+    const relativePath = path.relative(owningWorkspace.uri.fsPath, directory) || path.basename(directory) || '.';
+    progress.report({ message: `Scanning ${relativePath}` });
+
+    let numberedItems: NumberedItem[];
+    try {
+        numberedItems = await scanForNumberedItems(directory);
+    } catch (error: any) {
+        throw new Error(`Failed to scan ${relativePath}: ${error instanceof Error ? error.message : String(error)}`);
+    }
+
+    if (numberedItems.length === 0) {
+        return false;
+    }
+
+    const sections: string[] = [];
+    let addedContent = false;
+
+    for (const item of numberedItems) {
+        if (item.isDirectory) {
+            const childCreated = await generateMarkdownForDirectory(item.fullPath, context);
+            if (childCreated) {
+                const childIndexPath = path.join(item.fullPath, '_index.md');
+                const derivedTitle = await getTitleFromFile(childIndexPath);
+                const folderLabel = derivedTitle ?? (stripOrdinalPrefix(item.originalName) || item.originalName);
+                const linkTarget = encodeURI(path.posix.join(item.originalName, '_index.md'));
+                sections.push(`# [${folderLabel}](${linkTarget})`);
+                addedContent = true;
+            }
+        } else {
+            const extension = path.extname(item.originalName).toLowerCase();
+            if (IMAGE_EXTENSIONS.has(extension)) {
+                const strippedName = stripOrdinalPrefix(item.originalName) || item.originalName;
+                const altText = path.basename(strippedName, extension);
+                const encodedSource = encodeURI(item.originalName);
+                sections.push(`![${altText}](${encodedSource})`);
+                addedContent = true;
+            } else if (extension === '.md') {
+                const contents = await ws_read_file(item.fullPath);
+                sections.push(contents.trimEnd());
+                sections.push('---');
+                addedContent = true;
+            }
+        }
+    }
+
+    if (!addedContent) {
+        return false;
+    }
+
+    if (sections.length > 0 && sections[sections.length - 1] === '---') {
+        sections.pop();
+    }
+
+    const indexPath = path.join(directory, '_index.md');
+    const compiled = sections.join('\n\n').trimEnd() + '\n';
+    await ws_write_file(indexPath, compiled);
+    createdIndexes.push(indexPath);
+    return true;
+}
+
 export async function generateMarkdown(resource ?: vscode.Uri | vscode.Uri[]) {
     const workspaceFolders = vscode.workspace.workspaceFolders;
     if (!workspaceFolders || workspaceFolders.length === 0) {
@@ -38,68 +106,6 @@ export async function generateMarkdown(resource ?: vscode.Uri | vscode.Uri[]) {
     }
 
     const createdIndexes: string[] = [];
-
-    const generateMarkdownForDirectory = async (directory: string, progress: vscode.Progress<{ message?: string }>): Promise<boolean> => {
-        const relativePath = path.relative(owningWorkspace.uri.fsPath, directory) || path.basename(directory) || '.';
-        progress.report({ message: `Scanning ${relativePath}` });
-
-        let numberedItems: NumberedItem[];
-        try {
-            numberedItems = await scanForNumberedItems(directory);
-        } catch (error: any) {
-            throw new Error(`Failed to scan ${relativePath}: ${error instanceof Error ? error.message : String(error)}`);
-        }
-
-        if (numberedItems.length === 0) {
-            return false;
-        }
-
-        const sections: string[] = [];
-        let addedContent = false;
-
-        for (const item of numberedItems) {
-            if (item.isDirectory) {
-                const childCreated = await generateMarkdownForDirectory(item.fullPath, progress);
-                if (childCreated) {
-                    const childIndexPath = path.join(item.fullPath, '_index.md');
-                    const derivedTitle = await getTitleFromFile(childIndexPath);
-                    const folderLabel = derivedTitle ?? (stripOrdinalPrefix(item.originalName) || item.originalName);
-                    const linkTarget = encodeURI(path.posix.join(item.originalName, '_index.md'));
-                    sections.push(`# [${folderLabel}](${linkTarget})`);
-                    addedContent = true;
-                }
-            } else {
-                const extension = path.extname(item.originalName).toLowerCase();
-                if (IMAGE_EXTENSIONS.has(extension)) {
-                    const strippedName = stripOrdinalPrefix(item.originalName) || item.originalName;
-                    const altText = path.basename(strippedName, extension);
-                    const encodedSource = encodeURI(item.originalName);
-                    sections.push(`![${altText}](${encodedSource})`);
-                    addedContent = true;
-                } else if (extension === '.md') {
-                    const contents = await ws_read_file(item.fullPath);
-                    sections.push(contents.trimEnd());
-                    sections.push('---');
-                    addedContent = true;
-                }
-            }
-        }
-
-        if (!addedContent) {
-            return false;
-        }
-
-        if (sections.length > 0 && sections[sections.length - 1] === '---') {
-            sections.pop();
-        }
-
-        const indexPath = path.join(directory, '_index.md');
-        const compiled = sections.join('\n\n').trimEnd() + '\n';
-        await ws_write_file(indexPath, compiled);
-        createdIndexes.push(indexPath);
-        return true;
-    };
-
     let rootCreated = false;
 
     try {
@@ -108,7 +114,8 @@ export async function generateMarkdown(resource ?: vscode.Uri | vscode.Uri[]) {
             title: 'Generating Markdown Indexes',
             cancellable: false
         }, async (progress) => {
-            rootCreated = await generateMarkdownForDirectory(targetDirectory, progress);
+            const context: GenerateContext = { owningWorkspace, createdIndexes, progress };
+            rootCreated = await generateMarkdownForDirectory(targetDirectory, context);
         });
 
         if (createdIndexes.length === 0) {
@@ -155,7 +162,6 @@ export async function previewFolderAsMarkdown(uri: vscode.Uri) {
 
         // Create a virtual URI using our custom scheme
         // Format: timex-preview:/path/to/folder
-        const folderName = path.basename(folderPath);
         const previewUri = vscode.Uri.parse(`timex-preview:${folderPath}`).with({
             scheme: 'timex-preview',
             path: folderPath
