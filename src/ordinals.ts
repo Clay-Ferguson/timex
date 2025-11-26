@@ -1,6 +1,12 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
-import { renumberItems, scanForNumberedItems, verifyNamesAreUnique, stripOrdinalPrefix, extractOrdinalFromFilename, generateNumberPrefix, NumberedItem, ws_rename, ws_read_directory, ws_stat, ws_write_file, ws_exists, ws_mkdir } from './utils';
+import { renumberItems, scanForNumberedItems, verifyNamesAreUnique, stripOrdinalPrefix, extractOrdinalFromFilename, generateNumberPrefix, NumberedItem } from './utils';
+import { ws_read_directory } from './ws-file-util';
+import { ws_exists } from './ws-file-util';
+import { ws_stat } from './ws-file-util';
+import { ws_mkdir } from './ws-file-util';
+import { ws_write_file } from './ws-file-util';
+import { ws_rename } from './ws-file-util';
 import { TaskProvider } from './model';
 
 export interface OrdinalClipboardItem {

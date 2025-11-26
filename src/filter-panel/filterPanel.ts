@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
 import { PriorityTag, ViewFilter } from '../constants';
-import { ws_read_file } from '../utils';
+import { ws_read_file } from '../ws-file-util';
 
 export class TimexFilterPanel {
     private static currentPanel: TimexFilterPanel | undefined;

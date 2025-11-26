@@ -1,7 +1,11 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
 import * as crypto from 'crypto';
-import { buildAttachmentIndex, editorHasOpenFiles, extractHashFromTimexFilename, generateFileHash, isImageFileName, TIMEX_LINK_REGEX, ws_rename, ws_read_file, ws_write_file, ws_exists } from './utils';
+import { buildAttachmentIndex, editorHasOpenFiles, extractHashFromTimexFilename, generateFileHash, isImageFileName, TIMEX_LINK_REGEX } from './utils';
+import { ws_exists } from './ws-file-util';
+import { ws_write_file } from './ws-file-util';
+import { ws_read_file } from './ws-file-util';
+import { ws_rename } from './ws-file-util';
 
 export async function insertAttachment() {
     const editor = vscode.window.activeTextEditor;

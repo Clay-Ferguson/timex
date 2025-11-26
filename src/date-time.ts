@@ -1,6 +1,8 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
-import { formatTimestamp, parseTimestamp, TIMESTAMP_REGEX, ws_read_file, ws_write_file } from './utils';
+import { formatTimestamp, parseTimestamp, TIMESTAMP_REGEX } from './utils';
+import { ws_write_file } from './ws-file-util';
+import { ws_read_file } from './ws-file-util';
 import { TaskProvider } from './model';
 
 /**

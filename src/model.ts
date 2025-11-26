@@ -1,6 +1,8 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
-import { findHashtagsInContent, getAllConfiguredHashtags, getIncludeGlobPattern, getExcludeGlobPattern, TIMESTAMP_REGEX, ws_read_file, ws_read_directory } from './utils';
+import { findHashtagsInContent, getAllConfiguredHashtags, getIncludeGlobPattern, getExcludeGlobPattern, TIMESTAMP_REGEX } from './utils';
+import { ws_read_directory } from './ws-file-util';
+import { ws_read_file } from './ws-file-util';
 import { getIconForTaskFile } from './utils';
 import { isFarFuture as isFarFutureDate } from './utils';
 import { getDaysDifference } from './utils';

@@ -1,6 +1,9 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
-import { getTitleFromFile, IMAGE_EXTENSIONS, NumberedItem, scanForNumberedItems, stripOrdinalPrefix, ws_stat, ws_read_file, ws_write_file } from './utils';
+import { getTitleFromFile, IMAGE_EXTENSIONS, NumberedItem, scanForNumberedItems, stripOrdinalPrefix } from './utils';
+import { ws_stat } from './ws-file-util';
+import { ws_write_file } from './ws-file-util';
+import { ws_read_file } from './ws-file-util';
 
 interface GenerateContext {
     owningWorkspace: vscode.WorkspaceFolder;

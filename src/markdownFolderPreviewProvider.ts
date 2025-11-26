@@ -1,6 +1,8 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
-import { scanForNumberedItems, stripOrdinalPrefix, NumberedItem, ws_read_file, ws_stat } from './utils';
+import { scanForNumberedItems, stripOrdinalPrefix, NumberedItem } from './utils';
+import { ws_stat } from './ws-file-util';
+import { ws_read_file } from './ws-file-util';
 
 const IMAGE_EXTENSIONS = new Set<string>([
 	'.png',

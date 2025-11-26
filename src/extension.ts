@@ -4,9 +4,9 @@ import { TaskProvider } from './model';
 import {
 	getIncludeGlobPattern,
 	TIMESTAMP_REGEX,
-	ws_exists,
-	ws_read_file,
 } from './utils';
+import { ws_exists } from './ws-file-util';
+import { ws_read_file } from './ws-file-util';
 import { ViewFilter, PriorityTag } from './constants';
 import { TimexFilterPanel } from './filter-panel/filterPanel';
 import { MarkdownFolderPreviewProvider } from './markdownFolderPreviewProvider';

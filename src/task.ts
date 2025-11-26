@@ -1,6 +1,11 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
-import { formatTimestamp, ws_rename, ws_exists, ws_mkdir, ws_write_file, ws_delete } from './utils';
+import { formatTimestamp } from './utils';
+import { ws_exists } from './ws-file-util';
+import { ws_mkdir } from './ws-file-util';
+import { ws_delete } from './ws-file-util';
+import { ws_write_file } from './ws-file-util';
+import { ws_rename } from './ws-file-util';
 import { PriorityTag } from './constants';
 import { TaskProvider } from './model';
 
