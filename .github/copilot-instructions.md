@@ -259,10 +259,18 @@ const watcher = vscode.workspace.createFileSystemWatcher(watcherPattern);
 - Insert point: cursor position in active text editor
 
 **Index Generation** (`generateMarkdown`):
-- Walks ordinal folders recursively
+- Prompts user for mode: "Multiple Index Files (Recursive)" or "Single Index File (Flattened)"
+- **Multiple Mode**:
+  - Walks ordinal folders recursively
+  - Generates `_index.md` in every folder
+  - Folder links: extracts first meaningful line from child `_index.md` as label
+- **Single Mode**:
+  - Generates one `_index.md` at root
+  - Flattens all content recursively
+  - Adjusts image paths to be relative to root
+  - Uses folder names as section headers
 - Concatenates `.md` files in ordinal order with `---` separators
 - Embeds images using `![](...)` syntax (checks IMAGE_EXTENSIONS)
-- Folder links: extracts first meaningful line from child `_index.md` as label
 - Opens top-level index in Markdown preview (not editor)
 
 ## Ordinal-Based File Management (NEW)
