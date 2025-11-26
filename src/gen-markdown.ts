@@ -9,10 +9,17 @@ interface GenerateContext {
     owningWorkspace: vscode.WorkspaceFolder;
     createdIndexes: string[];
     progress: vscode.Progress<{ message?: string }>;
+    singleFileMode: boolean;
+    targetDirectory: string;
 }
 
-async function generateMarkdownForDirectory(directory: string, context: GenerateContext): Promise<boolean> {
-    const { owningWorkspace, createdIndexes, progress } = context;
+function getTitleFromContent(content: string): string | undefined {
+    const match = content.match(/^#\s+(.*)$/m);
+    return match ? match[1].trim() : undefined;
+}
+
+async function generateMarkdownForDirectory(directory: string, context: GenerateContext): Promise<string | null> {
+    const { owningWorkspace, createdIndexes, progress, singleFileMode, targetDirectory } = context;
     const relativePath = path.relative(owningWorkspace.uri.fsPath, directory) || path.basename(directory) || '.';
     progress.report({ message: `Scanning ${relativePath}` });
 
@@ -24,7 +31,7 @@ async function generateMarkdownForDirectory(directory: string, context: Generate
     }
 
     if (numberedItems.length === 0) {
-        return false;
+        return null;
     }
 
     const sections: string[] = [];
@@ -32,13 +39,19 @@ async function generateMarkdownForDirectory(directory: string, context: Generate
 
     for (const item of numberedItems) {
         if (item.isDirectory) {
-            const childCreated = await generateMarkdownForDirectory(item.fullPath, context);
-            if (childCreated) {
-                const childIndexPath = path.join(item.fullPath, '_index.md');
-                const derivedTitle = await getTitleFromFile(childIndexPath);
-                const folderLabel = derivedTitle ?? (stripOrdinalPrefix(item.originalName) || item.originalName);
-                const linkTarget = encodeURI(path.posix.join(item.originalName, '_index.md'));
-                sections.push(`# [${folderLabel}](${linkTarget})`);
+            const childContent = await generateMarkdownForDirectory(item.fullPath, context);
+            if (childContent) {
+                if (singleFileMode) {
+                    const folderLabel = stripOrdinalPrefix(item.originalName) || item.originalName;
+                    // sections.push(`# ${folderLabel}`);
+                    sections.push(childContent);
+                } else {
+                    const childIndexPath = path.join(item.fullPath, '_index.md');
+                    const derivedTitle = await getTitleFromFile(childIndexPath);
+                    const folderLabel = derivedTitle ?? (stripOrdinalPrefix(item.originalName) || item.originalName);
+                    const linkTarget = encodeURI(path.posix.join(item.originalName, '_index.md'));
+                    sections.push(`# [${folderLabel}](${linkTarget})`);
+                }
                 addedContent = true;
             }
         } else {
@@ -46,7 +59,14 @@ async function generateMarkdownForDirectory(directory: string, context: Generate
             if (IMAGE_EXTENSIONS.has(extension)) {
                 const strippedName = stripOrdinalPrefix(item.originalName) || item.originalName;
                 const altText = path.basename(strippedName, extension);
-                const encodedSource = encodeURI(item.originalName);
+                
+                let imagePath = item.originalName;
+                if (singleFileMode) {
+                    const relPath = path.relative(targetDirectory, item.fullPath);
+                    imagePath = relPath.split(path.sep).join('/');
+                }
+                
+                const encodedSource = encodeURI(imagePath);
                 sections.push(`![${altText}](${encodedSource})`);
                 addedContent = true;
             } else if (extension === '.md') {
@@ -59,18 +79,22 @@ async function generateMarkdownForDirectory(directory: string, context: Generate
     }
 
     if (!addedContent) {
-        return false;
+        return null;
     }
 
     if (sections.length > 0 && sections[sections.length - 1] === '---') {
         sections.pop();
     }
 
-    const indexPath = path.join(directory, '_index.md');
     const compiled = sections.join('\n\n').trimEnd() + '\n';
-    await ws_write_file(indexPath, compiled);
-    createdIndexes.push(indexPath);
-    return true;
+
+    if (!singleFileMode) {
+        const indexPath = path.join(directory, '_index.md');
+        await ws_write_file(indexPath, compiled);
+        createdIndexes.push(indexPath);
+    }
+    
+    return compiled;
 }
 
 export async function generateMarkdown(resource ?: vscode.Uri | vscode.Uri[]) {
@@ -79,6 +103,16 @@ export async function generateMarkdown(resource ?: vscode.Uri | vscode.Uri[]) {
         vscode.window.showErrorMessage('No workspace folder found');
         return;
     }
+
+    const mode = await vscode.window.showQuickPick(['Multiple Index Files (Recursive)', 'Single Index File (Flattened)'], {
+        placeHolder: 'Select generation mode'
+    });
+
+    if (!mode) {
+        return;
+    }
+
+    const singleFileMode = mode.startsWith('Single');
 
     const candidateUri = Array.isArray(resource) ? resource[0] : resource;
 
@@ -109,7 +143,7 @@ export async function generateMarkdown(resource ?: vscode.Uri | vscode.Uri[]) {
     }
 
     const createdIndexes: string[] = [];
-    let rootCreated = false;
+    let rootContent: string | null = null;
 
     try {
         await vscode.window.withProgress({
@@ -117,18 +151,28 @@ export async function generateMarkdown(resource ?: vscode.Uri | vscode.Uri[]) {
             title: 'Generating Markdown Indexes',
             cancellable: false
         }, async (progress) => {
-            const context: GenerateContext = { owningWorkspace, createdIndexes, progress };
-            rootCreated = await generateMarkdownForDirectory(targetDirectory, context);
+            const context: GenerateContext = { 
+                owningWorkspace, 
+                createdIndexes, 
+                progress, 
+                singleFileMode,
+                targetDirectory 
+            };
+            rootContent = await generateMarkdownForDirectory(targetDirectory, context);
         });
 
-        if (createdIndexes.length === 0) {
+        if (!rootContent && createdIndexes.length === 0) {
             return;
         }
 
-        const previewTarget = rootCreated
-            ? vscode.Uri.file(path.join(targetDirectory, '_index.md'))
-            : vscode.Uri.file(createdIndexes[0]);
-        await vscode.commands.executeCommand('markdown.showPreview', previewTarget);
+        if (singleFileMode && rootContent) {
+            const indexPath = path.join(targetDirectory, '_index.md');
+            await ws_write_file(indexPath, rootContent);
+            createdIndexes.push(indexPath);
+        }
+
+        const rootIndex = createdIndexes[createdIndexes.length - 1];
+        await vscode.commands.executeCommand('markdown.showPreview', vscode.Uri.file(rootIndex));
 
         const relativeDir = path.relative(owningWorkspace.uri.fsPath, targetDirectory) || owningWorkspace.name;
         vscode.window.showInformationMessage(`Generated ${createdIndexes.length} index file(s) starting at ${relativeDir}`);
