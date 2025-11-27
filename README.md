@@ -626,7 +626,7 @@ The extension uses a content-based hashing system to uniquely identify attachmen
 
 1. Open a markdown file
 2. Place cursor where you want the attachment link
-3. Right-click → "Timex" submenu → "Insert Image"
+3. Right-click → "Timex" submenu → "Insert Image From..." → "Disk"
 4. Select the file from the file picker dialog
 5. The file is renamed (if needed) and a markdown link is inserted
 
@@ -666,12 +666,12 @@ For linking to other markdown files (or any file type) with persistent tracking,
 
 ### Insert Image from Clipboard
 
-For rapid image insertion, use the **"Insert Image from Clipboard"** feature to paste screenshots and images directly into your markdown files.
+For rapid image insertion, use the **"Clipboard"** option under the "Insert Image From..." submenu to paste screenshots and images directly into your markdown files.
 
 **How to use:**
 1. Copy an image to your system clipboard (e.g., take a screenshot)
 2. Open a markdown file and place cursor where you want the image
-3. Right-click → "Insert Image from Clipboard"
+3. Right-click → "Timex" submenu → "Insert Image From..." → "Clipboard"
 4. The image is automatically saved and linked into your document
 
 **What happens:**
@@ -687,7 +687,7 @@ For rapid image insertion, use the **"Insert Image from Clipboard"** feature to 
 
 **Example workflow:**
 1. Press `PrtScn` or use a screenshot tool to capture part of your screen
-2. In your markdown file, right-click and select "Insert Image from Clipboard"
+2. In your markdown file, right-click and select "Timex" → "Insert Image From..." → "Clipboard"
 3. Image appears inline immediately: `![img](img.TIMEX-a3f5b2c8.png)`
 
 This feature is perfect for quickly documenting UI issues, capturing error messages, or adding visual context to your notes without the overhead of manually saving and linking image files.
@@ -734,7 +734,7 @@ The hash-based naming system provides:
 
 ### Best Practices
 
-1. **Always use "Insert Image"** instead of manually creating links - this ensures proper hash naming
+1. **Always use "Insert Image From..."** instead of manually creating links - this ensures proper hash naming
 2. **Run "Fix Attachment Links" after reorganization** - keeps all links working after moving files around
 3. **Keep the hash intact** - the `.TIMEX-{hash}` portion is critical for link repair
 4. **Rename the descriptive part freely** - you can change `screenshot` to `login-page` as long as `.TIMEX-{hash}` stays

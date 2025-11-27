@@ -97,7 +97,7 @@
       },
       {
         "command": "timex.insertAttachment",
-        "title": "Insert Image"
+        "title": "Disk"
       },
       {
         "command": "timex.insertFileLink",
@@ -105,7 +105,7 @@
       },
       {
         "command": "timex.insertImageFromClipboard",
-        "title": "Insert Image from Clipboard"
+        "title": "Clipboard"
       },
       {
         "command": "timex.selectPrimaryHashtag",
@@ -235,6 +235,11 @@
         "id": "timex.editorTimestamp",
         "label": "Timex",
         "icon": "$(calendar)"
+      },
+      {
+        "id": "timex.editorInsertImage",
+        "label": "Insert Image From...",
+        "icon": "$(file-media)"
       }
     ],
     "views": {
@@ -407,7 +412,7 @@
           "group": "1_timestamp@2"
         },
         {
-          "command": "timex.insertAttachment",
+          "submenu": "timex.editorInsertImage",
           "group": "2_attachment@1",
           "when": "editorLangId == markdown"
         },
@@ -417,14 +422,19 @@
           "when": "editorLangId == markdown"
         },
         {
-          "command": "timex.insertImageFromClipboard",
-          "group": "2_attachment@3",
-          "when": "editorLangId == markdown"
-        },
-        {
           "command": "timex.mergeSentences",
           "group": "3_text@1",
           "when": "editorHasSelection"
+        }
+      ],
+      "timex.editorInsertImage": [
+        {
+          "command": "timex.insertAttachment",
+          "group": "1_image@1"
+        },
+        {
+          "command": "timex.insertImageFromClipboard",
+          "group": "1_image@2"
         }
       ],
       "explorer/context": [

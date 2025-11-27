@@ -216,6 +216,11 @@ const watcher = vscode.workspace.createFileSystemWatcher(watcherPattern);
 ### Attachment Management System (ADVANCED)
 **Hash-based file tracking** prevents broken links when files move:
 
+**Editor Context Menu Structure** (for image insertion):
+- Right-click in markdown file → "Timex" submenu → "Insert Image From..." submenu
+  - **"Disk"**: Opens file picker to select an image from filesystem (`timex.insertAttachment`)
+  - **"Clipboard"**: Pastes image directly from system clipboard (`timex.insertImageFromClipboard`)
+
 ```typescript
 // Core attachment workflow (extension.ts:insertAttachment)
 1. User selects file via file picker
@@ -253,6 +258,7 @@ const watcher = vscode.workspace.createFileSystemWatcher(watcherPattern);
 ```
 
 **Clipboard Image Insertion** (`insertImageFromClipboard`):
+- **Menu path**: Timex → Insert Image From... → Clipboard
 - **Platform dependencies**: Linux=xclip, macOS=pngpaste, Windows=native
 - Reads binary from clipboard, saves as PNG with TIMEX hash name
 - Uses same hash-based naming → benefits from link repair
