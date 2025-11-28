@@ -177,7 +177,7 @@
       },
       {
         "command": "timex.generateMarkdown",
-        "title": "Generate Markdown",
+        "title": "_index.md files",
         "icon": "$(book)"
       },
       {
@@ -212,7 +212,7 @@
       },
       {
         "command": "timex.previewFolderAsMarkdown",
-        "title": "Preview Folder as Markdown",
+        "title": "Preview",
         "icon": "$(open-preview)"
       },
       {
@@ -249,6 +249,11 @@
         "id": "timex.editorInsertImage",
         "label": "Insert Image From...",
         "icon": "$(file-media)"
+      },
+      {
+        "id": "timex.explorerGenerateMarkdown",
+        "label": "Gen. Markdown",
+        "icon": "$(book)"
       }
     ],
     "views": {
@@ -449,6 +454,18 @@
           "group": "1_image@2"
         }
       ],
+      "timex.explorerGenerateMarkdown": [
+        {
+          "command": "timex.generateMarkdown",
+          "group": "1_generate@1",
+          "icon": "$(book)"
+        },
+        {
+          "command": "timex.previewFolderAsMarkdown",
+          "group": "1_generate@2",
+          "icon": "$(open-preview)"
+        }
+      ],
       "timex.explorerInsert": [
         {
           "command": "timex.insertOrdinalFile",
@@ -488,14 +505,9 @@
           "icon": "$(add)"
         },
         {
-          "command": "timex.generateMarkdown",
+          "submenu": "timex.explorerGenerateMarkdown",
           "group": "1_main@3",
           "icon": "$(book)"
-        },
-        {
-          "command": "timex.previewFolderAsMarkdown",
-          "group": "1_main@4",
-          "icon": "$(open-preview)"
         },
         {
           "command": "timex.fixLinks",
