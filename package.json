@@ -169,11 +169,11 @@
       },
       {
         "command": "timex.insertOrdinalFile",
-        "title": "Insert File"
+        "title": "New File"
       },
       {
         "command": "timex.insertOrdinalFolder",
-        "title": "Insert Folder"
+        "title": "New Folder"
       },
       {
         "command": "timex.generateMarkdown",
@@ -202,7 +202,7 @@
       },
       {
         "command": "timex.moveFileToFolder",
-        "title": "Move to Folder",
+        "title": "File into Folder",
         "icon": "$(new-folder)"
       },
       {
@@ -459,6 +459,12 @@
           "command": "timex.insertOrdinalFolder",
           "group": "1_insert@2",
           "icon": "$(new-folder)"
+        },
+        {
+          "command": "timex.moveFileToFolder",
+          "group": "2_move@1",
+          "when": "resourceScheme == 'file' && resourceFilename =~ /\\.md$/",
+          "icon": "$(new-folder)"
         }
       ],
       "explorer/context": [
@@ -520,12 +526,6 @@
           "group": "3_move@2",
           "when": "resourceScheme == 'file' && resourceFilename =~ /^\\d+_.+/",
           "icon": "$(arrow-down)"
-        },
-        {
-          "command": "timex.moveFileToFolder",
-          "group": "3_move@3",
-          "when": "resourceScheme == 'file' && resourceFilename =~ /\\.md$/",
-          "icon": "$(new-folder)"
         }
       ]
     }
