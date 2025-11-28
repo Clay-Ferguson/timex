@@ -285,7 +285,9 @@ Recent addition providing file organization capabilities using numeric prefixes.
 
 ### Commands Added
 - `timex.renumberFiles` - "Re-Number Files" 
-- `timex.insertOrdinalFile` - "Insert File"
+- `timex.insertOrdinalFile` - "New File" (in Insert... submenu)
+- `timex.insertOrdinalFolder` - "New Folder" (in Insert... submenu)
+- `timex.moveFileToFolder` - "File into Folder" (in Insert... submenu)
 
 ### Core Logic (`src/utils.ts`)
 ```typescript
@@ -311,26 +313,30 @@ extractOrdinalFromFilename(name)    // Parses ordinal number from filename
 6. Renumbers starting at `00010`, incrementing by 10
 7. Skips files already correctly numbered
 
-### Insert File Workflow  
-1. Right-click on ordinal file (e.g., `00020_requirements.md`)
-2. "Insert File" appears in context menu (conditional: `resourceFilename =~ /^\\d+_.+/`)
-3. Parses current ordinal (20), increments (+1 = 21)
-4. Creates `00021_new.md` in same directory
-5. Opens new empty file in editor
+### Insert... Submenu Workflow  
+The "Insert..." submenu appears when right-clicking ordinal files/folders and contains:
+- **New File**: Creates a new `.md` file with the next ordinal
+- **New Folder**: Creates a new folder with the next ordinal
+- **File into Folder**: Wraps a markdown file into its own folder (separated by divider)
+
+**New File/Folder workflow:**
+1. Right-click on ordinal item (e.g., `00020_requirements.md`)
+2. Select Timex → Insert... → "New File" or "New Folder"
+3. Prompts user for name
+4. Parses current ordinal (20), increments (+1 = 21)
+5. Creates `00021_name.md` or `00021_name/` in same directory
+6. Opens new file in editor / reveals new folder in Explorer
 
 ### Menu Integration
 ```json
-// package.json - Context menu conditional display
-"explorer/context": [
-  {
-    "command": "timex.renumberFiles",
-    "group": "7_modification"
-  },
-  {
-    "command": "timex.insertOrdinalFile", 
-    "group": "7_modification",
-    "when": "resourceFilename =~ /^\\d+_.+/"  // Only for ordinal files
-  }
+// package.json - Submenu structure
+"submenus": [
+  { "id": "timex.explorerInsert", "label": "Insert..." }
+],
+"timex.explorerInsert": [
+  { "command": "timex.insertOrdinalFile", "group": "1_insert@1" },
+  { "command": "timex.insertOrdinalFolder", "group": "1_insert@2" },
+  { "command": "timex.moveFileToFolder", "group": "2_move@1" }  // Separator above
 ]
 ```
 
@@ -425,7 +431,7 @@ Prefer `rebuildTaskDisplay()` pattern over full rescans for operations that only
 - **Recursive Processing**: Walks ordinal file structure, concatenates markdown, embeds images
 
 ### Command: `timex.previewFolderAsMarkdown`
-**Trigger**: Right-click on folder in VS Code explorer → Timex submenu → "Preview Folder as Markdown"
+**Trigger**: Right-click on folder in VS Code explorer → Timex → Generate Markdown → "Preview"
 **Behavior**: 
 - Opens virtual markdown document in full editor tab (not side panel)
 - Uses VS Code's native markdown preview (`markdown.showPreview`)

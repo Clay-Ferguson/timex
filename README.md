@@ -174,28 +174,30 @@ Access this feature by **right-clicking in the VS Code file explorer** and selec
 3. Right-click in file explorer → "Re-Number Files"
 4. Result: `00010_start.md`, `00020_urgent-fix.md`, `00030_middle.md`, `00040_end.md`
 
-### Insert File Feature
+### Insert File / Insert Folder Features
 
-For rapid file creation within your ordinal sequence, use the **"Insert File"** feature.
+For rapid file or folder creation within your ordinal sequence, use the **"Insert..."** submenu.
 
 #### How to Use
-1. **Right-click on any ordinal file** (e.g., `00020_requirements.md`)
-2. Select **"Insert File"** from the context menu
-3. A new file is automatically created with the next ordinal number: `00021_new.md`
-4. The new file opens immediately in the editor, ready for editing
+1. **Right-click on any ordinal file or folder** (e.g., `00020_requirements.md`)
+2. Select **Timex** → **"Insert..."** → **"New File"** or **"New Folder"**
+3. Enter the name for your new file or folder when prompted
+4. A new item is automatically created with the next ordinal number (e.g., `00021_my-name.md` or `00021_my-folder/`)
+5. For files, the new file opens immediately in the editor; for folders, the folder is revealed in the Explorer
 
 #### Example Usage
 - Selected file: `00020_requirements.md`
-- Created file: `00021_new.md`
-- You can then rename it to something meaningful like `00021_user-stories.md`
+- Choose **"New File"**: Creates `00021_your-name.md`
+- Choose **"New Folder"**: Creates `00021_your-name/` folder
 
 #### Key Benefits
 - **Automatic Numbering**: No need to calculate the next ordinal manually
-- **Instant Creation**: File is created and opened in one action
-- **Perfect Insertion**: Places new files exactly where you want them in the sequence
-- **Context Aware**: Only appears when right-clicking on files with ordinal prefixes
+- **Instant Creation**: Files are created and opened in one action; folders are revealed in Explorer
+- **Perfect Insertion**: Places new items exactly where you want them in the sequence
+- **Context Aware**: Only appears when right-clicking on items with ordinal prefixes
+- **Flexible**: Create either files or folders depending on your needs
 
-This feature makes it incredibly fast to expand your ordinal file structure—simply right-click where you want to insert a new item, and it's ready for editing immediately.
+This feature makes it incredibly fast to expand your ordinal file structure—simply right-click where you want to insert a new item, choose file or folder, and it's ready immediately.
 
 ### Move Up / Move Down Commands
 
@@ -205,13 +207,13 @@ Need to tweak the order without renumbering everything? Use the **Move Up** and 
 
 These commands work for both files and folders that follow the ordinal pattern (`00010_name`). They are safe to use at the edges: if there is no item above or below, a friendly message lets you know nothing changed.
 
-### Move to Folder
+### File into Folder
 
-The **Move to Folder** command (Explorer → Timex submenu) helps you organize your markdown files by wrapping them in a dedicated folder. This is perfect when you realize a single file needs to grow into a folder containing attachments or related resources.
+The **File into Folder** command (Explorer → Timex → Insert... submenu) helps you organize your markdown files by wrapping them in a dedicated folder. This is perfect when you realize a single file needs to grow into a folder containing attachments or related resources.
 
 **How to use:**
 1. Right-click any markdown file in the Explorer
-2. Select **Timex** → **"Move to Folder"**
+2. Select **Timex** → **"Insert..."** → **"File into Folder"**
 
 **What it does:**
 - Creates a new folder with the same name as your file (minus the `.md` extension)
@@ -232,7 +234,7 @@ This system gives you the benefits of ordered organization while maintaining the
 
 ### Generate Markdown Indexes
 
-The **Generate Markdown** command (Explorer → Timex submenu) assembles a consolidated `_index.md` that reflects your entire ordinal hierarchy.
+The **to _index.md files** command (Explorer → Timex → Generate Markdown submenu) assembles a consolidated `_index.md` that reflects your entire ordinal hierarchy.
 
 When you run this command, you will be prompted to choose between two generation modes:
 
@@ -261,11 +263,11 @@ Tip: re-run the command whenever you add, reorder, or update ordinal files to re
 
 ### Preview Folder as Markdown
 
-The **Preview Folder as Markdown** command provides an instant, no-clutter way to view your ordinal content as a rendered document without creating any physical `_index.md` files on disk.
+The **Preview** command (Explorer → Timex → Generate Markdown submenu) provides an instant, no-clutter way to view your ordinal content as a rendered document without creating any physical `_index.md` files on disk.
 
 **How to use:**
 1. Right-click any folder in the VS Code Explorer
-2. Select **Timex** → **"Preview Folder as Markdown"**
+2. Select **Timex** → **Generate Markdown** → **"Preview"**
 3. A rendered markdown preview opens in a full editor tab showing the assembled content
 
 **What it does:**
@@ -276,7 +278,7 @@ The **Preview Folder as Markdown** command provides an instant, no-clutter way t
 - Shows everything in VS Code's native markdown preview
 - **Never writes files to disk** - everything is virtual
 
-**Key differences from "Generate Markdown":**
+**Key differences from "to _index.md files":**
 - No physical `_index.md` files created
 - Opens in preview tab, not editor
 - Manual refresh (re-run command to update)
@@ -295,7 +297,7 @@ This extension includes demo data that demonstrates the power of ordinal-based d
 - `demo-data/docs/calculus-intro/` - A calculus tutorial organized in 8 ordinal files covering introduction through applications
 - `demo-data/docs/git-guide/` - A Git learning guide with 8 ordinal sections from basics to advanced tips
 
-These folders showcase exactly why ordinal numbering exists: to transform a collection of ordered markdown files into readable, sequential documents. Try right-clicking on either folder and selecting "Preview Folder as Markdown" to see how individual topic files are assembled into a cohesive document flow.
+These folders showcase exactly why ordinal numbering exists: to transform a collection of ordered markdown files into readable, sequential documents. Try right-clicking on either folder and selecting Timex → Generate Markdown → "Preview" to see how individual topic files are assembled into a cohesive document flow.
 
 The ordinal system ensures proper sequencing (00010, 00020, 00030...), making it trivial to:
 - Insert new sections between existing ones
@@ -303,7 +305,7 @@ The ordinal system ensures proper sequencing (00010, 00020, 00030...), making it
 - Maintain logical document structure
 - Generate clean combined views on demand
 
-**Note:** To manually refresh the preview after making changes to files, simply re-run the "Preview Folder as Markdown" command on the same folder.
+**Note:** To manually refresh the preview after making changes to files, simply re-run the "Preview" command on the same folder.
 
 #### Minimal Filename-Driven Items
 
