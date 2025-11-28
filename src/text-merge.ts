@@ -28,6 +28,14 @@ export async function mergeSentences(): Promise<void> {
 
 	let NL = '---nl---';
 	let selectedText = editor.document.getText(selection);
+
+	// It's tricky to explain this, but in order to not have this algorithm end up wiping out the periods that appear at the end of a paragraph
+	// that ends with a space right before the new line but we compensate for that by replacing that with just simply a new line character. And it's worth noting
+	// that the only reason we end up in this situation is because the TTS we use adds that space silently as we dictate, so they do appear often. 
+
+	selectedText = selectedText.replace(/  \n/g, NL);
+    selectedText = selectedText.replace(/ \n/g, NL);
+
 	selectedText = selectedText.replace(/\n/g, NL);
 
 	// This ensures that: 

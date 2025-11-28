@@ -10,7 +10,7 @@ import { ws_read_file } from './ws-file-util';
 import { ViewFilter, PriorityTag } from './constants';
 import { TimexFilterPanel } from './filter-panel/filterPanel';
 import { MarkdownFolderPreviewProvider } from './markdownFolderPreviewProvider';
-import { renumberFiles, insertOrdinalFile, cutByOrdinal, pasteByOrdinal, OrdinalClipboardItem, moveOrdinal, moveFileToFolder } from './ordinals';
+import { renumberFiles, insertOrdinalFile, insertOrdinalFolder, cutByOrdinal, pasteByOrdinal, OrdinalClipboardItem, moveOrdinal, moveFileToFolder } from './ordinals';
 import { fixLinks, insertAttachment, insertImageFromClipboard, insertFileLink } from './attachment';
 import { generateMarkdown, previewFolderAsMarkdown } from './gen-markdown';
 import { deleteTask, newTask, renameTask } from './task';
@@ -295,6 +295,8 @@ export function activate(context: vscode.ExtensionContext) {
 
 	const insertOrdinalFileCommand = vscode.commands.registerCommand('timex.insertOrdinalFile', insertOrdinalFile);
 
+	const insertOrdinalFolderCommand = vscode.commands.registerCommand('timex.insertOrdinalFolder', insertOrdinalFolder);
+
 	const generateMarkdownCommand = vscode.commands.registerCommand('timex.generateMarkdown', generateMarkdown);
 
 	const cutByOrdinalCommand = vscode.commands.registerCommand(
@@ -354,6 +356,7 @@ export function activate(context: vscode.ExtensionContext) {
 	context.subscriptions.push(renameTaskCommand);
 	context.subscriptions.push(renumberFilesCommand);
 	context.subscriptions.push(insertOrdinalFileCommand);
+	context.subscriptions.push(insertOrdinalFolderCommand);
 	context.subscriptions.push(generateMarkdownCommand);
 	context.subscriptions.push(cutByOrdinalCommand);
 	context.subscriptions.push(pasteByOrdinalCommand);

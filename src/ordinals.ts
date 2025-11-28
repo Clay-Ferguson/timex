@@ -180,23 +180,39 @@ export async function renumberFiles() {
     }
 }
 
-export async function insertOrdinalFile(uri: vscode.Uri) {
+/**
+ * Common logic for getting ordinal information from a selected file/folder
+ * Returns the next ordinal prefix and parent directory, or null if invalid selection
+ */
+async function getOrdinalInsertInfo(uri: vscode.Uri): Promise<{ nextPrefix: string; directory: string } | null> {
     if (!uri) {
-        vscode.window.showErrorMessage('No file selected');
-        return;
+        vscode.window.showErrorMessage('No file or folder selected');
+        return null;
     }
 
-    const selectedFilePath = uri.fsPath;
-    const filename = path.basename(selectedFilePath);
-    const currentOrdinal = extractOrdinalFromFilename(filename);
+    const selectedPath = uri.fsPath;
+    const name = path.basename(selectedPath);
+    const currentOrdinal = extractOrdinalFromFilename(name);
 
     if (currentOrdinal === null) {
-        vscode.window.showErrorMessage('Selected file does not have an ordinal prefix (e.g., "001_filename.md")');
-        return;
+        vscode.window.showErrorMessage('Selected item does not have an ordinal prefix (e.g., "001_filename")');
+        return null;
     }
 
     const nextOrdinal = currentOrdinal + 1;
     const nextPrefix = generateNumberPrefix(nextOrdinal);
+    const directory = path.dirname(selectedPath);
+
+    return { nextPrefix, directory };
+}
+
+export async function insertOrdinalFile(uri: vscode.Uri) {
+    const info = await getOrdinalInsertInfo(uri);
+    if (!info) {
+        return;
+    }
+
+    const { nextPrefix, directory } = info;
 
     // Ask user for the file name
     const userInput = await vscode.window.showInputBox({
@@ -212,7 +228,6 @@ export async function insertOrdinalFile(uri: vscode.Uri) {
     // Strip .md extension if user entered it
     const cleanName = userInput.replace(/\.md$/i, '');
     const newFilename = `${nextPrefix}${cleanName}.md`;
-    const directory = path.dirname(selectedFilePath);
     const fullPath = path.join(directory, newFilename);
 
     try {
@@ -243,6 +258,50 @@ export async function insertOrdinalFile(uri: vscode.Uri) {
     } catch (error) {
         vscode.window.showErrorMessage(`Failed to create ordinal file: ${error}`);
         console.error('Insert ordinal file error:', error);
+    }
+}
+
+export async function insertOrdinalFolder(uri: vscode.Uri) {
+    const info = await getOrdinalInsertInfo(uri);
+    if (!info) {
+        return;
+    }
+
+    const { nextPrefix, directory } = info;
+
+    // Ask user for the folder name
+    const userInput = await vscode.window.showInputBox({
+        prompt: `Enter name for new folder (will be prefixed with ${nextPrefix})`,
+        placeHolder: 'my-new-folder',
+        value: 'new-folder'
+    });
+
+    if (!userInput) {
+        return; // User cancelled
+    }
+
+    const newFolderName = `${nextPrefix}${userInput}`;
+    const fullPath = path.join(directory, newFolderName);
+
+    try {
+        // Check if the folder already exists
+        if (await ws_exists(fullPath)) {
+            vscode.window.showErrorMessage(`Folder "${newFolderName}" already exists.`);
+            return;
+        }
+
+        // Create the new folder
+        await ws_mkdir(fullPath);
+
+        // Reveal the new folder in the explorer
+        const folderUri = vscode.Uri.file(fullPath);
+        await vscode.commands.executeCommand('revealInExplorer', folderUri);
+
+        vscode.window.showInformationMessage(`Created folder: ${newFolderName}`);
+
+    } catch (error) {
+        vscode.window.showErrorMessage(`Failed to create ordinal folder: ${error}`);
+        console.error('Insert ordinal folder error:', error);
     }
 }
 

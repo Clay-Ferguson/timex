@@ -172,6 +172,10 @@
         "title": "Insert File"
       },
       {
+        "command": "timex.insertOrdinalFolder",
+        "title": "Insert Folder"
+      },
+      {
         "command": "timex.generateMarkdown",
         "title": "Generate Markdown",
         "icon": "$(book)"
@@ -230,6 +234,11 @@
         "id": "timex.explorerOrdinal",
         "label": "Timex",
         "icon": "$(list-unordered)"
+      },
+      {
+        "id": "timex.explorerInsert",
+        "label": "Insert...",
+        "icon": "$(add)"
       },
       {
         "id": "timex.editorTimestamp",
@@ -372,6 +381,9 @@
           "command": "timex.insertOrdinalFile"
         },
         {
+          "command": "timex.insertOrdinalFolder"
+        },
+        {
           "command": "timex.generateMarkdown"
         },
         {
@@ -437,6 +449,18 @@
           "group": "1_image@2"
         }
       ],
+      "timex.explorerInsert": [
+        {
+          "command": "timex.insertOrdinalFile",
+          "group": "1_insert@1",
+          "icon": "$(file-add)"
+        },
+        {
+          "command": "timex.insertOrdinalFolder",
+          "group": "1_insert@2",
+          "icon": "$(new-folder)"
+        }
+      ],
       "explorer/context": [
         {
           "submenu": "timex.explorerOrdinal",
@@ -452,7 +476,7 @@
           "icon": "$(list-ordered)"
         },
         {
-          "command": "timex.insertOrdinalFile",
+          "submenu": "timex.explorerInsert",
           "group": "1_main@2",
           "when": "resourceFilename =~ /^\\d+_.+/",
           "icon": "$(add)"
