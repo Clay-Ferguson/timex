@@ -16,6 +16,7 @@ import { generateMarkdown, previewFolderAsMarkdown } from './gen-markdown';
 import { deleteTask, newTask, renameTask } from './task';
 import { addTimeToTask, insertDate, insertTimestamp } from './date-time';
 import { mergeSentences } from './text-merge';
+import { activateWriter } from './writer/writer';
 
 /**
  * Sets up file system watcher for markdown files to automatically update task view
@@ -91,6 +92,9 @@ export function activate(context: vscode.ExtensionContext) {
 
 	// Set up file watcher for automatic updates
 	setupFileWatcher(context, taskProvider);
+
+	// Activate the AI Writer functionality
+	activateWriter(context);
 
 	// Set up configuration change listener to clear primary hashtag cache
 	const configChangeListener = vscode.workspace.onDidChangeConfiguration((event) => {

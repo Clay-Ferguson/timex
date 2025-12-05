@@ -8,11 +8,12 @@ Lightweight VS Code extension that transforms markdown files into a chronologica
 ## Architecture Overview
 
 ### Entry Point (`src/extension.ts`)
-- **Commands Registration**: 17+ commands from timestamp insertion to ordinal file management
+- **Commands Registration**: 27+ commands from timestamp insertion to AI writing assistance
 - **File Watcher**: Real-time `.md` file monitoring with 100ms debounce
 - **Tree View Setup**: Wires `TaskProvider` to VS Code's tree view API
 - **Filter Panel Integration**: Opens `TimexFilterPanel` webview for combined priority and time filtering
 - **Timestamp Manipulation**: `addTimeToTask()` preserves original format (date-only vs full datetime)
+- **AI Writer Activation**: Calls `activateWriter()` to register chat participant and writer commands
 
 ### Data Layer (`src/model.ts`)
 - **TaskProvider**: Main data provider implementing `vscode.TreeDataProvider<TaskFileItem>`
@@ -467,6 +468,131 @@ Both features use:
 - Same markdown concatenation with `---` separators
 
 **Design Goal**: Avoid creating persistent `_index.md` files that clutter workspace and cause confusion in search results
+
+## AI Writer - Collaborative Writing Assistant
+
+The AI Writer is an integrated chat participant and command suite for collaborative AI-assisted writing using a structured HTML comment syntax.
+
+### Core Concept
+AI Writer uses a block-based syntax with HTML comments to separate human input from AI-generated output:
+```markdown
+<!-- p -->
+Human-written draft or outline content goes here.
+This is the "P" (Paragraph/Prompt) section.
+<!-- a -->
+AI-generated content appears here.
+This is the "A" (AI) section.
+<!-- e -->
+```
+
+### Module Location (`src/writer/writer.ts`)
+- **activateWriter()**: Main entry point called from `extension.ts`
+- **Chat Participant**: Registers `@writer` chat participant with VS Code
+- **Commands**: 10 commands all prefixed with `timex.writer*`
+- **Prompt Files**: Default prompts in `src/writer/prompts/`
+
+### Chat Participant (`@writer`)
+Registered with ID `timex.writer`, provides three slash commands:
+- **`/fill`**: Generate content from a draft (paraphrasing mode)
+- **`/fill-outline`**: Generate content from bullet-point outline
+- **`/verify`**: Check if AI section contains all details from P section
+
+**Usage Pattern**:
+1. User places cursor inside a `<!-- p --> ... <!-- e -->` block
+2. Invokes `@writer /fill` or `@writer /fill-outline` in chat
+3. AI processes the P section content with appropriate prompt
+4. Response includes "Insert into Document" button to replace A section
+
+### Commands
+
+**Editor Context Commands** (Timex → AI Writer submenu):
+- `timex.writerGenerateFromDraft`: Opens chat with `@writer /fill`
+- `timex.writerGenerateFromOutline`: Opens chat with `@writer /fill-outline`
+- `timex.writerVerify`: Opens chat with `@writer /verify`
+
+**Explorer Context Commands** (Timex → AI Writer submenu):
+- `timex.writerRemovePSections`: Removes all P sections, keeps A content
+- `timex.writerRemoveASections`: Removes all A sections, keeps P content
+- `timex.writerHidePSections`: Toggles P visibility (modifies comment syntax)
+- `timex.writerHideASections`: Toggles A visibility (modifies comment syntax)
+- `timex.writerAddToContext`: Adds file to `AI-WRITER-CONTEXT.md`
+
+**Other Commands**:
+- `timex.writerInsertTemplate`: Inserts empty block template at cursor
+- `timex.writerInsertResponse`: Internal command for "Insert into Document" button
+
+### Prompt System
+**Default Prompts** (bundled with extension):
+- `src/writer/prompts/AI-WRITER-GEN-FROM-DRAFT.md`: Paraphrasing instructions
+- `src/writer/prompts/AI-WRITER-GEN-FROM-OUTLINE.md`: Outline expansion instructions
+
+**Workspace Overrides** (optional, in workspace root):
+- `AI-WRITER-GEN-FROM-DRAFT.md`: Custom draft prompt
+- `AI-WRITER-GEN-FROM-OUTLINE.md`: Custom outline prompt
+- `AI-WRITER-ROLE.md`: Additional persona/role instructions (appended)
+- `AI-WRITER-CONTEXT.md`: Additional context files (links expanded inline)
+
+**Prompt Loading Priority**:
+```typescript
+1. Check workspace root for custom prompt file
+2. If not found, load from extension's out/writer/prompts/
+3. Append AI-WRITER-CONTEXT.md content (with link expansion)
+4. Append AI-WRITER-ROLE.md content
+```
+
+### Context File Processing
+`AI-WRITER-CONTEXT.md` supports markdown links that get expanded:
+```markdown
+# Custom Context
+[config](src/config.ts)
+[readme](docs/README.md)
+```
+Links are replaced with file contents wrapped in `<context_file>` tags.
+
+### Hide/Show Mechanism
+Toggling visibility modifies comment syntax:
+```markdown
+<!-- p -->  →  <!-- p -- >   (hidden)
+<!-- a -->  →  <!-- a -- >   (hidden)
+```
+This allows markdown renderers to show/hide sections while preserving content.
+
+### Block Detection (`findWriterBlock`)
+```typescript
+// Regex: /<!--\s*p\s*-->([^]*?)<!--\s*e\s*-->/g
+// Finds blocks where cursor is positioned
+// Extracts P content (between <!-- p --> and <!-- a -->)
+// Returns: { pContent, fullBlock, range }
+```
+
+### Auto-Block Creation
+If no block exists but text is selected:
+```typescript
+// Selection: "My draft text"
+// Becomes:
+<!-- p -->
+My draft text
+<!-- a -->
+<!-- e -->
+```
+
+### Menu Structure
+AI Writer commands appear as a submenu under the existing Timex menus:
+- **Editor context**: Right-click → Timex → AI Writer → [Generate from Draft, Generate from Outline, Verify]
+- **Explorer context**: Right-click → Timex → AI Writer → [Remove/Hide P/A sections, Add to Context]
+
+### Build Configuration
+Prompts must be copied to output directory:
+```json
+// package.json scripts
+"copy-resources": "... && mkdir -p out/writer/prompts && cp src/writer/prompts/*.md out/writer/prompts/ ..."
+```
+
+### Key Implementation Notes
+- Uses VS Code Language Model API (`vscode.lm.selectChatModels`)
+- Prefers GPT-4 family models, falls back to any available model
+- Stream-based response handling for real-time output
+- Button command uses range-based block re-detection for accuracy
 
 ## Example Task Files
 
