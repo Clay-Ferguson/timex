@@ -54,7 +54,7 @@ This script will:
 
 This extension uses **Mocha** as the testing framework for unit tests. The testing infrastructure includes comprehensive test coverage for core utility functions like date parsing, timestamp formatting, and relative date calculations.
 
-For detailed information about running tests, test structure, and testing best practices, see **[TESTING.md](TESTING.md)**.
+For detailed information about running tests, test structure, and testing best practices, see **[docs/testing.md](docs/testing.md)**.
 
 Key testing commands:
 ```bash
