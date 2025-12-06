@@ -110,7 +110,6 @@ Settings (File > Preferences > Settings > Extensions > Timex):
 |---------|---------|-------------|
 | `timex.primaryHashtag` | `#todo` | Active hashtag scanned for actionable items. Change via the tag toolbar icon or directly here. |
 | `timex.hashtags` | `#todo, #note, #idea` | Comma‑separated candidate hashtags available in the selection picker. Whitespace trimmed; empty entries ignored. |
-| `timex.newTaskFolder` | (empty) | Absolute path to folder where new task files will be created. Leave empty to create in workspace root. |
 | `timex.includeGlobs` | `**/*.md` | Glob patterns included when scanning the workspace. Empty list falls back to the default. |
 | `timex.excludeGlobs` | `**/node_modules/**`, `**/.git/**`, `**/.vscode/**`, `**/out/**`, `**/dist/**`, `**/build/**`, `**/.next/**`, `**/target/**` | Glob patterns skipped while scanning for markdown items. Empty list scans every folder. |
 
@@ -122,27 +121,8 @@ Behavior Notes:
 4. If `primaryHashtag` is not present in `hashtags`, it is still honored (useful for temporary experiments).
 5. Adjust `includeGlobs` / `excludeGlobs` to fine-tune which files are scanned (e.g., add project-specific directories or alternate extensions).
 
-- **`timex.newTaskFolder`**: Specifies the folder where new task files are created when using the + button
-  - **Type**: String
-  - **Default**: `""` (workspace root)
-  - **Example values**: `"/home/user/tasks"`, `"/tmp/my-tasks"`, `"~/Documents/Tasks"`
-  - **Note**: Supports absolute file system paths. For relative paths (backward compatibility), they are resolved relative to workspace root. The folder will be created automatically if it doesn't exist.
-
-Quick Access:
-You can also set or change this value without opening Settings via the panel:
-- Open the panel, then either:
-  - Click the panel title menu (three dots) and select "Folder for New Tasks...", or
-  - Right‑click inside the panel (empty space or an item) and choose "Folder for New Tasks...".
-This opens an input box and updates the `timex.newTaskFolder` setting directly.
-
 Need to adjust which folders are scanned? Use **Configure Excluded Paths...** from the same menu to jump straight to the list editor in Settings.
 Want to expand beyond markdown? Use **Configure Included Paths...** to add additional glob patterns (e.g., `**/*.mdx`).
-
-To access settings:
-1. Open VSCode Settings (File → Preferences → Settings, or Ctrl+Shift+P then type "Preferences: Open Settings")
-2. Search for "timex" (or legacy: "task manager")
-3. Look for "New Task Folder" under the "Timex" section
-4. Configure the folder path as needed
 
 ### Supported Hashtags
 
@@ -194,11 +174,9 @@ The panel remains open after clicking "Search" so you can adjust filters and sea
 This feature is perfect for quickly finding specific tasks in large workspaces without having to browse through all tasks manually.
 
 #### New Item Button
-- + icon; prompts for filename and creates file with that name (automatically adds `.md` extension if not provided) in configured folder. Prefills with active hashtag + current timestamp + `#p3`.
+- + icon; prompts for filename and creates file with that name (automatically adds `.md` extension if not provided) in the workspace root folder. Prefills with active hashtag + current timestamp + `#p3`.
 
 Fastest capture path—click +, enter a descriptive filename, and start typing.
-
-**Configuring Task Folder**: You can specify where new task files are created by setting the `timex.newTaskFolder` configuration. Go to VSCode settings (File → Preferences → Settings) and search for "timex" to find the "New Task Folder" setting. Enter an absolute file system path (e.g., "/home/user/tasks", "/tmp/my-tasks") or a relative path to your workspace root (e.g., "tasks", "todos", or "project/tasks"). Leave empty to create tasks in the workspace root.
 
 #### Right-Click Context Menu
 
@@ -238,7 +216,6 @@ Fastest capture path—click +, enter a descriptive filename, and start typing.
 **In Panel:**
 - **Location**: Right-click on any item in the panel
 - **Options Available**:
-  - **Folder for New Tasks...**: Quickly set or change the folder path used when creating new tasks via the + button (updates the `timex.newTaskFolder` setting)
   - **Date Extension Commands**: +Day, +Week, +Month, +Year (for tasks with timestamps)
   - **Reveal in Explorer**: Highlights the underlying file in VS Code's Explorer so you can see its location instantly.
   - **Rename**: Prompts for a new filename and renames the markdown file without switching to the Explorer.

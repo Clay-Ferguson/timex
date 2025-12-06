@@ -1,11 +1,7 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
 import { formatTimestamp } from './utils';
-import { ws_exists } from './ws-file-util';
-import { ws_mkdir } from './ws-file-util';
-import { ws_delete } from './ws-file-util';
-import { ws_write_file } from './ws-file-util';
-import { ws_rename } from './ws-file-util';
+import { ws_exists, ws_delete, ws_write_file, ws_rename } from './ws-file-util';
 import { PriorityTag } from './constants';
 import { TaskProvider } from './model';
 
@@ -17,35 +13,7 @@ export async function newTask(taskProvider: TaskProvider) {
     }
 
     const workspaceFolder = vscode.workspace.workspaceFolders[0];
-    const rootPath = workspaceFolder.uri.fsPath;
-
-    // Get configured task folder
-    const config = vscode.workspace.getConfiguration('timex');
-    const taskFolderSetting = config.get<string>('newTaskFolder', '');
-
-    // Determine the target folder
-    let targetPath = rootPath;
-    if (taskFolderSetting && taskFolderSetting.trim() !== '') {
-        const folderPath = taskFolderSetting.trim();
-
-        // Check if it's an absolute path
-        if (path.isAbsolute(folderPath)) {
-            targetPath = folderPath;
-        } else {
-            // If relative path, join with workspace root (backward compatibility)
-            targetPath = path.join(rootPath, folderPath);
-        }
-
-        // Create the folder if it doesn't exist
-        if (!(await ws_exists(targetPath))) {
-            try {
-                await ws_mkdir(targetPath);
-            } catch (error) {
-                vscode.window.showErrorMessage(`Failed to create task folder: ${error}`);
-                return;
-            }
-        }
-    }
+    const targetPath = workspaceFolder.uri.fsPath;
 
     // Prompt user for filename
     const userFileName = await vscode.window.showInputBox({

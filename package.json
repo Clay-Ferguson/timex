@@ -46,13 +46,6 @@
     "configuration": {
       "title": "Timex",
       "properties": {
-        "timex.newTaskFolder": {
-          "type": "string",
-          "default": "",
-          "description": "Absolute path to folder where new task files will be created. Leave empty to create in workspace root.",
-          "scope": "application",
-          "order": 10
-        },
         "timex.primaryHashtag": {
           "type": "string",
           "default": "#task",

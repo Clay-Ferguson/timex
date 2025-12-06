@@ -32,10 +32,9 @@ Lightweight VS Code extension that transforms markdown files into a chronologica
 - **State Persistence**: Shows currently selected filters as checked radio buttons and current search text on panel open
 
 ### Configuration (`package.json`)
-Three workspace settings:
+Two workspace settings:
 - `timex.primaryHashtag`: Active hashtag for filtering (default `#todo`)
-- `timex.hashtags`: Available hashtags for picker (default `#todo, #todo, #note`) 
-- `timex.newTaskFolder`: Target folder for new tasks (supports absolute file system paths)
+- `timex.hashtags`: Available hashtags for picker (default `#todo, #todo, #note`)
 
 ## Task File Format Rules
 
