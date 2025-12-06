@@ -149,11 +149,6 @@
         "icon": "$(add)"
       },
       {
-        "command": "timex.about",
-        "title": "About Timex...",
-        "icon": "$(info)"
-      },
-      {
         "command": "timex.openSettings",
         "title": "Timex Settings",
         "icon": "$(gear)"
@@ -252,17 +247,17 @@
       },
       {
         "command": "timex.writerGenerateFromDraft",
-        "title": "Generate from Draft",
+        "title": "AI: Gen. from Draft",
         "category": "AI Writer"
       },
       {
         "command": "timex.writerGenerateFromOutline",
-        "title": "Generate from Outline",
+        "title": "AI: Gen. from Outline",
         "category": "AI Writer"
       },
       {
         "command": "timex.writerVerify",
-        "title": "Verify",
+        "title": "AI: Verify",
         "category": "AI Writer"
       },
       {
@@ -321,11 +316,6 @@
         "icon": "$(book)"
       },
       {
-        "id": "timex.writerEditorSubmenu",
-        "label": "AI Writer",
-        "icon": "$(pencil)"
-      },
-      {
         "id": "timex.writerExplorerSubmenu",
         "label": "AI Writer",
         "icon": "$(pencil)"
@@ -371,11 +361,6 @@
           "when": "view == taskExplorer",
           "group": "0_settings@1",
           "icon": "$(gear)"
-        },
-        {
-          "command": "timex.about",
-          "when": "view == taskExplorer",
-          "group": "1_about"
         }
       ],
       "view/context": [
@@ -384,11 +369,6 @@
           "when": "view == taskExplorer",
           "group": "0_settings@1",
           "icon": "$(gear)"
-        },
-        {
-          "command": "timex.about",
-          "when": "view == taskExplorer",
-          "group": "1_about@1"
         }
       ],
       "view/item/context": [
@@ -479,9 +459,6 @@
           "command": "timex.previewFolderAsMarkdown"
         },
         {
-          "command": "timex.about"
-        },
-        {
           "command": "timex.openSettings"
         },
         {
@@ -546,8 +523,18 @@
           "when": "editorHasSelection"
         },
         {
-          "submenu": "timex.writerEditorSubmenu",
+          "command": "timex.writerGenerateFromDraft",
           "group": "4_writer@1",
+          "when": "editorTextFocus"
+        },
+        {
+          "command": "timex.writerGenerateFromOutline",
+          "group": "4_writer@2",
+          "when": "editorTextFocus"
+        },
+        {
+          "command": "timex.writerVerify",
+          "group": "4_writer@3",
           "when": "editorTextFocus"
         }
       ],
@@ -651,23 +638,6 @@
           "group": "4_writer@1",
           "when": "resourceScheme == 'file'",
           "icon": "$(pencil)"
-        }
-      ],
-      "timex.writerEditorSubmenu": [
-        {
-          "command": "timex.writerGenerateFromDraft",
-          "group": "1_generate@1",
-          "when": "editorTextFocus"
-        },
-        {
-          "command": "timex.writerGenerateFromOutline",
-          "group": "1_generate@2",
-          "when": "editorTextFocus"
-        },
-        {
-          "command": "timex.writerVerify",
-          "group": "1_generate@3",
-          "when": "editorTextFocus"
         }
       ],
       "timex.writerExplorerSubmenu": [

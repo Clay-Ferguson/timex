@@ -219,34 +219,7 @@ export function activate(context: vscode.ExtensionContext) {
 		await newTask(taskProvider);
 	});
 
-	const aboutCommand = vscode.commands.registerCommand('timex.about', async () => {
-		try {
-			// Get the path to the README.md in the extension's installation directory
-			const extensionPath = context.extensionPath;
-			
-			// Try both uppercase and lowercase versions since vsce may lowercase the filename
-			let readmePath = path.join(extensionPath, 'README.md');
-			if (!await ws_exists(readmePath)) {
-				readmePath = path.join(extensionPath, 'readme.md');
-			}
-			
-			// Verify the README file exists
-			if (!await ws_exists(readmePath)) {
-				vscode.window.showErrorMessage(
-					`README.md not found in extension directory. ` +
-					`Checked: ${path.join(extensionPath, 'README.md')} and ${path.join(extensionPath, 'readme.md')}. ` +
-					`This may indicate the extension was not packaged correctly.`
-				);
-				return;
-			}
 
-			const readmeUri = vscode.Uri.file(readmePath);
-			// Open the README.md file in VS Code's markdown preview
-			await vscode.commands.executeCommand('markdown.showPreview', readmeUri);
-		} catch (error) {
-			vscode.window.showErrorMessage(`Failed to open About page: ${error}`);
-		}
-	});
 
 	const openSettingsCommand = vscode.commands.registerCommand('timex.openSettings', async () => {
 		try {
@@ -349,7 +322,6 @@ export function activate(context: vscode.ExtensionContext) {
 	context.subscriptions.push(selectPrimaryHashtagCommand);
 	context.subscriptions.push(openFilterPanelCommand);
 	context.subscriptions.push(newTaskCommand);
-	context.subscriptions.push(aboutCommand);
 	context.subscriptions.push(openSettingsCommand);
 	context.subscriptions.push(addDayCommand);
 	context.subscriptions.push(addWeekCommand);

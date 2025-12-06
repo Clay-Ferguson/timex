@@ -9,6 +9,3 @@ vsc-extension-quickstart.md
 **/*.map
 **/*.ts
 **/.vscode-test.*
-
-# Explicitly include README.md (needed for "About Timex..." command)
-!README.md

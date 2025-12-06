@@ -4,7 +4,7 @@
 
 A minimalist, flexible panel for managing markdown-based items (tasks, todos, notes, reminders) using lightweight hashtags and timestamps in your files. You can define multiple hashtags (e.g. `#todo`, `#note`) and switch the **active primary hashtag** live; only files containing the active one are listed. 
 
-![Task Panel Screenshot](task-panel-screenshot.png)
+![Task Panel Screenshot](../img/task-panel-screenshot.png)
 
 ## Quick Start (2‑Minute Tour)
 

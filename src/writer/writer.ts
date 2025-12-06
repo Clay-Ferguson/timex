@@ -25,13 +25,13 @@ export function activateWriter(context: vscode.ExtensionContext) {
             return;
         }
 
-        // Handle /fill command (generate from draft)
+        // Handle /fill command (Gen. from Draft)
         if (request.command === 'fill') {
             await handleFillCommand('draft', context, request, stream, token);
             return;
         }
 
-        // Handle /fill-outline command (generate from outline)
+        // Handle /fill-outline command (Gen. from Outline)
         if (request.command === 'fill-outline') {
             await handleFillCommand('outline', context, request, stream, token);
             return;
@@ -95,14 +95,14 @@ export function activateWriter(context: vscode.ExtensionContext) {
         })
     );
 
-    // 4. Register Command to Generate from Draft (Trigger Chat with /fill command)
+    // 4. Register Command to Gen. from Draft (Trigger Chat with /fill command)
     context.subscriptions.push(
         vscode.commands.registerCommand('timex.writerGenerateFromDraft', () => {
             vscode.commands.executeCommand('workbench.action.chat.open', { query: '@writer /fill' });
         })
     );
 
-    // 5. Register Command to Generate from Outline (Trigger Chat with fill-outline command)
+    // 5. Register Command to Gen. from Outline (Trigger Chat with fill-outline command)
     context.subscriptions.push(
         vscode.commands.registerCommand('timex.writerGenerateFromOutline', () => {
             vscode.commands.executeCommand('workbench.action.chat.open', { query: '@writer /fill-outline' });

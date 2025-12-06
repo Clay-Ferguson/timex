@@ -505,10 +505,10 @@ Registered with ID `timex.writer`, provides three slash commands:
 
 ### Commands
 
-**Editor Context Commands** (Timex → AI Writer submenu):
-- `timex.writerGenerateFromDraft`: Opens chat with `@writer /fill`
-- `timex.writerGenerateFromOutline`: Opens chat with `@writer /fill-outline`
-- `timex.writerVerify`: Opens chat with `@writer /verify`
+**Editor Context Commands** (directly on Timex menu, with divider above):
+- `timex.writerGenerateFromDraft`: "AI: Gen. from Draft" - Opens chat with `@writer /fill`
+- `timex.writerGenerateFromOutline`: "AI: Gen. from Outline" - Opens chat with `@writer /fill-outline`
+- `timex.writerVerify`: "AI: Verify" - Opens chat with `@writer /verify`
 
 **Explorer Context Commands** (Timex → AI Writer submenu):
 - `timex.writerRemovePSections`: Removes all P sections, keeps A content
@@ -577,8 +577,8 @@ My draft text
 ```
 
 ### Menu Structure
-AI Writer commands appear as a submenu under the existing Timex menus:
-- **Editor context**: Right-click → Timex → AI Writer → [Generate from Draft, Generate from Outline, Verify]
+AI Writer commands appear in the Timex menus:
+- **Editor context**: Right-click → Timex → [AI: Gen. from Draft, AI: Gen. from Outline, AI: Verify] (directly on menu with divider above)
 - **Explorer context**: Right-click → Timex → AI Writer → [Remove/Hide P/A sections, Add to Context]
 
 ### Build Configuration
