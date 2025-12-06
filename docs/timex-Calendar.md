@@ -243,7 +243,6 @@ Fastest capture path—click +, enter a descriptive filename, and start typing.
   - **Reveal in Explorer**: Highlights the underlying file in VS Code's Explorer so you can see its location instantly.
   - **Rename**: Prompts for a new filename and renames the markdown file without switching to the Explorer.
   - **Delete**: Permanently removes the task file from your workspace
-  - **About**: Shows extension information
 
 **In Explorer:**
 - Right-click any ordinal file or folder to open the Timex submenu of ordered-file tools.
