@@ -29,11 +29,11 @@
         "isSticky": true,
         "commands": [
           {
-            "name": "fill",
+            "name": "draft",
             "description": "Fill the current AI section based on the preceding paragraph (draft mode)."
           },
           {
-            "name": "fill-outline",
+            "name": "outline",
             "description": "Fill the current AI section based on an outline in the P section."
           },
           {

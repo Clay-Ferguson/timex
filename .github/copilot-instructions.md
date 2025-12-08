@@ -492,21 +492,21 @@ This is the "A" (AI) section.
 
 ### Chat Participant (`@writer`)
 Registered with ID `timex.writer`, provides three slash commands:
-- **`/fill`**: Generate content from a draft (paraphrasing mode)
-- **`/fill-outline`**: Generate content from bullet-point outline
+- **`/draft`**: Generate content from a draft (paraphrasing mode)
+- **`/outline`**: Generate content from bullet-point outline
 - **`/verify`**: Check if AI section contains all details from P section
 
 **Usage Pattern**:
 1. User places cursor inside a `<!-- p --> ... <!-- e -->` block
-2. Invokes `@writer /fill` or `@writer /fill-outline` in chat
+2. Invokes `@writer /draft` or `@writer /outline` in chat
 3. AI processes the P section content with appropriate prompt
 4. Response includes "Insert into Document" button to replace A section
 
 ### Commands
 
 **Editor Context Commands** (directly on Timex menu, with divider above):
-- `timex.writerGenerateFromDraft`: "AI: Gen. from Draft" - Opens chat with `@writer /fill`
-- `timex.writerGenerateFromOutline`: "AI: Gen. from Outline" - Opens chat with `@writer /fill-outline`
+- `timex.writerGenerateFromDraft`: "AI: Gen. from Draft" - Opens chat with `@writer /draft`
+- `timex.writerGenerateFromOutline`: "AI: Gen. from Outline" - Opens chat with `@writer /outline`
 - `timex.writerVerify`: "AI: Verify" - Opens chat with `@writer /verify`
 
 **Explorer Context Commands** (Timex → AI Writer submenu):

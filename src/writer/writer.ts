@@ -25,14 +25,14 @@ export function activateWriter(context: vscode.ExtensionContext) {
             return;
         }
 
-        // Handle /fill command (Gen. from Draft)
-        if (request.command === 'fill') {
+        // Handle /draft command (Gen. from Draft)
+        if (request.command === 'draft') {
             await handleFillCommand('draft', context, request, stream, token);
             return;
         }
 
-        // Handle /fill-outline command (Gen. from Outline)
-        if (request.command === 'fill-outline') {
+        // Handle /outline command (Gen. from Outline)
+        if (request.command === 'outline') {
             await handleFillCommand('outline', context, request, stream, token);
             return;
         }
@@ -95,17 +95,17 @@ export function activateWriter(context: vscode.ExtensionContext) {
         })
     );
 
-    // 4. Register Command to Gen. from Draft (Trigger Chat with /fill command)
+    // 4. Register Command to Gen. from Draft (Trigger Chat with /draft command)
     context.subscriptions.push(
         vscode.commands.registerCommand('timex.writerGenerateFromDraft', () => {
-            vscode.commands.executeCommand('workbench.action.chat.open', { query: '@writer /fill' });
+            vscode.commands.executeCommand('workbench.action.chat.open', { query: '@writer /draft' });
         })
     );
 
-    // 5. Register Command to Gen. from Outline (Trigger Chat with fill-outline command)
+    // 5. Register Command to Gen. from Outline (Trigger Chat with outline command)
     context.subscriptions.push(
         vscode.commands.registerCommand('timex.writerGenerateFromOutline', () => {
-            vscode.commands.executeCommand('workbench.action.chat.open', { query: '@writer /fill-outline' });
+            vscode.commands.executeCommand('workbench.action.chat.open', { query: '@writer /outline' });
         })
     );
 
@@ -148,7 +148,7 @@ async function handleConversation(
     // Simple conversational response using the LLM
     const messages = [
         vscode.LanguageModelChatMessage.User(
-            `You are AI Writer, a collaborative AI writing assistant. You help users with their writing tasks using a special HTML comment syntax (<!-- p --> for human input, <!-- a --> for AI output, <!-- e --> for block end). Answer the user's question conversationally and helpfully. If they ask about your capabilities, explain that you can help generate content using the /fill command (for drafts) or /fill-outline command (for outlines), and /verify to check AI output against the original draft.\n\nUser's message: ${request.prompt}`
+            `You are AI Writer, a collaborative AI writing assistant. You help users with their writing tasks using a special HTML comment syntax (<!-- p --> for human input, <!-- a --> for AI output, <!-- e --> for block end). Answer the user's question conversationally and helpfully. If they ask about your capabilities, explain that you can help generate content using the /draft command (for drafts) or /outline command (for outlines), and /verify to check AI output against the original draft.\n\nUser's message: ${request.prompt}`
         )
     ];
 
@@ -173,7 +173,7 @@ async function handleConversation(
     }
 }
 
-// Handler for /fill and /fill-outline commands
+// Handler for /draft and /outline commands
 async function handleFillCommand(
     promptType: 'draft' | 'outline',
     extensionContext: vscode.ExtensionContext,

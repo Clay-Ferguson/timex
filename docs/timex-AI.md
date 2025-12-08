@@ -79,7 +79,7 @@ This is useful when you want to:
 
 1.  Place your cursor inside a P-A-E block containing bullet points.
 2.  **Option A (Right-Click)**: Right-click in the editor and select **Timex > "AI: Gen. from Outline"**.
-3.  **Option B (Chat)**: Open the Copilot Chat view, type `@writer /fill-outline`, and hit Enter.
+3.  **Option B (Chat)**: Open the Copilot Chat view, type `@writer /outline`, and hit Enter.
 4.  Click the **"Insert into Document"** button to fill the A-Section.
 
 ## Example
@@ -221,11 +221,11 @@ To disable either the "p" (Paragraph) part or the "e" part from the Markdown (at
 
 # Commands
 
-*   `@writer`: Triggers the AI to process the current block (uses draft mode by default).
-*   `@writer /fill-outline`: Triggers the AI to generate content from an outline in the P-Section.
+*   `@writer /draft`: Triggers the AI to generate content from a draft in the P-Section.
+*   `@writer /outline`: Triggers the AI to generate content from an outline in the P-Section.
 *   `AI Writer: Insert Block Template`: Inserts a new `p/a/e` block at the cursor position.
-*   `AI Writer > Gen. from Draft`: (Context Menu) Opens Chat and invokes `@writer` for the current block.
-*   `AI Writer > Gen. from Outline`: (Context Menu) Opens Chat and invokes `@writer /fill-outline` to generate from bullet points.
+*   `AI Writer > Gen. from Draft`: (Context Menu) Opens Chat and invokes `@writer /draft` for the current block.
+*   `AI Writer > Gen. from Outline`: (Context Menu) Opens Chat and invokes `@writer /outline` to generate from bullet points.
 *   `AI Writer > Verify`: (Context Menu) Opens Chat and invokes `@writer /verify` to check for missing details.
 
 # Project Management (Explorer Context Menu)
