@@ -18,6 +18,8 @@ import { addTimeToTask, insertDate, insertTimestamp } from './date-time';
 import { mergeSentences } from './text-merge';
 import { activateWriter } from './writer/writer';
 
+// todo-0: move non-trivial functions defined inline into a separate module file
+
 /**
  * Sets up file system watcher for markdown files to automatically update task view
  */

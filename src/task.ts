@@ -5,6 +5,31 @@ import { ws_exists, ws_delete, ws_write_file, ws_rename } from './ws-file-util';
 import { PriorityTag } from './constants';
 import { TaskProvider } from './model';
 
+/**
+ * Creates a new task file in the workspace root directory.
+ * 
+ * This function guides the user through creating a new markdown task file:
+ * 1. Prompts for a filename (validates for invalid characters)
+ * 2. Automatically appends `.md` extension if not provided
+ * 3. Warns if the file already exists (with option to overwrite)
+ * 4. Generates task content with the current timestamp and default priority (#p3)
+ * 5. Opens the newly created file in the editor
+ * 6. Refreshes the task tree view to show the new task
+ * 
+ * The generated task content uses the primary hashtag from configuration.
+ * If in "all-tags" mode, the first configured hashtag is used instead.
+ * 
+ * @param taskProvider - The TaskProvider instance used to get the primary hashtag
+ *                       and refresh the task tree view after creation
+ * @returns Promise that resolves when the task is created and opened,
+ *          or when the user cancels the operation
+ * 
+ * @example
+ * // The generated file content looks like:
+ * // 
+ * // 
+ * // #todo [12/09/2025 02:30:00 PM] #p3
+ */
 export async function newTask(taskProvider: TaskProvider) {
     // Get the workspace folder
     if (!vscode.workspace.workspaceFolders || vscode.workspace.workspaceFolders.length === 0) {
@@ -107,6 +132,27 @@ export async function newTask(taskProvider: TaskProvider) {
     }
 }
 
+/**
+ * Deletes a task file from the filesystem after user confirmation.
+ * 
+ * This function handles the deletion workflow:
+ * 1. Validates that a task item with a valid resource URI is provided
+ * 2. Shows a modal confirmation dialog to prevent accidental deletions
+ * 3. Deletes the file from the filesystem if confirmed
+ * 4. Refreshes the task tree view to remove the deleted item
+ * 5. Shows appropriate success or error messages
+ * 
+ * @param item - The tree item representing the task to delete.
+ *               Must have a `resourceUri` property containing the file path.
+ *               This is typically a TaskFileItem from the task tree view.
+ * @param taskProvider - The TaskProvider instance used to refresh the task
+ *                       tree view after successful deletion
+ * @returns Promise that resolves when the deletion is complete or cancelled
+ * 
+ * @throws Displays an error message if:
+ *         - No task item is provided or item lacks resourceUri
+ *         - File deletion fails (e.g., permission issues, file locked)
+ */
 export async function deleteTask(item: any, taskProvider: TaskProvider) {
     if (!item || !item.resourceUri) {
         vscode.window.showErrorMessage('No task selected');
@@ -138,6 +184,37 @@ export async function deleteTask(item: any, taskProvider: TaskProvider) {
     }
 }
 
+/**
+ * Renames a task file to a new filename specified by the user.
+ * 
+ * This function handles the rename workflow:
+ * 1. Validates that a task item with a valid resource URI is provided
+ * 2. Shows an input dialog pre-filled with the current filename
+ * 3. Validates the new filename for invalid characters
+ * 4. Preserves the original file extension if none is provided
+ * 5. Performs the rename operation in the same directory
+ * 6. Queues the renamed file for reveal in the tree view
+ * 7. Refreshes the task tree view to reflect the new name
+ * 
+ * The function handles edge cases:
+ * - Empty or whitespace-only filenames are rejected
+ * - Invalid filename characters (/ \ ? % * : | " < >) are rejected
+ * - If user provides a name without extension, the original extension is preserved
+ * - If the new name matches the old name, the operation is silently cancelled
+ * - Files that already exist at the target path trigger an error message
+ * 
+ * @param item - The tree item representing the task to rename.
+ *               Must have a `resourceUri` property containing the file path.
+ *               This is typically a TaskFileItem from the task tree view.
+ * @param taskProvider - The TaskProvider instance used to queue the reveal
+ *                       operation and refresh the task tree view after renaming
+ * @returns Promise that resolves when the rename is complete or cancelled
+ * 
+ * @throws Displays an error message if:
+ *         - No task item is provided or item lacks resourceUri
+ *         - A file with the new name already exists
+ *         - The rename operation fails (e.g., permission issues)
+ */
 export async function renameTask(item: any, taskProvider: TaskProvider) {
     if (!item || !item.resourceUri) {
         vscode.window.showErrorMessage('No task selected');

@@ -7,6 +7,35 @@ import { ws_write_file } from './ws-file-util';
 import { ws_read_file } from './ws-file-util';
 import { ws_rename } from './ws-file-util';
 
+/**
+ * Inserts an attachment (image or file) into the current markdown document at the cursor position.
+ * 
+ * This function implements a hash-based attachment management system that:
+ * 1. Opens a file picker dialog for the user to select a file
+ * 2. Generates a SHA-256 hash of the file content (first 128 bits as hex)
+ * 3. Renames the file to include the TIMEX hash pattern: `name.TIMEX-{hash}.ext`
+ * 4. Inserts a markdown link at the cursor position with the relative path
+ * 
+ * The hash-based naming allows the `fixLinks` command to repair broken links
+ * when files are moved, as the hash serves as a unique identifier.
+ * 
+ * For image files (detected via extension), uses inline image syntax `![alt](path)`.
+ * For other files, uses standard link syntax `[name](path)`.
+ * 
+ * @remarks
+ * - Only works in markdown files
+ * - Requires an active workspace folder
+ * - If the file already has a TIMEX pattern in its name, it is used as-is
+ * - The relative path is URL-encoded to handle spaces and special characters
+ * - File paths are calculated relative to the markdown file's directory
+ * 
+ * @example
+ * // User selects "screenshot.png"
+ * // File is renamed to "screenshot.TIMEX-a3f5b2c8d9e1f4a7.png"
+ * // Inserts: ![screenshot](screenshot.TIMEX-a3f5b2c8d9e1f4a7.png)
+ * 
+ * @returns {Promise<void>} Resolves when the attachment is inserted, or early returns on cancellation/error
+ */
 export async function insertAttachment() {
     const editor = vscode.window.activeTextEditor;
     if (!editor) {
@@ -110,6 +139,34 @@ export async function insertAttachment() {
     }
 }
 
+/**
+ * Inserts a GUID-tracked link to another file in the workspace at the cursor position.
+ * 
+ * This function creates a special link format that allows the `fixLinks` command
+ * to repair broken links when the target file is moved. The mechanism works by:
+ * 1. Checking if the target file already has a GUID comment at the top
+ * 2. If not, generating a new random GUID and prepending `<!-- GUID:{guid} -->` to the file
+ * 3. Inserting a link with a TARGET-GUID comment: `<!-- TARGET-GUID:{guid} -->\n[filename](path)`
+ * 
+ * When files are moved, `fixLinks` can match the TARGET-GUID in the markdown file
+ * with the GUID in the target file to update the path.
+ * 
+ * @remarks
+ * - Only works in markdown files
+ * - Requires an active workspace folder
+ * - Modifies the target file to add a GUID comment if one doesn't exist
+ * - The GUID is a 32-character hex string (128 bits of randomness)
+ * - The link path is URL-encoded and relative to the markdown file's directory
+ * 
+ * @example
+ * // User links to "docs/README.md"
+ * // If README.md doesn't have a GUID, one is added: <!-- GUID:a1b2c3d4e5f6... -->
+ * // Inserts into current file:
+ * // <!-- TARGET-GUID:a1b2c3d4e5f6... -->
+ * // [README.md](docs/README.md)
+ * 
+ * @returns {Promise<void>} Resolves when the link is inserted, or early returns on cancellation/error
+ */
 export async function insertFileLink() {
     const editor = vscode.window.activeTextEditor;
     if (!editor) {
@@ -208,6 +265,44 @@ export async function insertFileLink() {
     }
 }
 
+/**
+ * Inserts an image directly from the system clipboard into the current markdown document.
+ * 
+ * This function reads binary image data from the clipboard using platform-specific
+ * tools, saves it as a PNG file with a TIMEX hash in the filename, and inserts
+ * a markdown image link at the cursor position.
+ * 
+ * The workflow is:
+ * 1. Validates the editor is in a markdown file
+ * 2. Reads image data from clipboard using platform-specific commands:
+ *    - Linux: Uses `xclip -selection clipboard -t image/png -o`
+ *    - macOS: Uses `pngpaste` (not currently implemented)
+ *    - Windows: Not currently supported
+ * 3. Prompts the user for a filename (without extension)
+ * 4. Generates a SHA-256 hash of the image data
+ * 5. Saves the image as `{userFilename}.TIMEX-{hash}.png` in the same directory
+ * 6. Inserts `![](encoded-filename.png)` at the cursor position
+ * 
+ * @remarks
+ * - Only works in markdown files
+ * - Currently only supports Linux with xclip installed
+ * - The image is always saved as PNG format
+ * - The hash-based naming integrates with the `fixLinks` repair system
+ * - The filename is URL-encoded to handle special characters
+ * 
+ * @example
+ * // User copies an image to clipboard, runs command, enters "diagram" as filename
+ * // Creates: diagram.TIMEX-abc123def456.png
+ * // Inserts: ![](diagram.TIMEX-abc123def456.png)
+ * 
+ * @throws Shows error message if:
+ *   - No active editor or not in markdown file
+ *   - No image data in clipboard
+ *   - Platform not supported
+ *   - xclip not installed (Linux)
+ * 
+ * @returns {Promise<void>} Resolves when the image is saved and link inserted
+ */
 export async function insertImageFromClipboard() {
     const editor = vscode.window.activeTextEditor;
     if (!editor) {
@@ -312,6 +407,48 @@ export async function insertImageFromClipboard() {
     }
 }
 
+/**
+ * Scans all markdown files in the workspace and repairs broken links to attachments and files.
+ * 
+ * This command is the repair mechanism for the hash-based attachment management system.
+ * It handles two types of links:
+ * 
+ * **1. TIMEX Attachments (images/files)**
+ * - Pattern: `![alt](path/file.TIMEX-{hash}.ext)` or `[text](path/file.TIMEX-{hash}.ext)`
+ * - Repair: Extracts hash from broken link, searches for file with matching hash anywhere
+ *   in the workspace, updates the path to the new location
+ * 
+ * **2. GUID-tracked File Links**
+ * - Pattern: `<!-- TARGET-GUID:{guid} -->\n[text](path)`
+ * - Repair: Finds the file containing `<!-- GUID:{guid} -->` and updates the link path
+ * 
+ * **Orphan Detection:**
+ * After scanning, identifies TIMEX-pattern files that are not referenced by any markdown
+ * file and renames them with an "ORPHAN-" prefix for easy cleanup.
+ * 
+ * @remarks
+ * - Requires no open files with unsaved changes (to avoid conflicts with auto-save)
+ * - Uses the configured `timex.excludeGlobs` setting to skip directories
+ * - Processes files in chunks for performance (50 files at a time for GUID indexing)
+ * - Shows progress notification during the operation
+ * - Reports statistics: links fixed, files modified, orphans found, missing targets
+ * 
+ * **Algorithm:**
+ * 1. Build attachment index: Map of hash → file path for all TIMEX-pattern files
+ * 2. Build GUID index: Map of GUID → file path for all files with GUID comments
+ * 3. Scan each markdown file for broken TIMEX and TARGET-GUID links
+ * 4. Track all referenced hashes to identify orphans
+ * 5. For each broken link, look up the hash/GUID in the index and update the path
+ * 6. Rename unreferenced TIMEX files with "ORPHAN-" prefix
+ * 7. Report results to user
+ * 
+ * @example
+ * // File moved from "images/screenshot.TIMEX-abc123.png" to "assets/screenshot.TIMEX-abc123.png"
+ * // Markdown has: ![](images/screenshot.TIMEX-abc123.png) (broken)
+ * // After fixLinks: ![](assets/screenshot.TIMEX-abc123.png) (fixed)
+ * 
+ * @returns {Promise<void>} Resolves when all links are processed and results are shown
+ */
 export async function fixLinks() {
 
     // Check if user has any open files to avoid conflicts with auto-save

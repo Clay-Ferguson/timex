@@ -5,19 +5,61 @@ import { ws_stat } from './ws-file-util';
 import { ws_write_file } from './ws-file-util';
 import { ws_read_file } from './ws-file-util';
 
+/**
+ * Context object passed through the recursive markdown generation process.
+ * Contains shared state and configuration for the generation operation.
+ */
 interface GenerateContext {
+    /** The workspace folder that contains the target directory being processed */
     owningWorkspace: vscode.WorkspaceFolder;
+    /** Accumulator array that collects paths of all created _index.md files */
     createdIndexes: string[];
+    /** VS Code progress reporter for displaying scan status in the notification area */
     progress: vscode.Progress<{ message?: string }>;
+    /** When true, generates a single flattened _index.md; when false, creates recursive index files */
     singleFileMode: boolean;
+    /** The root directory where markdown generation starts (used for relative path calculations) */
     targetDirectory: string;
 }
 
+/**
+ * Extracts the title from markdown content by finding the first H1 heading.
+ * Looks for a line starting with "# " and returns the text after it.
+ * 
+ * @param content - The markdown content to search for a title
+ * @returns The title text if an H1 heading is found, undefined otherwise
+ * 
+ * @example
+ * getTitleFromContent("# My Document\n\nSome content") // Returns "My Document"
+ * getTitleFromContent("No heading here") // Returns undefined
+ */
 function getTitleFromContent(content: string): string | undefined {
     const match = content.match(/^#\s+(.*)$/m);
     return match ? match[1].trim() : undefined;
 }
 
+/**
+ * Recursively generates markdown content for a directory containing ordinal-prefixed files.
+ * 
+ * This function walks through a directory, processing ordinal files (e.g., "00010_intro.md")
+ * in sorted order. It handles three types of content:
+ * - **Subdirectories**: Recursively processed; in single-file mode their content is inlined,
+ *   in multi-file mode a link to the child's _index.md is created
+ * - **Images**: Embedded using markdown image syntax with alt text derived from filename
+ * - **Markdown files**: Content is read and concatenated with "---" separators
+ * 
+ * @param directory - Absolute path to the directory to process
+ * @param context - Shared generation context containing configuration and state
+ * @returns The compiled markdown content for this directory, or null if no content was generated
+ * 
+ * @throws Error if the directory cannot be scanned (with descriptive message)
+ * 
+ * @remarks
+ * - In single-file mode, image paths are adjusted to be relative to the target directory
+ * - In multi-file mode, an _index.md file is written to each processed directory
+ * - Empty directories or directories with no ordinal items return null
+ * - Trailing "---" separators are removed from the final output
+ */
 async function generateMarkdownForDirectory(directory: string, context: GenerateContext): Promise<string | null> {
     const { owningWorkspace, createdIndexes, progress, singleFileMode, targetDirectory } = context;
     const relativePath = path.relative(owningWorkspace.uri.fsPath, directory) || path.basename(directory) || '.';
@@ -97,6 +139,31 @@ async function generateMarkdownForDirectory(directory: string, context: Generate
     return compiled;
 }
 
+/**
+ * Main entry point for generating markdown index files from ordinal-structured directories.
+ * 
+ * This command provides two generation modes:
+ * - **Multiple Index Files (Recursive)**: Creates an _index.md in each directory containing
+ *   links to child indexes and concatenated markdown content
+ * - **Single Index File (Flattened)**: Creates one _index.md at the root with all content
+ *   from the entire directory tree flattened into a single document
+ * 
+ * @param resource - Optional URI or array of URIs from the explorer context menu.
+ *                   If a folder is selected, generation starts there.
+ *                   If a file is selected or nothing is selected, uses workspace root.
+ * 
+ * @remarks
+ * - Displays a progress notification during generation
+ * - Opens the generated root index in VS Code's markdown preview on completion
+ * - Shows an information message with the count of generated index files
+ * - Ordinal files are processed in numeric order (e.g., 00010_, 00020_, etc.)
+ * - Images are embedded inline; markdown files are concatenated with separators
+ * - Non-ordinal files and hidden files (starting with . or _) are ignored
+ * 
+ * @example
+ * // Triggered via command palette or explorer context menu:
+ * // Right-click folder → Timex → Generate Markdown → "Generate Index"
+ */
 export async function generateMarkdown(resource ?: vscode.Uri | vscode.Uri[]) {
     const workspaceFolders = vscode.workspace.workspaceFolders;
     if (!workspaceFolders || workspaceFolders.length === 0) {
@@ -182,6 +249,31 @@ export async function generateMarkdown(resource ?: vscode.Uri | vscode.Uri[]) {
     }
 }
 
+/**
+ * Opens a live markdown preview of a folder's ordinal content without creating physical files.
+ * 
+ * Unlike `generateMarkdown`, this function creates a virtual document using the
+ * `timex-preview:` URI scheme. The content is generated on-demand by the
+ * `MarkdownFolderPreviewProvider` and displayed in VS Code's native markdown preview.
+ * 
+ * @param uri - The URI of the folder or file selected in the explorer.
+ *              If a folder is selected, that folder is previewed.
+ *              If a file is selected, the workspace root is previewed instead
+ *              (allows previewing root which can't be directly selected in VS Code).
+ * 
+ * @remarks
+ * - **No disk writes**: Unlike `generateMarkdown`, no _index.md files are created
+ * - **Virtual document**: Uses the `timex-preview:` custom URI scheme
+ * - **Single tab**: Reuses the existing preview tab if open
+ * - **Manual refresh**: User must re-run command to see updated content
+ * - Content generation is handled by `MarkdownFolderPreviewProvider.provideTextDocumentContent()`
+ * 
+ * @example
+ * // Triggered via explorer context menu:
+ * // Right-click folder → Timex → Generate Markdown → "Preview"
+ * 
+ * @see MarkdownFolderPreviewProvider for the virtual document content generation
+ */
 export async function previewFolderAsMarkdown(uri: vscode.Uri) {
     if (!uri) {
         vscode.window.showErrorMessage('No file or folder selected');

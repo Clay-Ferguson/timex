@@ -9,15 +9,47 @@ import { ws_write_file } from './ws-file-util';
 import { ws_rename } from './ws-file-util';
 import { TaskProvider } from './model';
 
+/**
+ * Represents an item stored in the ordinal clipboard during cut/paste operations.
+ * This interface captures all the necessary metadata about a file or folder that
+ * has been "cut" and is ready to be pasted at a new ordinal position.
+ */
 export interface OrdinalClipboardItem {
+    /** The absolute filesystem path to the source file or folder */
     sourcePath: string;
+    /** The original filename including the ordinal prefix (e.g., "00020_my-file.md") */
     originalName: string;
+    /** The filename with the ordinal prefix stripped (e.g., "my-file.md") */
     nameWithoutPrefix: string;
+    /** Whether the item is a directory (true) or a file (false) */
     isDirectory: boolean;
 }
 
 /**
- * Recursively finds all directories in a given path
+ * Recursively finds all directories in a given path, excluding common non-content directories.
+ * 
+ * This function performs a depth-first traversal of the directory tree starting from
+ * the root path, collecting all directory paths that should be processed for ordinal
+ * file renumbering operations.
+ * 
+ * @param rootPath - The absolute path to the root directory to start scanning from.
+ *                   This directory is always included in the results.
+ * @param excludePatterns - Optional array of additional directory names to exclude
+ *                          from the scan (beyond the built-in defaults).
+ * 
+ * @returns A promise that resolves to an array of absolute directory paths,
+ *          including the root directory and all non-excluded subdirectories.
+ * 
+ * @remarks
+ * The following directories are excluded by default:
+ * - `node_modules` - Node.js dependencies
+ * - `.git` - Git version control
+ * - `.vscode` - VS Code settings
+ * - `out`, `dist`, `build` - Common build output directories
+ * - `.next` - Next.js build directory
+ * - `target` - Maven/Cargo build directory
+ * 
+ * Hidden directories (starting with `.` or `_`) are also automatically excluded.
  */
 async function findAllDirectories(rootPath: string, excludePatterns: string[] = []): Promise<string[]> {
     const directories: string[] = [rootPath]; // Include root directory
@@ -68,6 +100,37 @@ async function findAllDirectories(rootPath: string, excludePatterns: string[] = 
     return directories;
 }
 
+/**
+ * Renumbers all ordinal-prefixed files and folders across the entire workspace.
+ * 
+ * This command scans all directories in the workspace (excluding common non-content
+ * directories) and renumbers files/folders that have ordinal prefixes. The renumbering
+ * maintains the existing sort order but normalizes the numbering sequence to start at
+ * 00010 and increment by 10 (00010, 00020, 00030, etc.).
+ * 
+ * @remarks
+ * **Workflow:**
+ * 1. Scans all directories in the workspace recursively
+ * 2. For each directory containing ordinal items:
+ *    - Validates that names are unique (ignoring ordinal prefixes)
+ *    - Sorts items by their current ordinal number (preserving existing order)
+ *    - Renumbers starting at 00010 with increments of 10
+ * 
+ * **Gap Strategy:** The 10-increment spacing allows for easy manual insertion
+ * of new items between existing ones without requiring a full renumber.
+ * 
+ * **Progress Reporting:** Shows a progress notification during the operation
+ * with real-time updates on which directories are being processed.
+ * 
+ * **Error Handling:** If duplicate names are detected in a directory (after
+ * removing ordinal prefixes), that directory is skipped and an error is reported.
+ * 
+ * @example
+ * // Before renumbering:
+ * // 001_intro.md, 005_chapter.md, 099_conclusion.md
+ * // After renumbering:
+ * // 00010_intro.md, 00020_chapter.md, 00030_conclusion.md
+ */
 export async function renumberFiles() {
     // Get the workspace folder
     if (!vscode.workspace.workspaceFolders || vscode.workspace.workspaceFolders.length === 0) {
@@ -181,8 +244,26 @@ export async function renumberFiles() {
 }
 
 /**
- * Common logic for getting ordinal information from a selected file/folder
- * Returns the next ordinal prefix and parent directory, or null if invalid selection
+ * Extracts ordinal information from a selected file or folder for insertion operations.
+ * 
+ * This is a utility function used by `insertOrdinalFile` and `insertOrdinalFolder`
+ * to determine where a new item should be inserted and what ordinal prefix it should have.
+ * 
+ * @param uri - The VS Code URI of the currently selected file or folder in the explorer.
+ *              The selected item must have an ordinal prefix (e.g., "00020_filename.md").
+ * 
+ * @returns A promise that resolves to an object containing:
+ *          - `nextPrefix`: The generated prefix for the new item (current ordinal + 1)
+ *          - `directory`: The parent directory path where the new item should be created
+ *          Returns `null` if no valid selection or the selection lacks an ordinal prefix.
+ * 
+ * @remarks
+ * The next ordinal is calculated by adding 1 to the current item's ordinal.
+ * This allows insertion immediately after the selected item.
+ * 
+ * @example
+ * // If user selects "00020_chapter-two.md"
+ * // Returns: { nextPrefix: "00021_", directory: "/path/to/parent" }
  */
 async function getOrdinalInsertInfo(uri: vscode.Uri): Promise<{ nextPrefix: string; directory: string } | null> {
     if (!uri) {
@@ -206,6 +287,34 @@ async function getOrdinalInsertInfo(uri: vscode.Uri): Promise<{ nextPrefix: stri
     return { nextPrefix, directory };
 }
 
+/**
+ * Creates a new markdown file with an ordinal prefix immediately after the selected item.
+ * 
+ * This command is available from the VS Code explorer context menu when right-clicking
+ * on an ordinal file or folder (Timex → Insert... → New File).
+ * 
+ * @param uri - The VS Code URI of the currently selected file or folder in the explorer.
+ *              The selection must have an ordinal prefix to determine the new file's ordinal.
+ * 
+ * @remarks
+ * **Workflow:**
+ * 1. Extracts the ordinal number from the selected item
+ * 2. Prompts the user for a filename (without ordinal prefix or .md extension)
+ * 3. Creates a new empty `.md` file with ordinal = selected ordinal + 1
+ * 4. Opens the new file in the editor
+ * 
+ * **Filename Handling:**
+ * - The `.md` extension is automatically added
+ * - If the user includes `.md` in their input, it's stripped and re-added
+ * - The ordinal prefix is automatically prepended
+ * 
+ * **Overwrite Protection:** If a file with the same name already exists,
+ * the user is prompted to confirm overwriting.
+ * 
+ * @example
+ * // User right-clicks on "00020_chapter-two.md" and enters "chapter-three"
+ * // Creates: "00021_chapter-three.md" in the same directory
+ */
 export async function insertOrdinalFile(uri: vscode.Uri) {
     const info = await getOrdinalInsertInfo(uri);
     if (!info) {
@@ -261,6 +370,29 @@ export async function insertOrdinalFile(uri: vscode.Uri) {
     }
 }
 
+/**
+ * Creates a new folder with an ordinal prefix immediately after the selected item.
+ * 
+ * This command is available from the VS Code explorer context menu when right-clicking
+ * on an ordinal file or folder (Timex → Insert... → New Folder).
+ * 
+ * @param uri - The VS Code URI of the currently selected file or folder in the explorer.
+ *              The selection must have an ordinal prefix to determine the new folder's ordinal.
+ * 
+ * @remarks
+ * **Workflow:**
+ * 1. Extracts the ordinal number from the selected item
+ * 2. Prompts the user for a folder name (without ordinal prefix)
+ * 3. Creates a new empty folder with ordinal = selected ordinal + 1
+ * 4. Reveals the new folder in the VS Code explorer
+ * 
+ * **Error Handling:** If a folder with the same name already exists,
+ * an error message is displayed and no action is taken.
+ * 
+ * @example
+ * // User right-clicks on "00020_chapter-two" folder and enters "chapter-three"
+ * // Creates: "00021_chapter-three/" folder in the same directory
+ */
 export async function insertOrdinalFolder(uri: vscode.Uri) {
     const info = await getOrdinalInsertInfo(uri);
     if (!info) {
@@ -305,6 +437,31 @@ export async function insertOrdinalFolder(uri: vscode.Uri) {
     }
 }
 
+/**
+ * Marks a file or folder for ordinal-aware cut operation.
+ * 
+ * This is the first step of a cut/paste workflow that allows moving files or folders
+ * to a new ordinal position while automatically adjusting the numbering of other items.
+ * The cut item is stored in a clipboard until `pasteByOrdinal` is called.
+ * 
+ * @param uri - The VS Code URI of the file or folder to cut. Must be provided.
+ * @param taskProvider - The TaskProvider instance, used to set visual cut indicator in the tree view.
+ * @param setClipboard - Callback function to store the clipboard item in the extension's state.
+ * @param resetClipboard - Callback function to clear the clipboard if an error occurs.
+ * 
+ * @remarks
+ * **Side Effects:**
+ * - Sets `timex.hasOrdinalCutItem` context to `true` (enables paste menu visibility)
+ * - Updates the task tree view to show a visual indicator on the cut item
+ * - Stores item metadata (path, name, type) in the extension's clipboard state
+ * 
+ * **Note:** The file is not actually moved or modified during the cut operation.
+ * It remains in place until `pasteByOrdinal` is executed.
+ * 
+ * @example
+ * // User right-clicks "00030_section-c.md" and selects "Cut by Ordinal"
+ * // The file is marked for cutting and awaits paste destination
+ */
 export async function cutByOrdinal(
     uri: vscode.Uri | undefined,
     taskProvider: TaskProvider,
@@ -340,6 +497,39 @@ export async function cutByOrdinal(
     }
 }
 
+/**
+ * Pastes a previously cut item at the ordinal position of the selected target.
+ * 
+ * This completes the cut/paste workflow started by `cutByOrdinal`. The cut item
+ * is moved to take the ordinal position of the selected target, and all existing
+ * items at or after that position are shifted down (their ordinals increased by 10).
+ * 
+ * @param uri - The VS Code URI of the target file or folder. The cut item will be
+ *              placed at this item's ordinal position.
+ * @param getClipboard - Callback function to retrieve the previously cut item from state.
+ * @param resetClipboard - Callback function to clear the clipboard after successful paste.
+ * @param taskProvider - The TaskProvider instance, used to refresh the tree view after the move.
+ * 
+ * @remarks
+ * **Workflow:**
+ * 1. Validates that a cut item exists and the target has an ordinal prefix
+ * 2. Moves the cut item to a temporary name (to avoid conflicts during renaming)
+ * 3. Shifts all items at or after the target ordinal up by 10
+ * 4. Places the cut item at the target's original ordinal
+ * 
+ * **Atomic Operation:** If any step fails, all renames are rolled back to restore
+ * the original state. This ensures no files are lost or corrupted.
+ * 
+ * **Cross-Directory Support:** The cut item can be pasted into a different directory
+ * than its source location.
+ * 
+ * @example
+ * // Cut item: "00050_section-e.md" from /docs/
+ * // Target: "00020_section-b.md" in /chapters/
+ * // Result: "00020_section-e.md" in /chapters/
+ * //         Original "00020_section-b.md" becomes "00030_section-b.md"
+ * //         All subsequent items shift by 10
+ */
 export async function pasteByOrdinal(
     uri: vscode.Uri | undefined,
     getClipboard: () => OrdinalClipboardItem | null,
@@ -456,6 +646,35 @@ export async function pasteByOrdinal(
     }
 }
 
+/**
+ * Moves an ordinal file or folder up or down by swapping it with its neighbor.
+ * 
+ * This command swaps the ordinal prefixes of two adjacent items, effectively
+ * moving the selected item up or down in the sorted order without affecting
+ * any other items in the directory.
+ * 
+ * @param uri - The VS Code URI of the file or folder to move.
+ * @param direction - The direction to move: `'up'` swaps with the previous item,
+ *                    `'down'` swaps with the next item.
+ * @param taskProvider - The TaskProvider instance, used to refresh the tree view after the swap.
+ * 
+ * @remarks
+ * **Swap Mechanism:** Only the ordinal prefixes are exchanged between the two items.
+ * The base filenames (without prefixes) remain unchanged.
+ * 
+ * **Edge Cases:**
+ * - If the item is already first and direction is `'up'`, shows an informational message
+ * - If the item is already last and direction is `'down'`, shows an informational message
+ * - If the neighbor lacks a valid ordinal prefix, shows an error
+ * 
+ * **Atomic Operation:** Uses a temporary file during the swap to prevent collisions.
+ * If any rename fails, all operations are rolled back.
+ * 
+ * @example
+ * // Before: 00010_intro.md, 00020_chapter.md, 00030_conclusion.md
+ * // User moves "00020_chapter.md" up
+ * // After:  00010_chapter.md, 00020_intro.md, 00030_conclusion.md
+ */
 export async function moveOrdinal(uri: vscode.Uri | undefined, direction: 'up' | 'down', taskProvider: TaskProvider): Promise<void> {
     if (!uri) {
         vscode.window.showErrorMessage('No file or folder selected');
@@ -547,8 +766,39 @@ export async function moveOrdinal(uri: vscode.Uri | undefined, direction: 'up' |
     const newOrdinalDisplay = String(neighborOrdinal).padStart(5, '0');
     const displayName = selectedSuffix || selectedName;
     vscode.window.showInformationMessage(`Moved "${displayName}" ${directionLabel}. New ordinal: ${newOrdinalDisplay}`);
-};
+}
 
+/**
+ * Wraps a markdown file into its own folder, preserving the ordinal structure.
+ * 
+ * This command creates a new folder with the same name as the file (minus extension),
+ * then moves the file into that folder. If the file has an ordinal prefix, the file
+ * is renumbered to 00010 within its new folder, establishing a clean starting point
+ * for additional content.
+ * 
+ * @param uri - The VS Code URI of the markdown file to wrap into a folder.
+ *              Must be a file (not a folder).
+ * 
+ * @remarks
+ * **Use Case:** This is useful when a single markdown file grows in scope and needs
+ * to be expanded into a multi-file section. Instead of manually creating the folder
+ * and moving the file, this command automates the process.
+ * 
+ * **Naming Convention:**
+ * - Folder name = filename without extension (preserving ordinal prefix)
+ * - Moved file = renumbered to start at 00010 (if it had an ordinal prefix)
+ * 
+ * **File Watcher Integration:** The VS Code file watcher automatically detects
+ * the move operation, so no manual task provider refresh is needed.
+ * 
+ * @example
+ * // Before: /docs/00030_my-test-file.md
+ * // After:  /docs/00030_my-test-file/00010_my-test-file.md
+ * 
+ * @example
+ * // File without ordinal: /docs/readme.md
+ * // After: /docs/readme/readme.md (no ordinal added)
+ */
 export async function moveFileToFolder(uri: vscode.Uri | undefined): Promise<void> {
     if (!uri) {
         vscode.window.showErrorMessage('No file selected');
