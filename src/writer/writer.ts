@@ -216,8 +216,9 @@ async function handleConversation(
     
     // Check for prompt file in the workspace root (Override)
     const workspaceFolders = vscode.workspace.workspaceFolders;
+    let rootPath = '';
     if (workspaceFolders && workspaceFolders.length > 0) {
-        const rootPath = workspaceFolders[0].uri.fsPath;
+        rootPath = workspaceFolders[0].uri.fsPath;
         const customPromptPath = path.join(rootPath, promptFileName);
         if (await ws_exists(customPromptPath)) {
             try {
@@ -237,6 +238,46 @@ async function handleConversation(
             console.error('Error reading prompt file:', err);
             stream.markdown(`Error: Could not load system prompt (${promptFileName}).`);
             return;
+        }
+    }
+
+    // Check for AI-WRITER-CONTEXT.md in the workspace root (Append)
+    if (rootPath) {
+        const contextFilePath = path.join(rootPath, 'AI-WRITER-CONTEXT.md');
+
+        if (await ws_exists(contextFilePath)) {
+            try {
+                const contextContent = await processContextFile(contextFilePath, rootPath);
+                if (contextContent.trim()) {
+                    systemPrompt += `\n\n**Additional Context:**\n${contextContent}`;
+                    stream.markdown(`*Loaded custom context from AI-WRITER-CONTEXT.md (embedding any linked files inline)*\n\n`);
+                }
+            } catch (err) {
+                if (err instanceof Error) {
+                    stream.markdown(`Error processing AI-WRITER-CONTEXT.md: ${err.message}`);
+                } else {
+                    stream.markdown(`Error processing AI-WRITER-CONTEXT.md`);
+                }
+                return; // Stop execution if context processing fails
+            }
+        }
+    }
+
+    // Check for AI-WRITER-ROLE.md in the workspace root (Append)
+    if (rootPath) {
+        const roleFilePath = path.join(rootPath, 'AI-WRITER-ROLE.md');
+
+        if (await ws_exists(roleFilePath)) {
+            try {
+                const roleContent = await ws_read_file(roleFilePath);
+                if (roleContent.trim()) {
+                    systemPrompt += `\n\n**Additional Role/Persona Instructions:**\n${roleContent}`;
+                    stream.markdown(`*Loaded custom role from AI-WRITER-ROLE.md*\n\n`);
+                }
+            } catch (err) {
+                console.error('Error reading role file:', err);
+                stream.markdown(`*Warning: Found AI-WRITER-ROLE.md but could not read it.*\n\n`);
+            }
         }
     }
 
@@ -354,7 +395,7 @@ async function handleFillCommand(
                 const contextContent = await processContextFile(contextFilePath, rootPath);
                 if (contextContent.trim()) {
                     systemPrompt += `\n\n**Additional Context:**\n${contextContent}`;
-                    stream.markdown(`*Loaded custom context from AI-WRITER-CONTEXT.md*\n\n`);
+                    stream.markdown(`*Loaded custom context from AI-WRITER-CONTEXT.md (embedding any linked files inline)*\n\n`);
                 }
             } catch (err) {
                 if (err instanceof Error) {
