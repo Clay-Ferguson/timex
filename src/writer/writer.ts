@@ -3,16 +3,58 @@ import * as path from 'path';
 import * as fs from 'fs';
 import { ws_exists, ws_read_file, ws_write_file } from '../ws-file-util';
 
+/**
+ * The unique identifier for the AI Writer chat participant.
+ * Used when registering with VS Code's chat API as `@writer`.
+ */
 const PARTICIPANT_ID = 'timex.writer';
 
+/**
+ * Represents the context of a writer block found in a markdown document.
+ * 
+ * A writer block uses the following HTML comment structure:
+ * ```markdown
+ * <!-- p -->
+ * Human-written content (P section)
+ * <!-- a -->
+ * AI-generated content (A section)
+ * <!-- e -->
+ * ```
+ * 
+ * This interface captures the parsed components of such a block for processing.
+ */
 interface WriterContext {
+    /** The trimmed content between the `<!-- p -->` and `<!-- a -->` tags (human input section) */
     pContent: string;
+    /** The complete block text including all markers from `<!-- p -->` to `<!-- e -->` */
     fullBlock: string;
+    /** The VS Code Range covering the entire block in the document, used for replacements */
     range: vscode.Range;
 }
 
 /**
- * Activates the AI Writer functionality within Timex extension
+ * Activates the AI Writer functionality within the Timex extension.
+ * 
+ * This function initializes the complete AI Writer subsystem, including:
+ * - A VS Code chat participant (`@writer`) with slash commands for draft, outline, and verify operations
+ * - Editor commands for inserting AI-generated content and templates
+ * - File management commands for removing/hiding P (human) and A (AI) sections
+ * - Context file management for adding reference files to the AI's knowledge base
+ * 
+ * The AI Writer uses a block-based syntax with HTML comments to separate human input from AI output:
+ * ```markdown
+ * <!-- p -->
+ * Human-written content (P section)
+ * <!-- a -->
+ * AI-generated content (A section)
+ * <!-- e -->
+ * ```
+ * 
+ * @param context - The VS Code extension context used for registering disposables and accessing extension resources
+ * 
+ * @example
+ * // In extension.ts activate function:
+ * activateWriter(context);
  */
 export function activateWriter(context: vscode.ExtensionContext) {
     console.log('AI Writer is active');
@@ -138,7 +180,29 @@ export function activateWriter(context: vscode.ExtensionContext) {
     );
 }
 
-// Handler for normal conversation (no command)
+/**
+ * Handles normal conversational interactions with the @writer chat participant when no specific command is specified.
+ * 
+ * This function processes free-form user messages sent to the @writer participant without using
+ * slash commands like /draft, /outline, or /verify. It loads the conversation prompt template
+ * (either from workspace override or default extension prompts) and sends the user's message
+ * to the language model for a conversational response.
+ * 
+ * Prompt Loading Priority:
+ * 1. Checks for `AI-WRITER-CONVERSATION.md` in workspace root (custom override)
+ * 2. Falls back to bundled default prompt in `out/writer/prompts/AI-WRITER-CONVERSATION.md`
+ * 
+ * The prompt template should contain a `{USER_MESSAGE}` placeholder that gets replaced with
+ * the actual user input.
+ * 
+ * @param extensionContext - The VS Code extension context for accessing extension resources (prompt files)
+ * @param request - The chat request containing the user's prompt message
+ * @param _context - The chat context (unused but required by handler signature)
+ * @param stream - The response stream for sending markdown content back to the chat UI
+ * @param token - Cancellation token for aborting long-running operations
+ * 
+ * @throws Displays error message in stream if prompt file cannot be loaded or LLM fails
+ */
 async function handleConversation(
     extensionContext: vscode.ExtensionContext,
     request: vscode.ChatRequest,
@@ -205,7 +269,40 @@ async function handleConversation(
     }
 }
 
-// Handler for /draft and /outline commands
+/**
+ * Handles the /draft and /outline slash commands for the @writer chat participant.
+ * 
+ * This function processes content generation requests by:
+ * 1. Loading the appropriate system prompt (draft or outline mode)
+ * 2. Optionally loading additional context from `AI-WRITER-CONTEXT.md` and role from `AI-WRITER-ROLE.md`
+ * 3. Finding or creating a writer block at the cursor position in the active editor
+ * 4. Sending the P (human) section content to the language model
+ * 5. Streaming the AI response back to the chat UI
+ * 6. Offering an "Insert into Document" button to place the result in the A section
+ * 
+ * **Draft Mode** (`/draft`): Uses `AI-WRITER-GEN-FROM-DRAFT.md` prompt for paraphrasing/expanding
+ * existing prose content.
+ * 
+ * **Outline Mode** (`/outline`): Uses `AI-WRITER-GEN-FROM-OUTLINE.md` prompt for expanding
+ * bullet-point outlines into full prose.
+ * 
+ * If no writer block exists but text is selected, the function automatically wraps the selection
+ * in a new `<!-- p --> ... <!-- a --> <!-- e -->` block.
+ * 
+ * Prompt Loading Priority:
+ * 1. Workspace root custom prompt file (override)
+ * 2. Bundled default prompt in `out/writer/prompts/`
+ * 3. Appends `AI-WRITER-CONTEXT.md` content (with link expansion)
+ * 4. Appends `AI-WRITER-ROLE.md` content
+ * 
+ * @param promptType - Either 'draft' for paraphrasing mode or 'outline' for outline expansion mode
+ * @param extensionContext - The VS Code extension context for accessing extension resources
+ * @param request - The chat request containing any additional user prompt text
+ * @param stream - The response stream for sending markdown content and buttons to the chat UI
+ * @param token - Cancellation token for aborting long-running operations
+ * 
+ * @throws Displays error message in stream if prompt file cannot be loaded, no content is found, or LLM fails
+ */
 async function handleFillCommand(
     promptType: 'draft' | 'outline',
     extensionContext: vscode.ExtensionContext,
@@ -376,6 +473,29 @@ async function handleFillCommand(
     }
 }
 
+/**
+ * Handles the /verify slash command for the @writer chat participant.
+ * 
+ * This function verifies that the AI-generated content (A section) accurately captures
+ * all the details from the human-written content (P section). It's useful for ensuring
+ * no important information was lost during the AI generation process.
+ * 
+ * The verification process:
+ * 1. Locates the writer block at the current cursor position
+ * 2. Loads the verify prompt template (with `{CONTENT}` placeholder)
+ * 3. Sends the full block content to the language model for analysis
+ * 4. Streams the verification results (missing details, discrepancies, etc.) to the chat UI
+ * 
+ * Prompt Loading Priority:
+ * 1. Workspace root `AI-WRITER-VERIFY.md` (custom override)
+ * 2. Bundled default prompt in `out/writer/prompts/AI-WRITER-VERIFY.md`
+ * 
+ * @param extensionContext - The VS Code extension context for accessing extension resources
+ * @param stream - The response stream for sending verification results to the chat UI
+ * @param token - Cancellation token for aborting long-running operations
+ * 
+ * @throws Displays error message in stream if no editor is open, no block is found, or LLM fails
+ */
 async function handleVerifyCommand(extensionContext: vscode.ExtensionContext, stream: vscode.ChatResponseStream, token: vscode.CancellationToken) {
     const editor = vscode.window.activeTextEditor;
     if (!editor) {
@@ -442,6 +562,32 @@ async function handleVerifyCommand(extensionContext: vscode.ExtensionContext, st
     }
 }
 
+/**
+ * Toggles the visibility of P (human) or A (AI) sections across all markdown files in the workspace.
+ * 
+ * This function modifies HTML comment syntax to control how markdown renderers display sections:
+ * - **Visible**: `<!-- p -->` or `<!-- a -->` (standard HTML comment tags)
+ * - **Hidden**: `<!-- p -- >` or `<!-- a -- >` (broken tag syntax, rendered as visible text)
+ * 
+ * When hiding one section type, the opposite section type is restored to visible.
+ * This allows users to quickly toggle between viewing only human content or only AI content
+ * in their markdown preview.
+ * 
+ * **Hide P (Human) Sections:**
+ * - `<!-- p -->` → `<!-- p -- >` (hidden)
+ * - `<!-- a -- >` → `<!-- a -->` (restored)
+ * 
+ * **Hide A (AI) Sections:**
+ * - `<!-- a -->` → `<!-- a -- >` (hidden)
+ * - `<!-- p -- >` → `<!-- p -->` (restored)
+ * 
+ * @param type - 'P' to hide human sections (and show AI), 'A' to hide AI sections (and show human)
+ * 
+ * @remarks
+ * - Processes all `.md` files in workspace (excluding node_modules)
+ * - Shows progress notification during processing
+ * - Auto-saves modified files
+ */
 async function hideSections(type: 'P' | 'A') {
     const action = type === 'P' ? 'Hide Human (P)' : 'Hide AI (A)';
 
@@ -490,6 +636,41 @@ async function hideSections(type: 'P' | 'A') {
     });
 }
 
+/**
+ * Permanently removes either P (human) or A (AI) sections from all markdown files in the workspace.
+ * 
+ * This is a **destructive operation** that:
+ * - Removes the specified section content entirely
+ * - Removes all writer block markers (`<!-- p -->`, `<!-- a -->`, `<!-- e -->`)
+ * - Keeps only the content from the opposite section type
+ * 
+ * **WARNING**: This operation cannot be undone (except through version control).
+ * A modal confirmation dialog is shown before proceeding.
+ * 
+ * Use Cases:
+ * - **Remove P, Keep A**: Finalize documents by discarding drafts and keeping polished AI output
+ * - **Remove A, Keep P**: Revert to original human content, discarding all AI generations
+ * 
+ * Block Structure Before:
+ * ```markdown
+ * <!-- p -->
+ * Human draft content
+ * <!-- a -->
+ * AI generated content
+ * <!-- e -->
+ * ```
+ * 
+ * After Remove P (Keep A): `AI generated content`
+ * After Remove A (Keep P): `Human draft content`
+ * 
+ * @param type - 'P' to remove human sections (keep AI), 'A' to remove AI sections (keep human)
+ * 
+ * @remarks
+ * - Processes all `.md` files in workspace (excluding node_modules)
+ * - Shows progress notification during processing
+ * - Auto-saves modified files
+ * - Displays confirmation dialog before executing
+ */
 async function removeSections(type: 'P' | 'A') {
     const action = type === 'P' ? 'Human (P)' : 'AI (A)';
     const keep = type === 'P' ? 'AI (A)' : 'Human (P)';
@@ -551,6 +732,38 @@ async function removeSections(type: 'P' | 'A') {
     });
 }
 
+/**
+ * Finds the writer block (`<!-- p --> ... <!-- e -->`) containing the cursor position.
+ * 
+ * This function scans the document for writer blocks and returns the one that contains
+ * the specified position (or the current cursor position if not specified). Writer blocks
+ * use the following structure:
+ * 
+ * ```markdown
+ * <!-- p -->
+ * Human-written content (P section)
+ * <!-- a -->
+ * AI-generated content (A section)
+ * <!-- e -->
+ * ```
+ * 
+ * The function extracts:
+ * - **pContent**: The trimmed text between `<!-- p -->` and `<!-- a -->` tags
+ * - **fullBlock**: The complete block text including all markers
+ * - **range**: The VS Code Range covering the entire block for editing
+ * 
+ * @param editor - The VS Code text editor containing the document to search
+ * @param position - Optional specific position to check; defaults to current cursor position
+ * 
+ * @returns A WriterContext object if a block is found at the position, undefined otherwise
+ * 
+ * @example
+ * const context = findWriterBlock(editor);
+ * if (context) {
+ *     console.log('P content:', context.pContent);
+ *     console.log('Block range:', context.range.start.line, '-', context.range.end.line);
+ * }
+ */
 function findWriterBlock(editor: vscode.TextEditor, position?: vscode.Position): WriterContext | undefined {
     const text = editor.document.getText();
     const pos = position || editor.selection.active;
@@ -596,6 +809,44 @@ function findWriterBlock(editor: vscode.TextEditor, position?: vscode.Position):
     return undefined;
 }
 
+/**
+ * Processes the AI-WRITER-CONTEXT.md file by expanding markdown links into inline file content.
+ * 
+ * This function reads the context file and replaces any markdown links `[text](path)` with
+ * the actual content of the referenced files, wrapped in `<context_file>` XML tags.
+ * This allows users to maintain a simple list of reference files that get automatically
+ * expanded when the AI Writer processes prompts.
+ * 
+ * **Input Format** (AI-WRITER-CONTEXT.md):
+ * ```markdown
+ * # Custom Context
+ * [config](src/config.ts)
+ * [readme](docs/README.md)
+ * ```
+ * 
+ * **Output Format** (after processing):
+ * ```markdown
+ * # Custom Context
+ * <context_file path="src/config.ts">
+ * // file contents here...
+ * </context_file>
+ * <context_file path="docs/README.md">
+ * // file contents here...
+ * </context_file>
+ * ```
+ * 
+ * @param filePath - Absolute path to the AI-WRITER-CONTEXT.md file
+ * @param rootPath - Workspace root path for resolving relative file references
+ * 
+ * @returns The processed content with all links expanded to file contents
+ * 
+ * @throws Error if any referenced file does not exist
+ * 
+ * @remarks
+ * - Uses negative lookbehind to avoid matching image links `![text](path)`
+ * - File paths in links are relative to workspace root
+ * - All referenced files must exist or the function throws an error
+ */
 async function processContextFile(filePath: string, rootPath: string): Promise<string> {
     const content = await ws_read_file(filePath);
     // Match [text](link) but not ![text](link)
@@ -625,6 +876,40 @@ async function processContextFile(filePath: string, rootPath: string): Promise<s
     return result;
 }
 
+/**
+ * Adds a file reference to the AI-WRITER-CONTEXT.md file for inclusion in AI Writer prompts.
+ * 
+ * This command is triggered from the VS Code Explorer context menu (right-click on a file).
+ * It creates a markdown link entry in AI-WRITER-CONTEXT.md that will be expanded into
+ * the file's full content when the AI Writer processes prompts.
+ * 
+ * **Workflow:**
+ * 1. Validates the selection is a text file (not folder, not binary)
+ * 2. Calculates the relative path from workspace root
+ * 3. Creates `AI-WRITER-CONTEXT.md` if it doesn't exist (with header)
+ * 4. Checks for duplicate entries (by path, not link text)
+ * 5. Appends a markdown link: `[filename](relative/path/to/file.ext)`
+ * 6. Opens the context file in the editor for review
+ * 
+ * **Generated Entry Format:**
+ * ```markdown
+ * [myComponent](src/components/myComponent.ts)
+ * ```
+ * 
+ * @param uri - The VS Code URI of the file selected in the Explorer (from context menu)
+ * 
+ * @remarks
+ * - Only works with text files (validates UTF-8 decoding)
+ * - Will not add duplicate entries (checks if path already exists)
+ * - Creates context file with header if it doesn't exist
+ * - Prevents adding if AI-WRITER-CONTEXT.md has unsaved changes
+ * - Normalizes path separators to forward slashes for cross-platform compatibility
+ * 
+ * @example
+ * // User right-clicks on src/utils/helpers.ts in Explorer
+ * // Selects: Timex > AI Writer > Add to Context
+ * // Result: AI-WRITER-CONTEXT.md gets: [helpers](src/utils/helpers.ts)
+ */
 async function addFileToContext(uri: vscode.Uri) {
     // Get the workspace root
     const workspaceFolders = vscode.workspace.workspaceFolders;
