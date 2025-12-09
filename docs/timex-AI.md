@@ -177,14 +177,41 @@ You can verify this works by asking the AI to perform a task that requires knowl
 *Result:*
 The AI will correctly output `9`  (1 + 3 + 5) between the 'a' and 'e' section, proving it has read the context file.
 
-# Overriding the System Prompt (Advanced)
+# Overriding System Prompts (Advanced)
 
-For complete control over the AI's behavior, you can override the entire system prompt. This is rarely needed but useful for power users who want to fundamentally change how the extension interprets the `p/a/e` blocks.
+For complete control over the AI's behavior, you can override any of the system prompts. This is rarely needed but useful for power users who want to fundamentally change how the extension behaves.
 
-1.  Create a file named `AI-WRITER-GEN-FROM-DRAFT.md` in the root folder of your workspace.
+AI Writer uses the following prompt files (located in `src/writer/prompts/`):
+
+| Prompt File | Purpose | Placeholder |
+|-------------|---------|-------------|
+| `AI-WRITER-GEN-FROM-DRAFT.md` | Instructions for generating content from a draft | `{CONTENT}` - the P-section content |
+| `AI-WRITER-GEN-FROM-OUTLINE.md` | Instructions for expanding bullet points into prose | `{CONTENT}` - the P-section content |
+| `AI-WRITER-VERIFY.md` | Instructions for verifying A-section completeness | `{CONTENT}` - the full P-A-E block |
+| `AI-WRITER-CONVERSATION.md` | Instructions for general conversation with @writer | `{USER_MESSAGE}` - the user's chat message |
+
+## How to Override
+
+1.  Create a file with the same name in the root folder of your workspace.
 2.  Paste your custom system prompt into this file.
+3.  Include the appropriate placeholder where you want the content inserted.
 
-If this file exists, AI Writer will use it **instead** of the built-in prompt. A working example of the type of system prompt format that's expected is the one in file `/prompts/AI-WRITER-GEN-FROM-DRAFT.md`
+If the file exists in your workspace root, AI Writer will use it **instead** of the built-in prompt.
+
+## Example: Custom Verify Prompt
+
+To customize the verification behavior, create `AI-WRITER-VERIFY.md` in your workspace root:
+
+```markdown
+You are a meticulous editor. Compare the draft (P-section) with the AI output (A-section).
+Check for:
+- Missing facts or details
+- Tone consistency
+- Technical accuracy
+
+Content to verify:
+{CONTENT}
+```
 
 # Persona Examples
 

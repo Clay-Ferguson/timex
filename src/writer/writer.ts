@@ -21,7 +21,7 @@ export function activateWriter(context: vscode.ExtensionContext) {
     const handler: vscode.ChatRequestHandler = async (request: vscode.ChatRequest, chatContext: vscode.ChatContext, stream: vscode.ChatResponseStream, token: vscode.CancellationToken) => {
         // Handle /verify command
         if (request.command === 'verify') {
-            await handleVerifyCommand(stream, token);
+            await handleVerifyCommand(context, stream, token);
             return;
         }
 
@@ -38,7 +38,7 @@ export function activateWriter(context: vscode.ExtensionContext) {
         }
 
         // No command specified - handle as normal conversation
-        await handleConversation(request, chatContext, stream, token);
+        await handleConversation(context, request, chatContext, stream, token);
     };
 
     const writer = vscode.chat.createChatParticipant(PARTICIPANT_ID, handler);
@@ -140,16 +140,48 @@ export function activateWriter(context: vscode.ExtensionContext) {
 
 // Handler for normal conversation (no command)
 async function handleConversation(
+    extensionContext: vscode.ExtensionContext,
     request: vscode.ChatRequest,
     _context: vscode.ChatContext,
     stream: vscode.ChatResponseStream,
     token: vscode.CancellationToken
 ) {
+    // Load prompt from file
+    const promptFileName = 'AI-WRITER-CONVERSATION.md';
+    let systemPrompt = '';
+    
+    // Check for prompt file in the workspace root (Override)
+    const workspaceFolders = vscode.workspace.workspaceFolders;
+    if (workspaceFolders && workspaceFolders.length > 0) {
+        const rootPath = workspaceFolders[0].uri.fsPath;
+        const customPromptPath = path.join(rootPath, promptFileName);
+        if (await ws_exists(customPromptPath)) {
+            try {
+                systemPrompt = await ws_read_file(customPromptPath);
+            } catch (err) {
+                console.error('Error reading custom prompt file:', err);
+            }
+        }
+    }
+
+    // If no custom prompt loaded, load the default
+    if (!systemPrompt) {
+        const promptPath = path.join(extensionContext.extensionPath, 'out', 'writer', 'prompts', promptFileName);
+        try {
+            systemPrompt = fs.readFileSync(promptPath, 'utf-8');
+        } catch (err) {
+            console.error('Error reading prompt file:', err);
+            stream.markdown(`Error: Could not load system prompt (${promptFileName}).`);
+            return;
+        }
+    }
+
+    // Replace placeholder with user's message
+    const prompt = systemPrompt.replace('{USER_MESSAGE}', request.prompt);
+
     // Simple conversational response using the LLM
     const messages = [
-        vscode.LanguageModelChatMessage.User(
-            `You are AI Writer, a collaborative AI writing assistant. You help users with their writing tasks using a special HTML comment syntax (<!-- p --> for human input, <!-- a --> for AI output, <!-- e --> for block end). Answer the user's question conversationally and helpfully. If they ask about your capabilities, explain that you can help generate content using the /draft command (for drafts) or /outline command (for outlines), and /verify to check AI output against the original draft.\n\nUser's message: ${request.prompt}`
-        )
+        vscode.LanguageModelChatMessage.User(prompt)
     ];
 
     try {
@@ -344,7 +376,7 @@ async function handleFillCommand(
     }
 }
 
-async function handleVerifyCommand(stream: vscode.ChatResponseStream, token: vscode.CancellationToken) {
+async function handleVerifyCommand(extensionContext: vscode.ExtensionContext, stream: vscode.ChatResponseStream, token: vscode.CancellationToken) {
     const editor = vscode.window.activeTextEditor;
     if (!editor) {
         stream.markdown('Please open a file to verify.');
@@ -357,16 +389,39 @@ async function handleVerifyCommand(stream: vscode.ChatResponseStream, token: vsc
         return;
     }
 
-    const verifyPrompt = `
-You are a verification assistant. Your task is to compare the "P" (Paragraph/Draft) section and the "A" (AI Generated) section in the provided text block.
-Check if any important details, concepts, items, statements, or facts present in the "P" section were omitted from the "A" section.
+    // Load prompt from file
+    const promptFileName = 'AI-WRITER-VERIFY.md';
+    let systemPrompt = '';
+    
+    // Check for prompt file in the workspace root (Override)
+    const workspaceFolders = vscode.workspace.workspaceFolders;
+    if (workspaceFolders && workspaceFolders.length > 0) {
+        const rootPath = workspaceFolders[0].uri.fsPath;
+        const customPromptPath = path.join(rootPath, promptFileName);
+        if (await ws_exists(customPromptPath)) {
+            try {
+                systemPrompt = await ws_read_file(customPromptPath);
+            } catch (err) {
+                console.error('Error reading custom prompt file:', err);
+            }
+        }
+    }
 
-If the "A" section contains all relevant information from the "P" section, simply state: "A section is complete. No missing details were found."
-Otherwise, provide a bulleted list of the missing details.
+    // If no custom prompt loaded, load the default
+    if (!systemPrompt) {
+        const promptPath = path.join(extensionContext.extensionPath, 'out', 'writer', 'prompts', promptFileName);
+        try {
+            systemPrompt = fs.readFileSync(promptPath, 'utf-8');
+        } catch (err) {
+            console.error('Error reading prompt file:', err);
+            stream.markdown(`Error: Could not load system prompt (${promptFileName}).`);
+            return;
+        }
+    }
 
-Here is the content to verify:
-${editorContext.fullBlock}
-`;
+    // Replace placeholder with the content to verify
+    const verifyPrompt = systemPrompt.replace('{CONTENT}', editorContext.fullBlock);
+
     const messages = [vscode.LanguageModelChatMessage.User(verifyPrompt)];
 
     try {

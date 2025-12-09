@@ -521,13 +521,17 @@ Registered with ID `timex.writer`, provides three slash commands:
 - `timex.writerInsertResponse`: Internal command for "Insert into Document" button
 
 ### Prompt System
-**Default Prompts** (bundled with extension):
-- `src/writer/prompts/AI-WRITER-GEN-FROM-DRAFT.md`: Paraphrasing instructions
-- `src/writer/prompts/AI-WRITER-GEN-FROM-OUTLINE.md`: Outline expansion instructions
+**Default Prompts** (bundled with extension in `src/writer/prompts/`):
+- `AI-WRITER-GEN-FROM-DRAFT.md`: Paraphrasing instructions for `/draft` command
+- `AI-WRITER-GEN-FROM-OUTLINE.md`: Outline expansion instructions for `/outline` command
+- `AI-WRITER-VERIFY.md`: Verification instructions for `/verify` command (placeholder: `{CONTENT}`)
+- `AI-WRITER-CONVERSATION.md`: General conversation instructions when no command specified (placeholder: `{USER_MESSAGE}`)
 
 **Workspace Overrides** (optional, in workspace root):
 - `AI-WRITER-GEN-FROM-DRAFT.md`: Custom draft prompt
 - `AI-WRITER-GEN-FROM-OUTLINE.md`: Custom outline prompt
+- `AI-WRITER-VERIFY.md`: Custom verify prompt
+- `AI-WRITER-CONVERSATION.md`: Custom conversation prompt
 - `AI-WRITER-ROLE.md`: Additional persona/role instructions (appended)
 - `AI-WRITER-CONTEXT.md`: Additional context files (links expanded inline)
 
