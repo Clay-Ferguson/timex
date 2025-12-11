@@ -281,6 +281,11 @@ async function handleConversation(
         }
     }
 
+    // Inject Workspace Root Information
+    if (rootPath) {
+        systemPrompt += `\n\n**Workspace Information:**\nWorkspace Root: ${rootPath}\nIMPORTANT: When using tools to read or edit files, ALWAYS use the absolute path. You can construct it by joining the Workspace Root with the relative path.`;
+    }
+
     // Prepare the messages array
     const messages: vscode.LanguageModelChatMessage[] = [];
 
@@ -327,6 +332,8 @@ async function handleConversation(
             description: tool.description,
             inputSchema: tool.inputSchema
         }));
+
+        console.log('Tools available for AI Writer:', tools.map(t => t.name).join(', '));
 
         // Tool calling loop
         const maxTurns = 5;
@@ -612,6 +619,11 @@ async function handleFillCommand(
                 stream.markdown(`*Warning: Found AI-WRITER-ROLE.md but could not read it.*\n\n`);
             }
         }
+    }
+
+    // Inject Workspace Root Information
+    if (rootPath) {
+        systemPrompt += `\n\n**Workspace Information:**\nWorkspace Root: ${rootPath}\nIMPORTANT: When using tools to read or edit files, ALWAYS use the absolute path. You can construct it by joining the Workspace Root with the relative path.`;
     }
 
     // Determine the user content (from chat or editor)
@@ -1098,7 +1110,7 @@ async function processContextFile(filePath: string, rootPath: string): Promise<s
             throw new Error(`Referenced file not found: ${m.linkPath}`);
         }
         const fileContent = await ws_read_file(m.targetPath);
-        const replacement = `\n<context_file path="${m.linkPath}">\n${fileContent}\n</context_file>\n`;
+        const replacement = `\n<context_file path="${m.targetPath}" relative_path="${m.linkPath}">\n${fileContent}\n</context_file>\n`;
         result = result.replace(m.fullMatch, replacement);
     }
 
