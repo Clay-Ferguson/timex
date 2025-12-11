@@ -281,6 +281,194 @@ async function handleConversation(
         }
     }
 
+    // Prepare the messages array
+    const messages: vscode.LanguageModelChatMessage[] = [];
+
+    // 1. Add System Prompt (Instructions)
+    // We replace the placeholder with a generic instruction since we are appending the actual conversation
+    const instructions = systemPrompt.replace('{USER_MESSAGE}', 'Please engage in the following conversation.');
+    messages.push(vscode.LanguageModelChatMessage.User(instructions));
+
+    // 2. Append Conversation History
+    for (const turn of _context.history) {
+        if (turn instanceof vscode.ChatRequestTurn) {
+            messages.push(vscode.LanguageModelChatMessage.User(turn.prompt));
+        } else if (turn instanceof vscode.ChatResponseTurn) {
+            // Extract text content from response parts
+            const textParts = turn.response
+                .filter(part => part instanceof vscode.ChatResponseMarkdownPart)
+                .map(part => (part as vscode.ChatResponseMarkdownPart).value.value)
+                .join('');
+            
+            if (textParts) {
+                messages.push(vscode.LanguageModelChatMessage.Assistant(textParts));
+            }
+        }
+    }
+
+    // 3. Add Current User Message
+    messages.push(vscode.LanguageModelChatMessage.User(request.prompt));
+
+    try {
+        const models = await vscode.lm.selectChatModels({ family: 'gpt-4' });
+        const model = models[0] || (await vscode.lm.selectChatModels({}))[0];
+
+        if (!model) {
+            stream.markdown('Error: No Language Model available.');
+            return;
+        }
+
+        // Fetch available tools and filter for file operations to avoid hitting tool limits
+        const tools = vscode.lm.tools.filter(tool => {
+            const name = tool.name.toLowerCase();
+            return name.includes('read') || name.includes('write') || name.includes('edit') || name.includes('file');
+        }).map(tool => ({
+            name: tool.name,
+            description: tool.description,
+            inputSchema: tool.inputSchema
+        }));
+
+        // Tool calling loop
+        const maxTurns = 5;
+        let turn = 0;
+
+        while (turn < maxTurns) {
+            turn++;
+
+            const chatResponse = await model.sendRequest(messages, { tools }, token);
+            
+            let responseParts: (vscode.LanguageModelTextPart | vscode.LanguageModelToolCallPart)[] = [];
+
+            for await (const part of chatResponse.stream) {
+                if (part instanceof vscode.LanguageModelTextPart || part instanceof vscode.LanguageModelToolCallPart) {
+                    responseParts.push(part);
+                }
+                if (part instanceof vscode.LanguageModelTextPart) {
+                    stream.markdown(part.value);
+                }
+            }
+
+            // Add assistant response to history
+            messages.push(vscode.LanguageModelChatMessage.Assistant(responseParts));
+
+            // Check for tool calls
+            const toolCalls = responseParts.filter(part => part instanceof vscode.LanguageModelToolCallPart) as vscode.LanguageModelToolCallPart[];
+
+            if (toolCalls.length > 0) {
+                // Execute each tool
+                for (const toolCall of toolCalls) {
+                    try {
+                        const result = await vscode.lm.invokeTool(toolCall.name, {
+                            input: toolCall.input,
+                            toolInvocationToken: request.toolInvocationToken
+                        }, token);
+
+                        // Add tool result to history
+                        messages.push(vscode.LanguageModelChatMessage.User([
+                            new vscode.LanguageModelToolResultPart(toolCall.callId, result.content)
+                        ]));
+                    } catch (err) {
+                        const errorMessage = err instanceof Error ? err.message : String(err);
+                        messages.push(vscode.LanguageModelChatMessage.User([
+                            new vscode.LanguageModelToolResultPart(toolCall.callId, [new vscode.LanguageModelTextPart(`Error: ${errorMessage}`)])
+                        ]));
+                    }
+                }
+            } else {
+                // No tool calls, conversation turn complete
+                break;
+            }
+        }
+
+    } catch (err) {
+        if (err instanceof Error) {
+            stream.markdown(`Error: ${err.message}`);
+        }
+    }
+}
+
+/* This is the old version of handleConversation before tool support was added. 
+
+DO NOT DELETE yet - we may want to to back.
+*/
+async function handleConversation_OLD(
+    extensionContext: vscode.ExtensionContext,
+    request: vscode.ChatRequest,
+    _context: vscode.ChatContext,
+    stream: vscode.ChatResponseStream,
+    token: vscode.CancellationToken
+) {
+    // Load prompt from file
+    const promptFileName = 'AI-WRITER-CONVERSATION.md';
+    let systemPrompt = '';
+    
+    // Check for prompt file in the workspace root (Override)
+    const workspaceFolders = vscode.workspace.workspaceFolders;
+    let rootPath = '';
+    if (workspaceFolders && workspaceFolders.length > 0) {
+        rootPath = workspaceFolders[0].uri.fsPath;
+        const customPromptPath = path.join(rootPath, promptFileName);
+        if (await ws_exists(customPromptPath)) {
+            try {
+                systemPrompt = await ws_read_file(customPromptPath);
+            } catch (err) {
+                console.error('Error reading custom prompt file:', err);
+            }
+        }
+    }
+
+    // If no custom prompt loaded, load the default
+    if (!systemPrompt) {
+        const promptPath = path.join(extensionContext.extensionPath, 'out', 'writer', 'prompts', promptFileName);
+        try {
+            systemPrompt = fs.readFileSync(promptPath, 'utf-8');
+        } catch (err) {
+            console.error('Error reading prompt file:', err);
+            stream.markdown(`Error: Could not load system prompt (${promptFileName}).`);
+            return;
+        }
+    }
+
+    // Check for AI-WRITER-CONTEXT.md in the workspace root (Append)
+    if (rootPath) {
+        const contextFilePath = path.join(rootPath, 'AI-WRITER-CONTEXT.md');
+
+        if (await ws_exists(contextFilePath)) {
+            try {
+                const contextContent = await processContextFile(contextFilePath, rootPath);
+                if (contextContent.trim()) {
+                    systemPrompt += `\n\n**Additional Context:**\n${contextContent}`;
+                    stream.markdown(`*Loaded custom context from AI-WRITER-CONTEXT.md (embedding any linked files inline)*\n\n`);
+                }
+            } catch (err) {
+                if (err instanceof Error) {
+                    stream.markdown(`Error processing AI-WRITER-CONTEXT.md: ${err.message}`);
+                } else {
+                    stream.markdown(`Error processing AI-WRITER-CONTEXT.md`);
+                }
+                return; // Stop execution if context processing fails
+            }
+        }
+    }
+
+    // Check for AI-WRITER-ROLE.md in the workspace root (Append)
+    if (rootPath) {
+        const roleFilePath = path.join(rootPath, 'AI-WRITER-ROLE.md');
+
+        if (await ws_exists(roleFilePath)) {
+            try {
+                const roleContent = await ws_read_file(roleFilePath);
+                if (roleContent.trim()) {
+                    systemPrompt += `\n\n**Additional Role/Persona Instructions:**\n${roleContent}`;
+                    stream.markdown(`*Loaded custom role from AI-WRITER-ROLE.md*\n\n`);
+                }
+            } catch (err) {
+                console.error('Error reading role file:', err);
+                stream.markdown(`*Warning: Found AI-WRITER-ROLE.md but could not read it.*\n\n`);
+            }
+        }
+    }
+
     // Replace placeholder with user's message
     const prompt = systemPrompt.replace('{USER_MESSAGE}', request.prompt);
 
