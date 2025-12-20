@@ -174,8 +174,8 @@ export async function deleteTask(item: any, taskProvider: TaskProvider) {
             // Delete the file
             await ws_delete(filePath);
 
-            // Refresh the task view to remove the deleted item
-            taskProvider.refresh();
+            // Remove the item from the tree without full refresh
+            await taskProvider.removeSingleTask(filePath);
 
             vscode.window.showInformationMessage(`Task file "${fileName}" has been deleted.`);
         } catch (error) {

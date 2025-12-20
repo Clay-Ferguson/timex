@@ -341,6 +341,39 @@ export class TaskProvider implements vscode.TreeDataProvider<TaskFileItem> {
 	}
 
 	/**
+	 * Removes a single task item from the tree view without full refresh
+	 * This is more efficient than a full refresh for single item deletions
+	 * @param filePath The absolute path of the file that was deleted
+	 */
+	async removeSingleTask(filePath: string): Promise<void> {
+		try {
+			// Find and remove the task from our data
+			const taskIndex = this.taskFileData.findIndex(task => task.filePath === filePath);
+			if (taskIndex === -1) {
+				// Task not found, nothing to do
+				return;
+			}
+
+			// Remove the task from the data array
+			this.taskFileData.splice(taskIndex, 1);
+
+			// Remove from scanned files set
+			this.scannedFiles.delete(filePath);
+
+			// Re-build the task files display (similar to scanForTaskFiles but without scanning)
+			await this.applyFiltersToExistingData();
+
+			// Fire the tree data change event
+			this._onDidChangeTreeData.fire();
+
+		} catch (error) {
+			console.error('Error removing single task:', error);
+			// Fall back to full refresh on error
+			this.refresh();
+		}
+	}
+
+	/**
 	 * Highlights and selects the specified task item in the tree view
 	 * @param filePath The absolute path of the file to highlight
 	 */

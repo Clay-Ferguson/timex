@@ -1,8 +1,6 @@
 import * as vscode from 'vscode';
 
 /**
- * todo-0: WARNING: This code is dupliated in multiple projects not in the same repo.
- *  
  * Helper to rename files using VS Code API, accepting string paths.
  *
  * Uses WorkspaceEdit to ensure open editors are updated with the new filename. This is IMPORTANT to keep the open editors
