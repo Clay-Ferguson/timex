@@ -17,6 +17,24 @@ export function editorHasOpenFiles(featureName: string): boolean {
     return false;
 }
 
+/**
+ * Closes all open markdown preview tabs
+ */
+export async function closeMarkdownPreviews(): Promise<void> {
+    for (const tabGroup of vscode.window.tabGroups.all) {
+        for (const tab of tabGroup.tabs) {
+            // Check if this tab is a markdown preview (webview with markdown.preview viewType)
+            const input = tab.input;
+            if (input && typeof input === 'object' && 'viewType' in input) {
+                const viewType = (input as { viewType: string }).viewType;
+                if (viewType.includes('markdown.preview')) {
+                    await vscode.window.tabGroups.close(tab);
+                }
+            }
+        }
+    }
+}
+
 export const IMAGE_EXTENSIONS = new Set<string>([
 	'.png',
 	'.jpg',

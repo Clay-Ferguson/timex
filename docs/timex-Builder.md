@@ -1,5 +1,56 @@
 # Timex: Document Builder
 
+## Markdown Explorer Panel
+
+The Markdown Explorer is a dedicated tree view panel for browsing and previewing markdown files in your workspace. It provides a streamlined way to navigate your documentation without cluttering your editor with open files.
+
+### Accessing the Panel
+
+Click the **book icon** (📖) in the VS Code Activity Bar (the icon strip on the far left side of the window) to open the Markdown Explorer panel.
+
+### How It Works
+
+The Markdown Explorer displays your workspace as a tree structure, but filtered to show only:
+- **Markdown files** (`.md` files)
+- **Folders** that contain markdown files (directly or in subfolders)
+
+When you **single-click** on a markdown file in the tree:
+- The file opens in **preview mode only**—you see the rendered markdown, not the source text
+- Any previously open preview is replaced with the new file's preview
+- No editor tabs are opened, keeping your workspace clean
+
+This makes it incredibly fast to browse through documentation, notes, or any collection of markdown files without accumulating dozens of open editor tabs.
+
+### Context Menu Commands
+
+Right-click on any item in the Markdown Explorer to access these commands:
+
+#### Open in Editor
+Available for files only. Opens the selected file in the standard VS Code text editor for editing. When invoked:
+- Any open markdown preview tabs are automatically closed
+- The file opens in the editor, ready for editing
+
+This provides a clean transition from "browsing mode" to "editing mode."
+
+#### Reveal in Explorer View
+Available for both files and folders. Switches to the standard VS Code Explorer panel and highlights the selected item in the file tree. Useful when you need to:
+- Access other file operations (rename, delete, copy, etc.)
+- See the file in context with non-markdown files
+- Use Explorer-specific features
+
+### Toolbar Commands
+
+The Markdown Explorer title bar includes a **Refresh** button to update the tree view if files have been added, removed, or renamed outside of VS Code.
+
+### Best Use Cases
+
+- **Documentation browsing**: Quickly flip through project docs, READMEs, and guides
+- **Research review**: Scan through notes and research files
+- **Content planning**: Preview chapters or sections of a larger document
+- **Learning materials**: Browse tutorial or course content in rendered form
+
+---
+
 ## Ordinal-Based File Organization
 
 Timex includes a powerful file organization feature that helps you maintain ordered sequences of files and folders using numeric prefixes. This is particularly useful for organizing project phases, sequential tasks, or any workflow where order matters.

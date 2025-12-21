@@ -10,7 +10,7 @@ Lightweight VS Code extension that transforms markdown files into a chronologica
 ### Entry Point (`src/extension.ts`)
 - **Commands Registration**: 27+ commands from timestamp insertion to AI writing assistance
 - **File Watcher**: Real-time `.md` file monitoring with 100ms debounce
-- **Tree View Setup**: Wires `TaskProvider` to VS Code's tree view API
+- **Tree View Setup**: Wires `TaskProvider` to VS Code's tree view API for task panel, and `MarkdownExplorerProvider` for markdown browsing panel
 - **Filter Panel Integration**: Opens `TimexFilterPanel` webview for combined priority and time filtering
 - **Timestamp Manipulation**: `addTimeToTask()` preserves original format (date-only vs full datetime)
 - **AI Writer Activation**: Calls `activateWriter()` to register chat participant and writer commands
@@ -21,6 +21,16 @@ Lightweight VS Code extension that transforms markdown files into a chronologica
 - **TaskFileItem**: VS Code TreeItem with display formatting and tooltips
 - **State Management**: In-memory arrays (`taskFileData`, `taskFiles`) + filter state
 - **Performance Strategy**: `updateSingleTask()` for targeted updates vs full `scanForTaskFiles()`
+
+### Markdown Explorer (`src/markdown-explorer.ts`)
+- **MarkdownExplorerProvider**: Tree data provider implementing `vscode.TreeDataProvider<MarkdownExplorerItem>`
+- **MarkdownExplorerItem**: TreeItem for files/folders with custom click behavior
+- **Filtering**: Only shows `.md` files and folders containing markdown files (recursive check)
+- **Preview Mode**: Clicking markdown files opens preview only (via `markdown.showPreview` command), not the editor
+- **Context Menu Commands**:
+  - `timex.openInEditor`: Opens file in editor, auto-closes any open preview tabs first
+  - `timex.revealInExplorerFromMarkdown`: Reveals item in standard VS Code Explorer
+- **Utility Function**: `closeMarkdownPreviews()` in `utils.ts` closes all markdown preview tabs
 
 ### Filter Panel (`src/filterPanel.ts`)
 - **TimexFilterPanel**: Singleton webview panel for combined filtering with integrated search

@@ -107,6 +107,26 @@
         "icon": "$(list-unordered)"
       },
       {
+        "command": "timex.openMarkdownPreview",
+        "title": "Open Markdown Preview",
+        "icon": "$(preview)"
+      },
+      {
+        "command": "timex.refreshMarkdownExplorer",
+        "title": "Refresh",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "timex.openInEditor",
+        "title": "Open in Editor",
+        "icon": "$(edit)"
+      },
+      {
+        "command": "timex.revealInExplorerFromMarkdown",
+        "title": "Reveal in Explorer View",
+        "icon": "$(files)"
+      },
+      {
         "command": "timex.insertTimestamp",
         "title": "Insert Date+Time"
       },
@@ -311,6 +331,13 @@
           "name": "Timex",
           "icon": "$(list-unordered)"
         }
+      ],
+      "markdownManager": [
+        {
+          "id": "markdownExplorer",
+          "name": "Markdown",
+          "icon": "$(book)"
+        }
       ]
     },
     "viewsContainers": {
@@ -319,6 +346,11 @@
           "id": "taskManager",
           "title": "Timex",
           "icon": "$(checklist)"
+        },
+        {
+          "id": "markdownManager",
+          "title": "Markdown",
+          "icon": "$(book)"
         }
       ]
     },
@@ -344,6 +376,11 @@
           "when": "view == taskExplorer",
           "group": "0_settings@1",
           "icon": "$(gear)"
+        },
+        {
+          "command": "timex.refreshMarkdownExplorer",
+          "when": "view == markdownExplorer",
+          "group": "navigation@0"
         }
       ],
       "view/context": [
@@ -390,6 +427,16 @@
           "command": "timex.deleteTask",
           "when": "view == taskExplorer",
           "group": "2_file@3"
+        },
+        {
+          "command": "timex.openInEditor",
+          "when": "view == markdownExplorer && viewItem == file",
+          "group": "navigation@1"
+        },
+        {
+          "command": "timex.revealInExplorerFromMarkdown",
+          "when": "view == markdownExplorer",
+          "group": "navigation@2"
         }
       ],
       "commandPalette": [

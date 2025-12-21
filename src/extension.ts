@@ -4,6 +4,7 @@ import { TaskProvider } from './model';
 import {
 	getIncludeGlobPattern,
 	TIMESTAMP_REGEX,
+	closeMarkdownPreviews,
 } from './utils';
 import { ws_read_file } from './ws-file-util';
 import { ViewFilter, PriorityTag } from './constants';
@@ -15,6 +16,7 @@ import { deleteTask, newTask, renameTask } from './task';
 import { addTimeToTask, insertDate, insertTimestamp } from './date-time';
 import { mergeSentences } from './text-merge';
 import { activateWriter } from './writer/writer';
+import { MarkdownExplorerProvider, openMarkdownPreview } from './markdown-explorer';
 
 // todo-0: move non-trivial functions defined inline into a separate module file
 
@@ -73,6 +75,52 @@ export function activate(context: vscode.ExtensionContext) {
 	taskProvider.setTreeView(treeView);
 	taskProvider.clearCutIndicator();
 	void vscode.commands.executeCommand('setContext', 'timex.hasOrdinalCutItem', false);
+
+	// Create and register the Markdown Explorer tree view
+	const markdownExplorerProvider = new MarkdownExplorerProvider();
+	const markdownTreeView = vscode.window.createTreeView('markdownExplorer', {
+		treeDataProvider: markdownExplorerProvider
+	});
+	context.subscriptions.push(markdownTreeView);
+
+	// Register command for opening markdown preview
+	const openMarkdownPreviewCommand = vscode.commands.registerCommand(
+		'timex.openMarkdownPreview',
+		openMarkdownPreview
+	);
+	context.subscriptions.push(openMarkdownPreviewCommand);
+
+	// Register refresh command for markdown explorer
+	const refreshMarkdownExplorerCommand = vscode.commands.registerCommand(
+		'timex.refreshMarkdownExplorer',
+		() => markdownExplorerProvider.refresh()
+	);
+	context.subscriptions.push(refreshMarkdownExplorerCommand);
+
+	// Register command to open file in editor from markdown explorer
+	const openInEditorCommand = vscode.commands.registerCommand(
+		'timex.openInEditor',
+		async (item: { resourceUri: vscode.Uri }) => {
+			if (item?.resourceUri) {
+				// Close any open markdown preview tabs first for a cleaner experience
+				await closeMarkdownPreviews();
+				// Now open the file in the editor
+				await vscode.commands.executeCommand('vscode.open', item.resourceUri);
+			}
+		}
+	);
+	context.subscriptions.push(openInEditorCommand);
+
+	// Register command to reveal file in Explorer view from markdown explorer
+	const revealInExplorerFromMarkdownCommand = vscode.commands.registerCommand(
+		'timex.revealInExplorerFromMarkdown',
+		async (item: { resourceUri: vscode.Uri }) => {
+			if (item?.resourceUri) {
+				await vscode.commands.executeCommand('revealInExplorer', item.resourceUri);
+			}
+		}
+	);
+	context.subscriptions.push(revealInExplorerFromMarkdownCommand);
 
 	let ordinalClipboard: OrdinalClipboardItem | null = null;
 
