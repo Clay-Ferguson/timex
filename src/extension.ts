@@ -5,14 +5,12 @@ import {
 	getIncludeGlobPattern,
 	TIMESTAMP_REGEX,
 } from './utils';
-import { ws_exists } from './ws-file-util';
 import { ws_read_file } from './ws-file-util';
 import { ViewFilter, PriorityTag } from './constants';
 import { TimexFilterPanel } from './filter-panel/filterPanel';
-import { MarkdownFolderPreviewProvider } from './markdownFolderPreviewProvider';
 import { renumberFiles, insertOrdinalFile, insertOrdinalFolder, cutByOrdinal, pasteByOrdinal, OrdinalClipboardItem, moveOrdinal, moveFileToFolder } from './ordinals';
 import { fixLinks, insertAttachment, insertImageFromClipboard, insertFileLink } from './attachment';
-import { generateMarkdown, previewFolderAsMarkdown } from './gen-markdown';
+import { generateMarkdown } from './gen-markdown';
 import { deleteTask, newTask, renameTask } from './task';
 import { addTimeToTask, insertDate, insertTimestamp } from './date-time';
 import { mergeSentences } from './text-merge';
@@ -75,14 +73,6 @@ export function activate(context: vscode.ExtensionContext) {
 	taskProvider.setTreeView(treeView);
 	taskProvider.clearCutIndicator();
 	void vscode.commands.executeCommand('setContext', 'timex.hasOrdinalCutItem', false);
-
-	// Register the MarkdownFolderPreviewProvider for virtual folder preview documents
-	const markdownFolderPreviewProvider = new MarkdownFolderPreviewProvider();
-	const previewProviderDisposable = vscode.workspace.registerTextDocumentContentProvider(
-		'timex-preview',
-		markdownFolderPreviewProvider
-	);
-	context.subscriptions.push(previewProviderDisposable);
 
 	let ordinalClipboard: OrdinalClipboardItem | null = null;
 
@@ -310,8 +300,6 @@ export function activate(context: vscode.ExtensionContext) {
 
 	const fixLinksCommand = vscode.commands.registerCommand('timex.fixLinks', fixLinks);
 
-	const previewFolderAsMarkdownCommand = vscode.commands.registerCommand('timex.previewFolderAsMarkdown', previewFolderAsMarkdown);
-
 	const mergeSentencesCommand = vscode.commands.registerCommand('timex.mergeSentences', mergeSentences);
 
 	// Add to subscriptions
@@ -342,7 +330,6 @@ export function activate(context: vscode.ExtensionContext) {
 	context.subscriptions.push(moveOrdinalDownCommand);
 	context.subscriptions.push(moveFileToFolderCommand);
 	context.subscriptions.push(fixLinksCommand);
-	context.subscriptions.push(previewFolderAsMarkdownCommand);
 	context.subscriptions.push(mergeSentencesCommand);
 }
 

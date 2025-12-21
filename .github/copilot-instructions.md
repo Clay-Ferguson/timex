@@ -421,53 +421,6 @@ Prefer `rebuildTaskDisplay()` pattern over full rescans for operations that only
 14. **Orphan Detection**: `fixLinks` tracks referenced hashes during project-wide markdown scan—must extract hash from ALL links (broken or not) to accurately identify orphans
 15. **Search Field Location**: Search functionality is integrated into the filter panel webview itself, not a separate icon/menu on the task panel. All search input happens within the filter panel UI
 
-## Markdown Folder Preview (NEW)
-
-### Virtual Document Provider (`src/markdownFolderPreviewProvider.ts`)
-- **MarkdownFolderPreviewProvider**: TextDocumentContentProvider implementing `vscode.TextDocumentContentProvider`
-- **URI Scheme**: Uses `timex-preview:` custom scheme for virtual documents
-- **On-Demand Generation**: Content generated when document is opened (not preemptively)
-- **Auto-Refresh Ready**: Includes `onDidChange` event emitter (infrastructure for future auto-refresh)
-- **Recursive Processing**: Walks ordinal file structure, concatenates markdown, embeds images
-
-### Command: `timex.previewFolderAsMarkdown`
-**Trigger**: Right-click on folder in VS Code explorer → Timex → Generate Markdown → "Preview"
-**Behavior**: 
-- Opens virtual markdown document in full editor tab (not side panel)
-- Uses VS Code's native markdown preview (`markdown.showPreview`)
-- Displays all ordinal items (files/folders) in the selected folder
-- Concatenates markdown files vertically with `---` separators
-- Embeds images inline with `![alt](file:///absolute/path)` syntax
-- Recursive: includes content from child folders
-
-**Implementation Pattern**:
-```typescript
-// Create virtual URI
-const previewUri = vscode.Uri.parse(`timex-preview:${folderPath}`);
-// Open as text document
-const doc = await vscode.workspace.openTextDocument(previewUri);
-// Show in markdown preview
-await vscode.commands.executeCommand('markdown.showPreview', doc.uri);
-```
-
-**Key Differences from `generateMarkdown` Command**:
-- **No Physical Files**: Never writes `_index.md` to disk
-- **Single Panel**: Reuses existing preview tab (not multiple panels)
-- **Manual Refresh**: User must re-run command to update (no auto-refresh yet)
-- **Full Tab**: Opens as editor tab (like opening a file), not webview side panel
-
-**Menu Visibility**: Context menu entry only shows when `explorerResourceIsFolder` is true
-
-### Shared Logic with `generateMarkdown`
-Both features use:
-- `scanForNumberedItems()` from `utils.ts` to find ordinal files
-- `stripOrdinalPrefix()` to clean display names
-- `IMAGE_EXTENSIONS` set for image detection
-- Same recursive directory walking pattern
-- Same markdown concatenation with `---` separators
-
-**Design Goal**: Avoid creating persistent `_index.md` files that clutter workspace and cause confusion in search results
-
 ## AI Writer - Collaborative Writing Assistant
 
 The AI Writer is an integrated chat participant and command suite for collaborative AI-assisted writing using a structured HTML comment syntax.
