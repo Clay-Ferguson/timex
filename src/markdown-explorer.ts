@@ -23,8 +23,8 @@ export class MarkdownExplorerItem extends vscode.TreeItem {
 			// Use default file icon - VS Code will pick appropriate icon based on file type
 			this.iconPath = vscode.ThemeIcon.File;
 			
-			// For markdown files, we'll handle the click to open preview
-			// For other files, use default command to open them
+			// For markdown files, open in preview mode
+			// For images and other files, open normally
 			const ext = path.extname(resourceUri.fsPath).toLowerCase();
 			if (ext === '.md') {
 				this.command = {
@@ -33,7 +33,7 @@ export class MarkdownExplorerItem extends vscode.TreeItem {
 					arguments: [resourceUri]
 				};
 			} else {
-				// For non-markdown files, open normally
+				// For images and other files, open normally
 				this.command = {
 					command: 'vscode.open',
 					title: 'Open File',
@@ -45,8 +45,13 @@ export class MarkdownExplorerItem extends vscode.TreeItem {
 }
 
 /**
+ * Image file extensions to include in the explorer
+ */
+const IMAGE_EXTENSIONS = new Set(['.png', '.jpg', '.jpeg', '.gif', '.bmp', '.webp', '.svg', '.ico', '.tiff', '.tif']);
+
+/**
  * Tree data provider for the markdown explorer view
- * Shows all project files but opens markdown files in preview mode
+ * Shows markdown files and images, opens markdown files in preview mode
  */
 export class MarkdownExplorerProvider implements vscode.TreeDataProvider<MarkdownExplorerItem> {
 	private _onDidChangeTreeData: vscode.EventEmitter<MarkdownExplorerItem | undefined | null | void> = 
@@ -138,9 +143,9 @@ export class MarkdownExplorerProvider implements vscode.TreeDataProvider<Markdow
 				const uri = vscode.Uri.file(fullPath);
 				
 				if (entry.isDirectory()) {
-					// Check if directory contains any markdown files (recursively)
-					const hasMarkdown = await this.containsMarkdownFiles(fullPath);
-					if (hasMarkdown) {
+					// Check if directory contains any markdown or image files (recursively)
+					const hasRelevantFiles = await this.containsRelevantFiles(fullPath);
+					if (hasRelevantFiles) {
 						folders.push(new MarkdownExplorerItem(
 							uri,
 							vscode.TreeItemCollapsibleState.Collapsed,
@@ -148,9 +153,9 @@ export class MarkdownExplorerProvider implements vscode.TreeDataProvider<Markdow
 						));
 					}
 				} else {
-					// Only show markdown files
+					// Only show markdown files and images
 					const ext = path.extname(entry.name).toLowerCase();
-					if (ext === '.md') {
+					if (ext === '.md' || IMAGE_EXTENSIONS.has(ext)) {
 						files.push(new MarkdownExplorerItem(
 							uri,
 							vscode.TreeItemCollapsibleState.None,
@@ -193,9 +198,9 @@ export class MarkdownExplorerProvider implements vscode.TreeDataProvider<Markdow
 	}
 
 	/**
-	 * Recursively check if a directory contains any markdown files
+	 * Recursively check if a directory contains any markdown or image files
 	 */
-	private async containsMarkdownFiles(dirPath: string): Promise<boolean> {
+	private async containsRelevantFiles(dirPath: string): Promise<boolean> {
 		try {
 			const entries = await fs.promises.readdir(dirPath, { withFileTypes: true });
 			
@@ -209,20 +214,20 @@ export class MarkdownExplorerProvider implements vscode.TreeDataProvider<Markdow
 				
 				if (entry.isDirectory()) {
 					// Recursively check subdirectory
-					const hasMarkdown = await this.containsMarkdownFiles(fullPath);
-					if (hasMarkdown) {
+					const hasRelevantFiles = await this.containsRelevantFiles(fullPath);
+					if (hasRelevantFiles) {
 						return true;
 					}
 				} else {
-					// Check if file is markdown
+					// Check if file is markdown or image
 					const ext = path.extname(entry.name).toLowerCase();
-					if (ext === '.md') {
+					if (ext === '.md' || IMAGE_EXTENSIONS.has(ext)) {
 						return true;
 					}
 				}
 			}
 		} catch (error) {
-			console.error('Error checking for markdown files:', error);
+			console.error('Error checking for relevant files:', error);
 		}
 		
 		return false;

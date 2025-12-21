@@ -105,10 +105,14 @@ watcher.onDidChange(async (uri) => {
   - `PriorityTag.Medium` (p2): Medium priority tasks
   - `PriorityTag.Low` (p3): Low priority tasks
   - `PriorityTag.None` (none): Tasks without any priority tag - filters for files where `priority === ''`
-- **Time-based filters** (right column in panel): Three configurable horizons for planning:
-  - `DueIn7Days`: Today through next 7 days (weekly view)
-  - `DueIn14Days`: Today through next 14 days (bi-weekly planning)
-  - `DueIn30Days`: Today through next 30 days (monthly overview)
+- **Time-based filters** (right column in panel): Seven options covering all temporal views:
+  - `ViewFilter.All`: All tasks regardless of due date (default)
+  - `ViewFilter.DueIn7Days`: Today through next 7 days (weekly view)
+  - `ViewFilter.DueIn14Days`: Today through next 14 days (bi-weekly planning)
+  - `ViewFilter.DueIn30Days`: Today through next 30 days (monthly overview)
+  - `ViewFilter.DueToday`: Only tasks due today
+  - `ViewFilter.FutureDueDates`: Tasks due tomorrow and beyond
+  - `ViewFilter.Overdue`: Tasks past their due date
 - **Search field**: Located in filter panel itself (top section), searches filename + content matching, case-insensitive
 - **Apply workflow**: "Search" button applies priority AND view filters AND search text simultaneously via callback handler, panel remains open
 - **State clearing**: "Clear" button resets all filters and clears `currentSearchQuery`
