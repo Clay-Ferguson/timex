@@ -167,72 +167,6 @@ export function activate(context: vscode.ExtensionContext) {
 
 	const insertImageFromClipboardCommand = vscode.commands.registerCommand('timex.insertImageFromClipboard', insertImageFromClipboard);
 
-	const selectPrimaryHashtagCommand = vscode.commands.registerCommand('timex.selectPrimaryHashtag', async () => {
-		// Get current primary hashtag from task provider (which handles runtime overrides)
-		const currentPrimaryHashtag = taskProvider.getPrimaryHashtag();
-
-		// Get configuration for available hashtags
-		const config = vscode.workspace.getConfiguration('timex');
-		const hashtagsConfig = config.get('hashtags', ['#todo', '#note']);
-		
-		// Handle both old string format and new array format for backward compatibility
-		let hashtags: string[];
-		if (Array.isArray(hashtagsConfig)) {
-			hashtags = hashtagsConfig;
-		} else if (typeof hashtagsConfig === 'string') {
-			// Legacy format: comma-delimited string
-			hashtags = (hashtagsConfig as string).split(',').map((tag: string) => tag.trim()).filter((tag: string) => tag.length > 0);
-		} else {
-			hashtags = ['#todo', '#note'];
-		}
-		hashtags = hashtags.map(tag => tag.trim()).filter(tag => tag.length > 0);
-
-		// Sort hashtags alphabetically (case-insensitive)
-		hashtags.sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()));
-
-		// Create options with "all-tags" at the top, then individual hashtags
-		const allHashtagsOption = {
-			label: `${currentPrimaryHashtag === 'all-tags' ? '$(check)' : '$(circle-outline)'} Any Hashtag`,
-			value: 'all-tags'
-		};
-
-		// Create options with checkmarks for current selection
-		const hashtagOptions = hashtags.map(hashtag => ({
-			label: `${hashtag === currentPrimaryHashtag ? '$(check)' : '$(circle-outline)'} ${hashtag}`,
-			value: hashtag
-		}));
-
-		// Combine all options with "all-tags" first
-		const options = [allHashtagsOption, ...hashtagOptions];
-
-		const selected = await vscode.window.showQuickPick(options, {
-			placeHolder: 'Select primary hashtag for task identification'
-		});
-
-		if (selected) {
-			try {
-				if (selected.value === 'all-tags') {
-					// Set runtime override for all-tags mode
-					taskProvider.setPrimaryHashtagOverride('all-tags');
-				} else {
-					// Clear runtime override and update user configuration for specific hashtag
-					taskProvider.setPrimaryHashtagOverride(null);
-					await config.update('primaryHashtag', selected.value, vscode.ConfigurationTarget.Global);
-
-					// Clear the cached primary hashtag to force reload from config
-					taskProvider.clearPrimaryHashtagCache();
-				}
-
-				// Refresh the task view to reflect the new primary hashtag
-				taskProvider.refresh();
-
-				// vscode.window.showInformationMessage(`Primary hashtag set to: ${selected.value}`);
-			} catch (err) {
-				vscode.window.showErrorMessage(`Failed to update primary hashtag: ${err}`);
-			}
-		}
-	});
-
 	const openFilterPanelCommand = vscode.commands.registerCommand('timex.openFilterPanel', async () => {
 		try {
 			const currentPriority = taskProvider.getCurrentPriorityFilter();
@@ -391,7 +325,6 @@ export function activate(context: vscode.ExtensionContext) {
 	context.subscriptions.push(insertAttachmentCommand);
 	context.subscriptions.push(insertFileLinkCommand);
 	context.subscriptions.push(insertImageFromClipboardCommand);
-	context.subscriptions.push(selectPrimaryHashtagCommand);
 	context.subscriptions.push(openFilterPanelCommand);
 	context.subscriptions.push(newTaskCommand);
 	context.subscriptions.push(openSettingsCommand);

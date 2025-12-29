@@ -147,11 +147,6 @@
         "title": "Clipboard"
       },
       {
-        "command": "timex.selectPrimaryHashtag",
-        "title": "Select Primary Hashtag",
-        "icon": "$(tag)"
-      },
-      {
         "command": "timex.openFilterPanel",
         "title": "Open Filter Panel",
         "icon": "$(filter)"
@@ -356,11 +351,6 @@
     },
     "menus": {
       "view/title": [
-        {
-          "command": "timex.selectPrimaryHashtag",
-          "when": "view == taskExplorer",
-          "group": "navigation@0"
-        },
         {
           "command": "timex.openFilterPanel",
           "when": "view == taskExplorer",
