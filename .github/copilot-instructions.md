@@ -11,7 +11,7 @@ Lightweight VS Code extension that transforms markdown files into a chronologica
 - **Commands Registration**: 27+ commands from timestamp insertion to AI writing assistance
 - **File Watcher**: Real-time `.md` file monitoring with 100ms debounce
 - **Tree View Setup**: Wires `TaskProvider` to VS Code's tree view API for task panel, and `MarkdownExplorerProvider` for markdown browsing panel
-- **Filter Panel Integration**: Opens `TimexFilterPanel` webview for combined priority and time filtering
+- **Filter Panel Integration**: Opens `TimexFilterPanel` webview for combined priority, time, and tag filtering
 - **Timestamp Manipulation**: `addTimeToTask()` preserves original format (date-only vs full datetime)
 - **AI Writer Activation**: Calls `activateWriter()` to register chat participant and writer commands
 
@@ -32,19 +32,20 @@ Lightweight VS Code extension that transforms markdown files into a chronologica
   - `timex.revealInExplorerFromMarkdown`: Reveals item in standard VS Code Explorer
 - **Utility Function**: `closeMarkdownPreviews()` in `utils.ts` closes all markdown preview tabs
 
-### Filter Panel (`src/filterPanel.ts`)
+### Filter Panel (`src/filter-panel/filterPanel.ts`)
 - **TimexFilterPanel**: Singleton webview panel for combined filtering with integrated search
-- **UI Architecture**: Persistent dialog with two-column CSS Grid layout (Priority | Time filters) plus search field
-- **Radio Button Groups**: `getPriorityFilterRadioGroup()` (5 options) + `getTimeFilterRadioGroup()` (7 options)
+- **UI Architecture**: Persistent dialog with three-column CSS Grid layout (Priority | Time | Tag) plus search field
+- **Radio Button Groups**: `getPriorityFilterRadioGroup()` (5 options) + `getTimeFilterRadioGroup()` (7 options) + `getTagFilterRadioGroup()` (dynamic based on configured hashtags)
 - **Message Passing**: Webview → Extension communication via `vscode.postMessage()` with 'apply'/'clear'/'cancel' commands
 - **Panel Persistence**: Panel stays open after "Search" button click (only "Close" button dismisses panel)
 - **Resource Loading**: External CSS (`filterPanel.css`) and JavaScript (`filterPanelWebview.js`) with static caching
-- **State Persistence**: Shows currently selected filters as checked radio buttons and current search text on panel open
+- **State Persistence**: Shows currently selected filters (including tag) as checked radio buttons and current search text on panel open
+- **Tag Filter Layout**: Uses 3-column grid (`grid-template-columns: repeat(3, auto)`) for compact display of many hashtags
 
 ### Configuration (`package.json`)
 Two workspace settings:
 - `timex.primaryHashtag`: Active hashtag for filtering (default `#todo`)
-- `timex.hashtags`: Available hashtags for picker (default `#todo, #todo, #note`)
+- `timex.hashtags`: Available hashtags shown in filter panel's Tag column (default `#todo, #note`)
 
 ## Task File Format Rules
 
@@ -93,19 +94,19 @@ watcher.onDidChange(async (uri) => {
 ```
 
 ### Filter State Management
-- **UI Method**: Click filter (funnel) icon → opens `TimexFilterPanel` persistent panel with side-by-side radio button sections plus search field
+- **UI Method**: Click filter (funnel) icon → opens `TimexFilterPanel` persistent panel with three radio button columns plus search field
 - **Panel Buttons**: 
   - "Search" button: Applies all filters and search criteria, **panel stays open** for further adjustments
-  - "Clear" button: Resets all filters to defaults and clears search, **panel stays open**
+  - "Clear" button: Resets all filters to defaults (including tag to "Any Hashtag") and clears search, **panel stays open**
   - "Close" button: Dismisses the panel (only button that closes it)
-- **Filter combinations**: View (All|Due in 7/14/30 Days|Due Today|Future|Overdue) × Priority (all|p1|p2|p3|none) × Search text
-- **Priority filters** (left column in panel): 
+- **Filter combinations**: View (All|Due in 7/14/30 Days|Due Today|Future|Overdue) × Priority (all|p1|p2|p3|none) × Tag (any|specific hashtag) × Search text
+- **Priority filters** (first column in panel): 
   - `PriorityTag.Any`: All priorities (default)
   - `PriorityTag.High` (p1): High priority tasks
   - `PriorityTag.Medium` (p2): Medium priority tasks
   - `PriorityTag.Low` (p3): Low priority tasks
   - `PriorityTag.None` (none): Tasks without any priority tag - filters for files where `priority === ''`
-- **Time-based filters** (right column in panel): Seven options covering all temporal views:
+- **Time-based filters** (second column in panel): Seven options covering all temporal views:
   - `ViewFilter.All`: All tasks regardless of due date (default)
   - `ViewFilter.DueIn7Days`: Today through next 7 days (weekly view)
   - `ViewFilter.DueIn14Days`: Today through next 14 days (bi-weekly planning)
@@ -113,9 +114,13 @@ watcher.onDidChange(async (uri) => {
   - `ViewFilter.DueToday`: Only tasks due today
   - `ViewFilter.FutureDueDates`: Tasks due tomorrow and beyond
   - `ViewFilter.Overdue`: Tasks past their due date
+- **Tag filters** (third column in panel): Dynamic list based on `timex.hashtags` configuration:
+  - "Any Hashtag" (`all-tags`): Show tasks containing any configured hashtag (default)
+  - Specific hashtags (e.g., `#todo`, `#note`): Filter to only show tasks containing that hashtag
+  - Uses 3-column grid layout for compact display when many tags are configured
 - **Search field**: Located in filter panel itself (top section), searches filename + content matching, case-insensitive
-- **Apply workflow**: "Search" button applies priority AND view filters AND search text simultaneously via callback handler, panel remains open
-- **State clearing**: "Clear" button resets all filters and clears `currentSearchQuery`
+- **Apply workflow**: "Search" button applies priority AND view AND tag filters AND search text simultaneously via callback handler, panel remains open
+- **State clearing**: "Clear" button resets all filters including tag selection back to "Any Hashtag" and clears `currentSearchQuery`
 - **Title sync**: `updateTreeViewTitle()` reflects all active filters including search query
 
 ### Performance Optimization
@@ -193,8 +198,8 @@ const isLongFormat = cleanTimestamp.includes(' ') && cleanTimestamp.includes(':'
 ```
 
 ### Hashtag Switching
-Primary hashtag changes trigger:
-1. `clearPrimaryHashtagCache()` - Invalidates cached config
+Primary hashtag changes (via filter panel Tag column) trigger:
+1. `setPrimaryHashtagOverride()` or `clearPrimaryHashtagCache()` - Updates hashtag state
 2. `refresh()` - Full rescan with new hashtag filter
 3. `updateTreeViewTitle()` - UI title update
 
@@ -403,7 +408,7 @@ numberedItems.sort((a, b) => a.ordinal - b.ordinal); // Sort by current numbers
 ### Adding New Filters
 1. Add new enum value to `ViewFilter` or `PriorityTag` in `src/constants.ts`
 2. Create corresponding `refresh*()` method in `TaskProvider` (e.g., `refreshDueIn7Days()`)
-3. Update radio button groups in `src/filterPanel.ts` (`getPriorityFilterRadioGroup()` or `getTimeFilterRadioGroup()`)
+3. Update radio button groups in `src/filter-panel/filterPanel.ts` (`getPriorityFilterRadioGroup()` or `getTimeFilterRadioGroup()`)
 4. Update the switch statement in the `openFilterPanelCommand` callback handler in `src/extension.ts`
 5. Implement filter logic in both `scanForTaskFiles()` and `applyFiltersToExistingData()` 
 6. Update `updateTreeViewTitle()` to display new filter in title bar
