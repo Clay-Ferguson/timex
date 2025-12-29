@@ -238,16 +238,50 @@ export function activate(context: vscode.ExtensionContext) {
 			const currentPriority = taskProvider.getCurrentPriorityFilter();
 			const currentViewFilter = taskProvider.getCurrentViewFilter();
 			const currentSearchQuery = taskProvider.getCurrentSearchQuery();
+			const currentHashtag = taskProvider.getPrimaryHashtag();
+			
+			// Get available hashtags from configuration
+			const config = vscode.workspace.getConfiguration('timex');
+			const hashtagsConfig = config.get('hashtags', ['#todo', '#note']);
+			
+			// Handle both old string format and new array format for backward compatibility
+			let hashtags: string[];
+			if (Array.isArray(hashtagsConfig)) {
+				hashtags = hashtagsConfig;
+			} else if (typeof hashtagsConfig === 'string') {
+				// Legacy format: comma-delimited string
+				hashtags = (hashtagsConfig as string).split(',').map((tag: string) => tag.trim()).filter((tag: string) => tag.length > 0);
+			} else {
+				hashtags = ['#todo', '#note'];
+			}
+			hashtags = hashtags.map(tag => tag.trim()).filter(tag => tag.length > 0);
+			
+			// Sort hashtags alphabetically (case-insensitive)
+			hashtags.sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()));
 			
 			await TimexFilterPanel.show(
 				context.extensionUri,
-				(priority: PriorityTag, viewFilter: ViewFilter, searchQuery: string) => {
+				(priority: PriorityTag, viewFilter: ViewFilter, searchQuery: string, hashtag: string) => {
+					// Handle hashtag selection
+					if (hashtag === 'all-tags') {
+						// Set runtime override for all-tags mode
+						taskProvider.setPrimaryHashtagOverride('all-tags');
+					} else {
+						// Clear runtime override and update user configuration for specific hashtag
+						taskProvider.setPrimaryHashtagOverride(null);
+						config.update('primaryHashtag', hashtag, vscode.ConfigurationTarget.Global);
+						// Clear the cached primary hashtag to force reload from config
+						taskProvider.clearPrimaryHashtagCache();
+					}
+					
 					// Apply all filters at once to avoid side effects of clearing other filters
 					taskProvider.applyAllFilters(priority, viewFilter, searchQuery.trim());
 				},
 				currentPriority,
 				currentViewFilter,
-				currentSearchQuery
+				currentSearchQuery,
+				currentHashtag,
+				hashtags
 			);
 		} catch (error) {
 			console.error('[Extension] Error in openFilterPanel command:', error);

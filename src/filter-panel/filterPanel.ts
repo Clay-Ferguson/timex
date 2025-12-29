@@ -14,10 +14,12 @@ export class TimexFilterPanel {
     private constructor(
         panel: vscode.WebviewPanel,
         extensionPath: string,
-        private readonly onFilterApplied: (priority: PriorityTag, viewFilter: ViewFilter, searchQuery: string) => void,
+        private readonly onFilterApplied: (priority: PriorityTag, viewFilter: ViewFilter, searchQuery: string, hashtag: string) => void,
         private readonly currentPriority: PriorityTag,
         private readonly currentViewFilter: ViewFilter,
-        private readonly currentSearchQuery: string
+        private readonly currentSearchQuery: string,
+        private readonly currentHashtag: string,
+        private readonly availableHashtags: string[]
     ) {
         this.panel = panel;
 
@@ -38,7 +40,8 @@ export class TimexFilterPanel {
                         this.onFilterApplied(
                             message.priority as PriorityTag,
                             message.viewFilter as ViewFilter,
-                            message.searchQuery || ''
+                            message.searchQuery || '',
+                            message.hashtag || 'all-tags'
                         );
                         // COMMENTED OUT: Keep panel open after applying filters
                         // this.panel.dispose();
@@ -48,7 +51,8 @@ export class TimexFilterPanel {
                         this.onFilterApplied(
                             PriorityTag.Any,
                             ViewFilter.All,
-                            ''
+                            '',
+                            'all-tags'
                         );
                         // COMMENTED OUT: Keep panel open after clearing filters
                         // this.panel.dispose();
@@ -68,10 +72,12 @@ export class TimexFilterPanel {
 
     public static async show(
         extensionUri: vscode.Uri,
-        onFilterApplied: (priority: PriorityTag, viewFilter: ViewFilter, searchQuery: string) => void,
+        onFilterApplied: (priority: PriorityTag, viewFilter: ViewFilter, searchQuery: string, hashtag: string) => void,
         currentPriority: PriorityTag,
         currentViewFilter: ViewFilter,
-        currentSearchQuery: string
+        currentSearchQuery: string,
+        currentHashtag: string,
+        availableHashtags: string[]
     ) {
         try {
             // If we already have a panel, show it
@@ -108,7 +114,9 @@ export class TimexFilterPanel {
                 onFilterApplied,
                 currentPriority,
                 currentViewFilter,
-                currentSearchQuery
+                currentSearchQuery,
+                currentHashtag,
+                availableHashtags
             );
         } catch (error) {
             console.error('[TimexFilterPanel] Error in show():', error);
@@ -198,6 +206,28 @@ export class TimexFilterPanel {
             </div>`;
     }
 
+    private getTagFilterRadioGroup(): string {
+        // Create "Any Hashtag" option at the top
+        const allTagsOption = `
+            <div class="radio-option">
+                <input type="radio" id="hashtag-all" name="hashtag" value="all-tags" ${this.currentHashtag === 'all-tags' ? 'checked' : ''}>
+                <label for="hashtag-all">Any Hashtag</label>
+            </div>`;
+
+        // Create options for each available hashtag
+        const hashtagOptions = this.availableHashtags.map((hashtag, index) => {
+            const sanitizedId = `hashtag-${index}`;
+            const isChecked = this.currentHashtag === hashtag ? 'checked' : '';
+            return `
+            <div class="radio-option">
+                <input type="radio" id="${sanitizedId}" name="hashtag" value="${hashtag}" ${isChecked}>
+                <label for="${sanitizedId}">${hashtag}</label>
+            </div>`;
+        }).join('');
+
+        return allTagsOption + hashtagOptions;
+    }
+
     private getHtmlContent(): string {
         const nonce = this.getNonce();
         const css = TimexFilterPanel.cachedCss || '';
@@ -205,14 +235,16 @@ export class TimexFilterPanel {
         const html = TimexFilterPanel.cachedHtml || '';
         const priorityFilterRadioGroup = this.getPriorityFilterRadioGroup();
         const timeFilterRadioGroup = this.getTimeFilterRadioGroup();
+        const tagFilterRadioGroup = this.getTagFilterRadioGroup();
 
         return html
-            .replace(/<!-- NONCE -->/g, nonce)
-            .replace(/\/\* CSS \*\//g, css)
-            .replace(/\/\* JS \*\//g, js)
-            .replace(/<!-- PRIORITY_FILTER_RADIO_GROUP -->/g, priorityFilterRadioGroup)
-            .replace(/<!-- TIME_FILTER_RADIO_GROUP -->/g, timeFilterRadioGroup)
-            .replace(/<!-- SEARCH_QUERY -->/g, this.currentSearchQuery);
+            .replace(/<!-- NONCE_TAG -->/g, nonce)
+            .replace(/\/\* CSS_TAG \*\//g, css)
+            .replace(/\/\* JS_TAG \*\//g, js)
+            .replace(/<!-- PRIORITY_FILTER_RADIO_GROUP_TAG -->/g, priorityFilterRadioGroup)
+            .replace(/<!-- TIME_FILTER_RADIO_GROUP_TAG -->/g, timeFilterRadioGroup)
+            .replace(/<!-- TAG_FILTER_RADIO_GROUP_TAG -->/g, tagFilterRadioGroup)
+            .replace(/<!-- SEARCH_QUERY_TAG -->/g, this.currentSearchQuery);
     }
 
     private getNonce(): string {

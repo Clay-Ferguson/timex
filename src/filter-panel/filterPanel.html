@@ -3,32 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'nonce-<!-- NONCE -->';">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'nonce-<!-- NONCE_TAG -->';">
     <title>Timex Filters</title>
     <style>
-        /* CSS */
+        /* CSS_TAG */
     </style>
 </head>
 <body>
     <div class="search-section">
         <label for="searchInput">Search (Optional):</label>
-        <input type="text" id="searchInput" placeholder="Search task filenames and content..." value="<!-- SEARCH_QUERY -->">
-    </div>
-
-    <div class="filters-container">
-        <div class="filter-section">
-            <h2>Priority Filter</h2>
-            <div class="radio-group">
-                <!-- PRIORITY_FILTER_RADIO_GROUP -->
-            </div>
-        </div>
-
-        <div class="filter-section">
-            <h2>Time Filter</h2>
-            <div class="radio-group">
-                <!-- TIME_FILTER_RADIO_GROUP -->
-            </div>
-        </div>
+        <input type="text" id="searchInput" placeholder="Search task filenames and content..." value="<!-- SEARCH_QUERY_TAG -->">
     </div>
 
     <div class="button-group">
@@ -37,8 +21,32 @@
         <button class="secondary" id="cancelBtn">Close</button>
     </div>
 
-    <script nonce="<!-- NONCE -->">
-        /* JS */
+    <div class="filters-container">
+        <div class="filter-section">
+            <h2>Priority Filter</h2>
+            <div class="radio-group">
+                <!-- PRIORITY_FILTER_RADIO_GROUP_TAG -->
+            </div>
+        </div>
+
+        <div class="filter-section">
+            <h2>Time Filter</h2>
+            <div class="radio-group">
+                <!-- TIME_FILTER_RADIO_GROUP_TAG -->
+            </div>
+        </div>
+
+        <div class="filter-section">
+            <h2>Tag Filter</h2>
+            <div class="radio-group">
+                <!-- TAG_FILTER_RADIO_GROUP_TAG -->
+            </div>
+        </div>
+    </div>
+
+
+    <script nonce="<!-- NONCE_TAG -->">
+        /* JS_TAG */
     </script>
 </body>
 </html>
