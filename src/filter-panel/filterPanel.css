@@ -115,3 +115,10 @@ button.secondary {
 button.secondary:hover {
     background-color: var(--vscode-button-secondaryHoverBackground);
 }
+
+/* Tag filter uses a 3-column grid layout */
+.tag-filter-group {
+    display: grid;
+    grid-template-columns: repeat(3, auto);
+    gap: 10px 20px;
+}
