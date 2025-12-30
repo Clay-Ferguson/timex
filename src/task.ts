@@ -12,15 +12,19 @@ import { TaskProvider } from './model';
  * 1. Prompts for a filename (validates for invalid characters)
  * 2. Automatically appends `.md` extension if not provided
  * 3. Warns if the file already exists (with option to overwrite)
- * 4. Generates task content with the current timestamp and default priority (#p3)
+ * 4. Generates task content with the current timestamp and selected priority
  * 5. Opens the newly created file in the editor
  * 6. Refreshes the task tree view to show the new task
  * 
  * The generated task content uses the primary hashtag from configuration.
  * If in "all-tags" mode, the first configured hashtag is used instead.
  * 
- * @param taskProvider - The TaskProvider instance used to get the primary hashtag
- *                       and refresh the task tree view after creation
+ * The priority is determined by the current filter selection:
+ * - If a specific priority (p1/p2/p3) is selected in the filter, that priority is used
+ * - Otherwise defaults to #p3 (Low)
+ * 
+ * @param taskProvider - The TaskProvider instance used to get the primary hashtag,
+ *                       current priority filter, and refresh the task tree view after creation
  * @returns Promise that resolves when the task is created and opened,
  *          or when the user cancels the operation
  * 
@@ -112,7 +116,19 @@ export async function newTask(taskProvider: TaskProvider) {
 
         hashtagToUse = hashtags.length > 0 ? hashtags[0] : '#todo'; // fallback to #todo if no hashtags configured
     }
-    const taskContent = `\n\n${hashtagToUse} ${timestamp} #${PriorityTag.Low}`;
+
+    // Determine priority based on current filter selection
+    const currentPriorityFilter = taskProvider.getCurrentPriorityFilter();
+    let priorityTag: string;
+    if (currentPriorityFilter === PriorityTag.High || 
+        currentPriorityFilter === PriorityTag.Medium || 
+        currentPriorityFilter === PriorityTag.Low) {
+        priorityTag = currentPriorityFilter;
+    } else {
+        // Default to p3 (Low) when filter is "Any" or "None"
+        priorityTag = PriorityTag.Low;
+    }
+    const taskContent = `\n\n${hashtagToUse} ${timestamp} #${priorityTag}`;
 
     try {
         // Write the file
