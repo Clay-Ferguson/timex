@@ -28,7 +28,7 @@ echo "Compiling the project..."
 npm run compile || handle_error "npm run compile"
 
 echo "Packaging the extension..."
-vsce package || handle_error "vsce package"
+npx @vscode/vsce package || handle_error "vsce package"
 
 echo "Installing the extension in VS Code..."
 code --install-extension timex-0.0.2.vsix || handle_error "extension installation"
