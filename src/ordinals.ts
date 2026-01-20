@@ -7,7 +7,7 @@ import { ws_stat } from './ws-file-util';
 import { ws_mkdir } from './ws-file-util';
 import { ws_write_file } from './ws-file-util';
 import { ws_rename } from './ws-file-util';
-import { TaskProvider } from './model';
+import { TaskProvider } from './task-model';
 
 /**
  * Represents an item stored in the ordinal clipboard during cut/paste operations.

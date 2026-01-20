@@ -3,7 +3,7 @@ import * as path from 'path';
 import { formatTimestamp } from './utils';
 import { ws_exists, ws_delete, ws_write_file, ws_rename } from './ws-file-util';
 import { PriorityTag } from './constants';
-import { TaskProvider } from './model';
+import { TaskProvider } from './task-model';
 
 /**
  * Creates a new task file in the workspace root directory.

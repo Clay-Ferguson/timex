@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
-import { TaskProvider } from './model';
+import { TaskProvider } from './task-model';
 import {
 	getIncludeGlobPattern,
 	TIMESTAMP_REGEX,

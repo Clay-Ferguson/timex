@@ -3,7 +3,7 @@ import * as path from 'path';
 import { formatTimestamp, parseTimestamp, TIMESTAMP_REGEX } from './utils';
 import { ws_write_file } from './ws-file-util';
 import { ws_read_file } from './ws-file-util';
-import { TaskProvider } from './model';
+import { TaskProvider } from './task-model';
 
 /**
  * Adds a specified amount of time to a task's existing timestamp.
