@@ -1,5 +1,10 @@
 # Timex - Tools in Markdown (VSCode Extension)
 
+[![VS Code Extension](https://img.shields.io/badge/VS%20Code-Extension-007ACC?logo=visualstudiocode&logoColor=white)](package.json)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.8-3178C6?logo=typescript&logoColor=white)](tsconfig.json)
+[![Framework Free](https://img.shields.io/badge/Framework%20Free-green)](src/extension.ts)
+[![MIT License](https://img.shields.io/badge/License-MIT-yellow)](LICENSE.md)
+
 ## About Timex
 
 This extension contains several groups of related utilities and tools for Markdown files related to Calendar Management, Document Building/Management, and AI-assisted writing. Each feature set has its own documentation file as follows:
